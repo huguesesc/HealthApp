@@ -1,0 +1,37 @@
+# SwiftLint configuration
+included:
+  - Sources
+  - DeviceActivityMonitorExtension
+
+excluded:
+  - DerivedData
+  - .build
+  - HealthAssistant.xcodeproj
+
+disabled_rules:
+  - todo                 # we use TODOs deliberately during the MVP build
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - explicit_init
+  - first_where
+  - sorted_imports
+  - unused_import
+
+line_length:
+  warning: 100
+  error: 140
+  ignores_comments: true
+
+identifier_name:
+  min_length: 2
+  excluded: [id, ai, x, y]
+
+type_body_length:
+  warning: 300
+  error: 400
+
+file_length:
+  warning: 400
+  error: 600

@@ -1,0 +1,24 @@
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+
+# XcodeGen generates the project file
+HealthAssistant.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Transfer archives
+*.zip
+
+# Secrets — never commit. The API key lives in the device Keychain, not in files.
+Secrets.xcconfig
+*.env
