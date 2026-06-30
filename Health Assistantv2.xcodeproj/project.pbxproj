@@ -1,0 +1,782 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		180AD8772FF3E65A00218ACA /* String+Trim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8742FF3E65A00218ACA /* String+Trim.swift */; };
+		180AD8782FF3E65A00218ACA /* DailyCheckIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8682FF3E65A00218ACA /* DailyCheckIn.swift */; };
+		180AD8792FF3E65A00218ACA /* ClaudeAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8512FF3E65A00218ACA /* ClaudeAIClient.swift */; };
+		180AD87A2FF3E65A00218ACA /* RewardsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8712FF3E65A00218ACA /* RewardsEngine.swift */; };
+		180AD87B2FF3E65A00218ACA /* HealthDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8582FF3E65A00218ACA /* HealthDataRepository.swift */; };
+		180AD87C2FF3E65A00218ACA /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD86F2FF3E65A00218ACA /* PersistenceController.swift */; };
+		180AD87D2FF3E65A00218ACA /* ScreenTimeSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD86B2FF3E65A00218ACA /* ScreenTimeSnapshot.swift */; };
+		180AD87E2FF3E65A00218ACA /* WorkoutSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD86D2FF3E65A00218ACA /* WorkoutSession.swift */; };
+		180AD87F2FF3E65A00218ACA /* SleepEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD86C2FF3E65A00218ACA /* SleepEntry.swift */; };
+		180AD8802FF3E65A00218ACA /* APIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8502FF3E65A00218ACA /* APIKeyStore.swift */; };
+		180AD8812FF3E65A00218ACA /* ScreenTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD85F2FF3E65A00218ACA /* ScreenTimeView.swift */; };
+		180AD8822FF3E65A00218ACA /* DailyRollup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8692FF3E65A00218ACA /* DailyRollup.swift */; };
+		180AD8832FF3E65A00218ACA /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8732FF3E65A00218ACA /* AppGroup.swift */; };
+		180AD8842FF3E65A00218ACA /* StubAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8522FF3E65A00218ACA /* StubAIClient.swift */; };
+		180AD8852FF3E65A00218ACA /* ActivityEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8672FF3E65A00218ACA /* ActivityEvent.swift */; };
+		180AD8862FF3E65A00218ACA /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD85A2FF3E65A00218ACA /* DashboardView.swift */; };
+		180AD8872FF3E65A00218ACA /* WorkoutLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8642FF3E65A00218ACA /* WorkoutLogView.swift */; };
+		180AD8882FF3E65A00218ACA /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8612FF3E65A00218ACA /* CheckInView.swift */; };
+		180AD8892FF3E65A00218ACA /* ScreenTimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD85E2FF3E65A00218ACA /* ScreenTimeService.swift */; };
+		180AD88A2FF3E65A00218ACA /* VoiceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8532FF3E65A00218ACA /* VoiceTranscriber.swift */; };
+		180AD88B2FF3E65A00218ACA /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8562FF3E65A00218ACA /* RootView.swift */; };
+		180AD88C2FF3E65A00218ACA /* MealEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD85C2FF3E65A00218ACA /* MealEntryView.swift */; };
+		180AD88D2FF3E65A00218ACA /* HealthAssistantApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8552FF3E65A00218ACA /* HealthAssistantApp.swift */; };
+		180AD88E2FF3E65A00218ACA /* Meal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD86A2FF3E65A00218ACA /* Meal.swift */; };
+		180AD88F2FF3E65A00218ACA /* AIClientFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD84F2FF3E65A00218ACA /* AIClientFactory.swift */; };
+		180AD8902FF3E65A00218ACA /* AIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD84E2FF3E65A00218ACA /* AIClient.swift */; };
+		180AD8912FF3E65A00218ACA /* SleepEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8622FF3E65A00218ACA /* SleepEntryView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		180AD7C32FF3E44A00218ACA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 180AD7AA2FF3E44200218ACA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 180AD7B12FF3E44200218ACA;
+			remoteInfo = "Health Assistantv2";
+		};
+		180AD7CD2FF3E44A00218ACA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 180AD7AA2FF3E44200218ACA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 180AD7B12FF3E44200218ACA;
+			remoteInfo = "Health Assistantv2";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		180AD7B22FF3E44200218ACA /* Health Assistantv2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Health Assistantv2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		180AD7C22FF3E44A00218ACA /* Health Assistantv2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Health Assistantv2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		180AD7CC2FF3E44A00218ACA /* Health Assistantv2UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Health Assistantv2UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		180AD84E2FF3E65A00218ACA /* AIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIClient.swift; sourceTree = "<group>"; };
+		180AD84F2FF3E65A00218ACA /* AIClientFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIClientFactory.swift; sourceTree = "<group>"; };
+		180AD8502FF3E65A00218ACA /* APIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyStore.swift; sourceTree = "<group>"; };
+		180AD8512FF3E65A00218ACA /* ClaudeAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAIClient.swift; sourceTree = "<group>"; };
+		180AD8522FF3E65A00218ACA /* StubAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubAIClient.swift; sourceTree = "<group>"; };
+		180AD8532FF3E65A00218ACA /* VoiceTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranscriber.swift; sourceTree = "<group>"; };
+		180AD8552FF3E65A00218ACA /* HealthAssistantApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthAssistantApp.swift; sourceTree = "<group>"; };
+		180AD8562FF3E65A00218ACA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		180AD8582FF3E65A00218ACA /* HealthDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataRepository.swift; sourceTree = "<group>"; };
+		180AD85A2FF3E65A00218ACA /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		180AD85C2FF3E65A00218ACA /* MealEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealEntryView.swift; sourceTree = "<group>"; };
+		180AD85E2FF3E65A00218ACA /* ScreenTimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeService.swift; sourceTree = "<group>"; };
+		180AD85F2FF3E65A00218ACA /* ScreenTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeView.swift; sourceTree = "<group>"; };
+		180AD8612FF3E65A00218ACA /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInView.swift; sourceTree = "<group>"; };
+		180AD8622FF3E65A00218ACA /* SleepEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepEntryView.swift; sourceTree = "<group>"; };
+		180AD8642FF3E65A00218ACA /* WorkoutLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLogView.swift; sourceTree = "<group>"; };
+		180AD8672FF3E65A00218ACA /* ActivityEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEvent.swift; sourceTree = "<group>"; };
+		180AD8682FF3E65A00218ACA /* DailyCheckIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyCheckIn.swift; sourceTree = "<group>"; };
+		180AD8692FF3E65A00218ACA /* DailyRollup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRollup.swift; sourceTree = "<group>"; };
+		180AD86A2FF3E65A00218ACA /* Meal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meal.swift; sourceTree = "<group>"; };
+		180AD86B2FF3E65A00218ACA /* ScreenTimeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeSnapshot.swift; sourceTree = "<group>"; };
+		180AD86C2FF3E65A00218ACA /* SleepEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepEntry.swift; sourceTree = "<group>"; };
+		180AD86D2FF3E65A00218ACA /* WorkoutSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSession.swift; sourceTree = "<group>"; };
+		180AD86F2FF3E65A00218ACA /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		180AD8712FF3E65A00218ACA /* RewardsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsEngine.swift; sourceTree = "<group>"; };
+		180AD8732FF3E65A00218ACA /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
+		180AD8742FF3E65A00218ACA /* String+Trim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Trim.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		180AD7B42FF3E44200218ACA /* Health Assistantv2 */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Health Assistantv2";
+			sourceTree = "<group>";
+		};
+		180AD7C52FF3E44A00218ACA /* Health Assistantv2Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Health Assistantv2Tests";
+			sourceTree = "<group>";
+		};
+		180AD7CF2FF3E44A00218ACA /* Health Assistantv2UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Health Assistantv2UITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		180AD7AF2FF3E44200218ACA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7BF2FF3E44A00218ACA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7C92FF3E44A00218ACA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		180AD7A92FF3E44200218ACA = {
+			isa = PBXGroup;
+			children = (
+				180AD7B42FF3E44200218ACA /* Health Assistantv2 */,
+				180AD7C52FF3E44A00218ACA /* Health Assistantv2Tests */,
+				180AD7CF2FF3E44A00218ACA /* Health Assistantv2UITests */,
+				180AD7B32FF3E44200218ACA /* Products */,
+				180AD8762FF3E65A00218ACA /* Sources */,
+			);
+			sourceTree = "<group>";
+		};
+		180AD7B32FF3E44200218ACA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				180AD7B22FF3E44200218ACA /* Health Assistantv2.app */,
+				180AD7C22FF3E44A00218ACA /* Health Assistantv2Tests.xctest */,
+				180AD7CC2FF3E44A00218ACA /* Health Assistantv2UITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		180AD8542FF3E65A00218ACA /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				180AD84E2FF3E65A00218ACA /* AIClient.swift */,
+				180AD84F2FF3E65A00218ACA /* AIClientFactory.swift */,
+				180AD8502FF3E65A00218ACA /* APIKeyStore.swift */,
+				180AD8512FF3E65A00218ACA /* ClaudeAIClient.swift */,
+				180AD8522FF3E65A00218ACA /* StubAIClient.swift */,
+				180AD8532FF3E65A00218ACA /* VoiceTranscriber.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		180AD8572FF3E65A00218ACA /* App */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8552FF3E65A00218ACA /* HealthAssistantApp.swift */,
+				180AD8562FF3E65A00218ACA /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		180AD8592FF3E65A00218ACA /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8582FF3E65A00218ACA /* HealthDataRepository.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		180AD85B2FF3E65A00218ACA /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				180AD85A2FF3E65A00218ACA /* DashboardView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		180AD85D2FF3E65A00218ACA /* Nutrition */ = {
+			isa = PBXGroup;
+			children = (
+				180AD85C2FF3E65A00218ACA /* MealEntryView.swift */,
+			);
+			path = Nutrition;
+			sourceTree = "<group>";
+		};
+		180AD8602FF3E65A00218ACA /* ScreenTime */ = {
+			isa = PBXGroup;
+			children = (
+				180AD85E2FF3E65A00218ACA /* ScreenTimeService.swift */,
+				180AD85F2FF3E65A00218ACA /* ScreenTimeView.swift */,
+			);
+			path = ScreenTime;
+			sourceTree = "<group>";
+		};
+		180AD8632FF3E65A00218ACA /* Sleep */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8612FF3E65A00218ACA /* CheckInView.swift */,
+				180AD8622FF3E65A00218ACA /* SleepEntryView.swift */,
+			);
+			path = Sleep;
+			sourceTree = "<group>";
+		};
+		180AD8652FF3E65A00218ACA /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8642FF3E65A00218ACA /* WorkoutLogView.swift */,
+			);
+			path = Workout;
+			sourceTree = "<group>";
+		};
+		180AD8662FF3E65A00218ACA /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				180AD85B2FF3E65A00218ACA /* Dashboard */,
+				180AD85D2FF3E65A00218ACA /* Nutrition */,
+				180AD8602FF3E65A00218ACA /* ScreenTime */,
+				180AD8632FF3E65A00218ACA /* Sleep */,
+				180AD8652FF3E65A00218ACA /* Workout */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		180AD86E2FF3E65A00218ACA /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8672FF3E65A00218ACA /* ActivityEvent.swift */,
+				180AD8682FF3E65A00218ACA /* DailyCheckIn.swift */,
+				180AD8692FF3E65A00218ACA /* DailyRollup.swift */,
+				180AD86A2FF3E65A00218ACA /* Meal.swift */,
+				180AD86B2FF3E65A00218ACA /* ScreenTimeSnapshot.swift */,
+				180AD86C2FF3E65A00218ACA /* SleepEntry.swift */,
+				180AD86D2FF3E65A00218ACA /* WorkoutSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		180AD8702FF3E65A00218ACA /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				180AD86F2FF3E65A00218ACA /* PersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		180AD8722FF3E65A00218ACA /* Rewards */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8712FF3E65A00218ACA /* RewardsEngine.swift */,
+			);
+			path = Rewards;
+			sourceTree = "<group>";
+		};
+		180AD8752FF3E65A00218ACA /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8732FF3E65A00218ACA /* AppGroup.swift */,
+				180AD8742FF3E65A00218ACA /* String+Trim.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		180AD8762FF3E65A00218ACA /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				180AD8542FF3E65A00218ACA /* AI */,
+				180AD8572FF3E65A00218ACA /* App */,
+				180AD8592FF3E65A00218ACA /* Data */,
+				180AD8662FF3E65A00218ACA /* Features */,
+				180AD86E2FF3E65A00218ACA /* Models */,
+				180AD8702FF3E65A00218ACA /* Persistence */,
+				180AD8722FF3E65A00218ACA /* Rewards */,
+				180AD8752FF3E65A00218ACA /* Shared */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		180AD7B12FF3E44200218ACA /* Health Assistantv2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 180AD7D62FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2" */;
+			buildPhases = (
+				180AD7AE2FF3E44200218ACA /* Sources */,
+				180AD7AF2FF3E44200218ACA /* Frameworks */,
+				180AD7B02FF3E44200218ACA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				180AD7B42FF3E44200218ACA /* Health Assistantv2 */,
+			);
+			name = "Health Assistantv2";
+			packageProductDependencies = (
+			);
+			productName = "Health Assistantv2";
+			productReference = 180AD7B22FF3E44200218ACA /* Health Assistantv2.app */;
+			productType = "com.apple.product-type.application";
+		};
+		180AD7C12FF3E44A00218ACA /* Health Assistantv2Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 180AD7D92FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2Tests" */;
+			buildPhases = (
+				180AD7BE2FF3E44A00218ACA /* Sources */,
+				180AD7BF2FF3E44A00218ACA /* Frameworks */,
+				180AD7C02FF3E44A00218ACA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				180AD7C42FF3E44A00218ACA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				180AD7C52FF3E44A00218ACA /* Health Assistantv2Tests */,
+			);
+			name = "Health Assistantv2Tests";
+			packageProductDependencies = (
+			);
+			productName = "Health Assistantv2Tests";
+			productReference = 180AD7C22FF3E44A00218ACA /* Health Assistantv2Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		180AD7CB2FF3E44A00218ACA /* Health Assistantv2UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 180AD7DC2FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2UITests" */;
+			buildPhases = (
+				180AD7C82FF3E44A00218ACA /* Sources */,
+				180AD7C92FF3E44A00218ACA /* Frameworks */,
+				180AD7CA2FF3E44A00218ACA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				180AD7CE2FF3E44A00218ACA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				180AD7CF2FF3E44A00218ACA /* Health Assistantv2UITests */,
+			);
+			name = "Health Assistantv2UITests";
+			packageProductDependencies = (
+			);
+			productName = "Health Assistantv2UITests";
+			productReference = 180AD7CC2FF3E44A00218ACA /* Health Assistantv2UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		180AD7AA2FF3E44200218ACA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					180AD7B12FF3E44200218ACA = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					180AD7C12FF3E44A00218ACA = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 180AD7B12FF3E44200218ACA;
+					};
+					180AD7CB2FF3E44A00218ACA = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 180AD7B12FF3E44200218ACA;
+					};
+				};
+			};
+			buildConfigurationList = 180AD7AD2FF3E44200218ACA /* Build configuration list for PBXProject "Health Assistantv2" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 180AD7A92FF3E44200218ACA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 180AD7B32FF3E44200218ACA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				180AD7B12FF3E44200218ACA /* Health Assistantv2 */,
+				180AD7C12FF3E44A00218ACA /* Health Assistantv2Tests */,
+				180AD7CB2FF3E44A00218ACA /* Health Assistantv2UITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		180AD7B02FF3E44200218ACA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7C02FF3E44A00218ACA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7CA2FF3E44A00218ACA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		180AD7AE2FF3E44200218ACA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				180AD8772FF3E65A00218ACA /* String+Trim.swift in Sources */,
+				180AD8782FF3E65A00218ACA /* DailyCheckIn.swift in Sources */,
+				180AD8792FF3E65A00218ACA /* ClaudeAIClient.swift in Sources */,
+				180AD87A2FF3E65A00218ACA /* RewardsEngine.swift in Sources */,
+				180AD87B2FF3E65A00218ACA /* HealthDataRepository.swift in Sources */,
+				180AD87C2FF3E65A00218ACA /* PersistenceController.swift in Sources */,
+				180AD87D2FF3E65A00218ACA /* ScreenTimeSnapshot.swift in Sources */,
+				180AD87E2FF3E65A00218ACA /* WorkoutSession.swift in Sources */,
+				180AD87F2FF3E65A00218ACA /* SleepEntry.swift in Sources */,
+				180AD8802FF3E65A00218ACA /* APIKeyStore.swift in Sources */,
+				180AD8812FF3E65A00218ACA /* ScreenTimeView.swift in Sources */,
+				180AD8822FF3E65A00218ACA /* DailyRollup.swift in Sources */,
+				180AD8832FF3E65A00218ACA /* AppGroup.swift in Sources */,
+				180AD8842FF3E65A00218ACA /* StubAIClient.swift in Sources */,
+				180AD8852FF3E65A00218ACA /* ActivityEvent.swift in Sources */,
+				180AD8862FF3E65A00218ACA /* DashboardView.swift in Sources */,
+				180AD8872FF3E65A00218ACA /* WorkoutLogView.swift in Sources */,
+				180AD8882FF3E65A00218ACA /* CheckInView.swift in Sources */,
+				180AD8892FF3E65A00218ACA /* ScreenTimeService.swift in Sources */,
+				180AD88A2FF3E65A00218ACA /* VoiceTranscriber.swift in Sources */,
+				180AD88B2FF3E65A00218ACA /* RootView.swift in Sources */,
+				180AD88C2FF3E65A00218ACA /* MealEntryView.swift in Sources */,
+				180AD88D2FF3E65A00218ACA /* HealthAssistantApp.swift in Sources */,
+				180AD88E2FF3E65A00218ACA /* Meal.swift in Sources */,
+				180AD88F2FF3E65A00218ACA /* AIClientFactory.swift in Sources */,
+				180AD8902FF3E65A00218ACA /* AIClient.swift in Sources */,
+				180AD8912FF3E65A00218ACA /* SleepEntryView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7BE2FF3E44A00218ACA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		180AD7C82FF3E44A00218ACA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		180AD7C42FF3E44A00218ACA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 180AD7B12FF3E44200218ACA /* Health Assistantv2 */;
+			targetProxy = 180AD7C32FF3E44A00218ACA /* PBXContainerItemProxy */;
+		};
+		180AD7CE2FF3E44A00218ACA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 180AD7B12FF3E44200218ACA /* Health Assistantv2 */;
+			targetProxy = 180AD7CD2FF3E44A00218ACA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		180AD7D42FF3E44A00218ACA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		180AD7D52FF3E44A00218ACA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		180AD7D72FF3E44A00218ACA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Health Assistantv2/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		180AD7D82FF3E44A00218ACA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Health Assistantv2/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		180AD7DA2FF3E44A00218ACA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Health Assistantv2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Health Assistantv2";
+			};
+			name = Debug;
+		};
+		180AD7DB2FF3E44A00218ACA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Health Assistantv2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Health Assistantv2";
+			};
+			name = Release;
+		};
+		180AD7DD2FF3E44A00218ACA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Health Assistantv2";
+			};
+			name = Debug;
+		};
+		180AD7DE2FF3E44A00218ACA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wannadevanapp.Health-Assistantv2UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Health Assistantv2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		180AD7AD2FF3E44200218ACA /* Build configuration list for PBXProject "Health Assistantv2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				180AD7D42FF3E44A00218ACA /* Debug */,
+				180AD7D52FF3E44A00218ACA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		180AD7D62FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				180AD7D72FF3E44A00218ACA /* Debug */,
+				180AD7D82FF3E44A00218ACA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		180AD7D92FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				180AD7DA2FF3E44A00218ACA /* Debug */,
+				180AD7DB2FF3E44A00218ACA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		180AD7DC2FF3E44A00218ACA /* Build configuration list for PBXNativeTarget "Health Assistantv2UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				180AD7DD2FF3E44A00218ACA /* Debug */,
+				180AD7DE2FF3E44A00218ACA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 180AD7AA2FF3E44200218ACA /* Project object */;
+}

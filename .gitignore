@@ -1,12 +1,13 @@
-# Xcode
-*.xcodeproj/
-*.xcworkspace/
+# Xcode — we now commit the hand-made Health Assistantv2.xcodeproj so the repo
+# opens & runs on any Mac with no XcodeGen/Homebrew. Never commit user state.
 xcuserdata/
 DerivedData/
 build/
 *.xcuserstate
 
-# XcodeGen generates the project file
+# XcodeGen project.yml is kept for the later Screen Time milestone; if you ever
+# regenerate that project, it would be named HealthAssistant.xcodeproj — ignore it
+# so it doesn't collide with the committed one.
 HealthAssistant.xcodeproj/
 
 # Swift Package Manager
