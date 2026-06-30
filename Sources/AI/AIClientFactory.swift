@@ -9,9 +9,9 @@ import Foundation
 /// this factory is provider-agnostic, so nothing else changes.
 enum AIClientFactory {
     static func makeDefault() -> AIClient {
-        StubAIClient()
-        // To enable real calls in M2:
-        //   guard APIKeyStore.read() != nil else { return StubAIClient() }
-        //   return ClaudeAIClient()
+        // M2: use the real Claude client once the user has stored a key; otherwise
+        // stay on the offline stub so the app always works with no key / no network.
+        guard let key = APIKeyStore.read(), !key.isEmpty else { return StubAIClient() }
+        return ClaudeAIClient()
     }
 }

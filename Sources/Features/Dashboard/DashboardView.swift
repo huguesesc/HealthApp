@@ -16,6 +16,9 @@ struct DashboardView: View {
     private var repo: HealthDataRepository { HealthDataRepository(context: modelContext) }
     private let rewards = RewardsEngine()
 
+    @State private var isGenerating = false
+    @State private var errorMessage: String?
+
     var body: some View {
         List {
             Section("Today") {
@@ -32,8 +35,28 @@ struct DashboardView: View {
             }
 
             Section("Daily summary") {
-                Text(rollups.first?.summaryText ?? "No summary yet — AI summary comes in M2.")
+                Text(rollups.first?.summaryText ?? "No summary yet — tap Generate to create one.")
                     .foregroundStyle(rollups.first?.summaryText == nil ? .secondary : .primary)
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                Button {
+                    generateSummary()
+                } label: {
+                    if isGenerating {
+                        HStack {
+                            ProgressView()
+                            Text("Generating…")
+                        }
+                    } else {
+                        Label("Generate summary", systemImage: "sparkles")
+                    }
+                }
+                .disabled(isGenerating)
             }
 
             Section("Log & explore") {
@@ -45,6 +68,15 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Today")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+            }
+        }
         .onAppear { repo.refreshTodayRollup() }
     }
 
@@ -73,6 +105,40 @@ struct DashboardView: View {
             Text(title)
             Spacer()
             Text(value).foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - AI summary
+
+    private func generateSummary() {
+        errorMessage = nil
+        guard let key = APIKeyStore.read(), !key.isEmpty else {
+            errorMessage = "Add your Claude API key in Settings first."
+            return
+        }
+        isGenerating = true
+        Task { @MainActor in
+            do {
+                let context = repo.todayContext()
+                let result = try await AIClientFactory.makeDefault().summarizeDay(context)
+                repo.saveTodaySummary(result)
+            } catch {
+                errorMessage = Self.describe(error)
+            }
+            isGenerating = false
+        }
+    }
+
+    private static func describe(_ error: Error) -> String {
+        switch error {
+        case AIClientError.missingAPIKey:
+            return "No API key found. Add one in Settings."
+        case let AIClientError.badResponse(statusCode, _):
+            return statusCode == 401
+                ? "API key was rejected (401). Re-check it in Settings."
+                : "The AI service returned an error (\(statusCode))."
+        default:
+            return "Couldn't generate a summary. Check your connection and try again."
         }
     }
 }

@@ -149,6 +149,15 @@ struct HealthDataRepository {
         )
     }
 
+    /// Attach an AI-generated summary to today's rollup (upserting it first), and
+    /// record which model produced it. Called after `summarizeDay` succeeds.
+    func saveTodaySummary(_ result: DailySummaryResult) {
+        let rollup = refreshTodayRollup()
+        rollup.summaryText = result.text
+        rollup.modelUsed = result.modelUsed
+        persist()
+    }
+
     // MARK: - Helpers
 
     private func insertEvent(_ type: ActivityEventType, detail: String? = nil) {
