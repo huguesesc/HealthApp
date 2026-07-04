@@ -82,10 +82,17 @@ event log — not logic embedded per feature — is what keeps it from tangling.
 
 `AIClient` exposes intent-level methods, not raw prompts:
 
-- `parseMeal(text:)` — text → nutrition estimate
-- `parseWorkout(text:)` — text → structured sets (for future voice logging)
-- `summarizeDay(_:)` — hedged daily summary
-- `ask(_:recent:)` — the central assistant, over compact `RollupSnapshot` history
+- `parseMeal(text:)` — text → nutrition estimate ("Estimate with AI" on the meal form)
+- `parseWorkout(text:)` — text → structured sets ("Fill in with AI" on the workout form)
+- `summarizeDay(_:)` — hedged daily summary from an enriched `DailyContext`
+  (per-meal macros, workout detail, sleep quality, check-in note, streak)
+- `ask(_:recent:)` — one-shot Q&A over compact `RollupSnapshot` history
+- `chat(_:tools:system:)` — **the centerpiece**: one round of the agentic tool-use
+  loop. `ChatEngine` (`Sources/Features/Chat/`) drives it: `propose_meal` /
+  `propose_workout` draft inline confirmation cards (per-food portion assumptions
+  shown so the user can catch bad guesses; writes happen only on Save, through
+  `HealthDataRepository`), `get_recent_summaries` feeds rollup JSON back for data
+  questions. Chat runs on `claude-sonnet-4-6`; one-shot calls stay on Haiku.
 - `estimateMeal(image:)` — **future/premium**, throws `notImplemented`
 
 Implementations:
@@ -128,10 +135,15 @@ Once HealthKit data is in play, sending it to a third-party LLM is restricted by
 App Store guideline 5.1.3. The assistant will need explicit, per-data-type consent
 and a privacy policy. Designed for, not built yet.
 
-## Navigation
+## Navigation & identity
 
-`RootView` is a single `NavigationStack` with `DashboardView` as home; every module
-is an entry point from the dashboard. No tab bar.
+`RootView` is a single `NavigationStack` with `DashboardView` as home. The
+**Assistant (ChatView) is the front door** — the hero card at the top of the
+dashboard; every module remains reachable from the module list below. No tab bar.
+
+Visual identity lives in `Sources/Shared/Theme.swift` (evergreen / moss / clay /
+honey over system grouped backgrounds, shared `.card()` container, rounded stat
+numerals). New UI should use `Theme` colors, not ad-hoc ones.
 
 ## Decisions log
 

@@ -8,24 +8,24 @@ plan, and `docs/architecture.md` for the technical decisions.
 
 ## Status
 
-M1 simulator build: local logging, dashboard, and SwiftData persistence. Nothing
-here makes live AI calls yet; the AI layer is behind a protocol
-(`Sources/AI/AIClient.swift`) with a stub implementation so the app runs fully
-offline.
+The app is centered on a **chat assistant** (`Sources/Features/Chat/`): freeform
+logging ("I had two eggs and toast") drafts inline confirmation cards showing the
+model's per-food assumptions, and questions are answered from compact daily
+rollups. Around it: manual + AI-assisted logging for meals/workouts/sleep/
+check-ins, a one-tap AI daily summary, and streaks. The AI layer is behind a
+protocol (`Sources/AI/AIClient.swift`); with no API key everything still runs
+offline on the stub. The user's Claude key is entered once in Settings
+(Keychain via `APIKeyStore`).
 
 ## Building
 
 > ⚠️ Requires **macOS + Xcode**. The Swift toolchain, SwiftLint, and SwiftFormat do
 > not run on Windows. Files can be edited anywhere; they only build on a Mac.
 
-This project uses [XcodeGen](https://github.com/yonsm/XcodeGen) to generate the
-`.xcodeproj` from `project.yml`, so the project file itself is never hand-edited.
-
-```bash
-brew install xcodegen swiftlint swiftformat
-xcodegen generate      # produces HealthAssistant.xcodeproj
-open HealthAssistant.xcodeproj
-```
+The Xcode project is committed directly — open `Health Assistantv2.xcodeproj`
+and build the **Health Assistantv2** scheme. Note: `Sources/` is referenced as
+classic groups, so any NEW .swift file must be added to the target (or to
+`project.pbxproj`) by hand.
 
 Then in Xcode:
 1. Set your Development Team and a unique bundle ID prefix (replace `com.example`).
