@@ -16,6 +16,11 @@ struct ClaudeAIClient: AIClient {
     var model = "claude-haiku-4-5"
     var maxTokens = 1024
 
+    /// The agentic chat assistant runs on a stronger model: reliable tool-calling
+    /// matters when it is drafting real data. One-shot calls stay on the cheap model.
+    var chatModel = "claude-sonnet-4-6"
+    var chatMaxTokens = 2048
+
     private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     private let session: URLSession
 
@@ -76,6 +81,100 @@ struct ClaudeAIClient: AIClient {
     func estimateMeal(image: Data) async throws -> MealEstimate {
         // Vision / photo estimation is deliberately deferred (premium feature).
         throw AIClientError.notImplemented
+    }
+
+    // MARK: - Tool-use chat (the agentic assistant)
+
+    func chat(_ turns: [ChatTurn], tools: [ChatToolDef], system: String) async throws -> ChatReply {
+        guard let key = APIKeyStore.read(), !key.isEmpty else {
+            throw AIClientError.missingAPIKey
+        }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let body: [String: Any] = [
+            "model": chatModel,
+            "max_tokens": chatMaxTokens,
+            "system": system,
+            "tools": tools.map { tool in
+                [
+                    "name": tool.name,
+                    "description": tool.description,
+                    "input_schema": jsonObject(from: tool.inputSchemaJSON),
+                ] as [String: Any]
+            },
+            "messages": turns.map(encodeTurn),
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw AIClientError.badResponse(
+                statusCode: code,
+                body: String(data: data, encoding: .utf8) ?? ""
+            )
+        }
+        return try parseChatReply(from: data)
+    }
+
+    private func encodeTurn(_ turn: ChatTurn) -> [String: Any] {
+        let blocks: [[String: Any]] = turn.content.map { content -> [String: Any] in
+            switch content {
+            case .text(let text):
+                return ["type": "text", "text": text]
+            case .toolUse(let call):
+                return [
+                    "type": "tool_use",
+                    "id": call.id,
+                    "name": call.name,
+                    "input": jsonObject(from: call.inputJSON),
+                ]
+            case .toolResult(let toolUseID, let text):
+                return [
+                    "type": "tool_result",
+                    "tool_use_id": toolUseID,
+                    "content": text,
+                ]
+            }
+        }
+        return ["role": turn.role.rawValue, "content": blocks]
+    }
+
+    private func parseChatReply(from data: Data) throws -> ChatReply {
+        guard
+            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let content = root["content"] as? [[String: Any]]
+        else {
+            throw AIClientError.decodingFailed("unexpected chat response shape")
+        }
+        var text = ""
+        var toolCalls: [ChatToolCall] = []
+        for block in content {
+            switch block["type"] as? String {
+            case "text":
+                text += (block["text"] as? String) ?? ""
+            case "tool_use":
+                guard let id = block["id"] as? String,
+                      let name = block["name"] as? String else { continue }
+                let input = block["input"] ?? [String: Any]()
+                let inputData = (try? JSONSerialization.data(withJSONObject: input)) ?? Data("{}".utf8)
+                let inputJSON = String(data: inputData, encoding: .utf8) ?? "{}"
+                toolCalls.append(ChatToolCall(id: id, name: name, inputJSON: inputJSON))
+            default:
+                continue
+            }
+        }
+        return ChatReply(text: text, toolCalls: toolCalls)
+    }
+
+    /// Parse a raw JSON object string; malformed input degrades to an empty object
+    /// rather than failing the whole request.
+    private func jsonObject(from json: String) -> [String: Any] {
+        (try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any]) ?? [:]
     }
 
     // MARK: - Transport

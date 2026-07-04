@@ -17,6 +17,11 @@ protocol AIClient {
     /// The central assistant: answer a question using compact recent history.
     func ask(_ question: String, recent: [RollupSnapshot]) async throws -> String
 
+    /// One round of the agentic chat loop: send the conversation plus tool
+    /// definitions, get back the assistant's text and any tool calls. The caller
+    /// (ChatEngine) executes the tools and loops until there are none.
+    func chat(_ turns: [ChatTurn], tools: [ChatToolDef], system: String) async throws -> ChatReply
+
     /// FUTURE (premium): estimate nutrition from a food photo. Not implemented yet
     /// — implementations should throw `AIClientError.notImplemented`.
     func estimateMeal(image: Data) async throws -> MealEstimate

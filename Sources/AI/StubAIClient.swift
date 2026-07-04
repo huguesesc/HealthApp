@@ -40,4 +40,13 @@ struct StubAIClient: AIClient {
     func estimateMeal(image: Data) async throws -> MealEstimate {
         throw AIClientError.notImplemented
     }
+
+    func chat(_ turns: [ChatTurn], tools: [ChatToolDef], system: String) async throws -> ChatReply {
+        ChatReply(
+            text: "The assistant isn't connected yet — add your Claude API key in "
+                + "Settings and I'll be able to log meals and workouts from chat "
+                + "and answer questions about your data.",
+            toolCalls: []
+        )
+    }
 }
