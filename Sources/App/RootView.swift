@@ -8,6 +8,7 @@ struct RootView: View {
         NavigationStack {
             DashboardView()
         }
+        .tint(Theme.evergreen)
     }
 }
 
