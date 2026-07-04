@@ -55,10 +55,18 @@ struct ParsedSet: Codable, Equatable {
 /// `HealthDataRepository.todayContext()`. Screen-time is a coarse signal only.
 struct DailyContext: Codable, Equatable {
     var date: Date
+    /// Each meal as logged, with any macro estimate inlined for the model.
     var meals: [String]
+    var totalCalories: Int?
+    var proteinGrams: Double?
+    var carbsGrams: Double?
+    var fatGrams: Double?
     var workoutSummary: String?
     var sleepSummary: String?
     var checkIn: [String: Int]
+    var checkInNote: String?
+    /// Current logging streak in days, for encouragement.
+    var streakDays: Int?
     var screenTimeExceededLimit: Bool?
 }
 

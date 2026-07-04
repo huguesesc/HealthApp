@@ -127,26 +127,71 @@ struct HealthDataRepository {
         }
     }
 
-    /// Assemble today's cross-module context for `summarizeDay`.
+    /// Assemble today's cross-module context for `summarizeDay`. Substantive on
+    /// purpose: macros, workout detail, sleep quality, the check-in note and the
+    /// streak all go in so the summary has something real to comment on.
     func todayContext() -> DailyContext {
         var checkInValues: [String: Int] = [:]
+        var checkInNote: String?
         if let checkIn = checkInToday() {
             if let value = checkIn.energy { checkInValues["energy"] = value }
             if let value = checkIn.mood { checkInValues["mood"] = value }
+            if let value = checkIn.hunger { checkInValues["hunger"] = value }
             if let value = checkIn.soreness { checkInValues["soreness"] = value }
             if let value = checkIn.focus { checkInValues["focus"] = value }
             if let value = checkIn.stress { checkInValues["stress"] = value }
+            checkInNote = checkIn.note
         }
-        let workout = workoutsToday().first
-        let sleep = latestSleep()
+
+        let meals = mealsToday()
+        let calories = meals.compactMap(\.calories)
+        let protein = meals.compactMap(\.proteinGrams)
+        let carbs = meals.compactMap(\.carbsGrams)
+        let fat = meals.compactMap(\.fatGrams)
+
+        let streak = RewardsEngine().headlineStreak(in: recentEvents())
+
         return DailyContext(
             date: Calendar.current.startOfDay(for: .now),
-            meals: mealsToday().map(\.rawText),
-            workoutSummary: workout.map { "\($0.type), \($0.sets.count) set(s)" },
-            sleepSummary: sleep.flatMap(sleepHours).map { String(format: "%.1f h", $0) },
+            meals: meals.map(mealDescription),
+            totalCalories: calories.isEmpty ? nil : calories.reduce(0, +),
+            proteinGrams: protein.isEmpty ? nil : protein.reduce(0, +),
+            carbsGrams: carbs.isEmpty ? nil : carbs.reduce(0, +),
+            fatGrams: fat.isEmpty ? nil : fat.reduce(0, +),
+            workoutSummary: workoutsToday().first.map(workoutDescription),
+            sleepSummary: latestSleep().map(sleepDescription),
             checkIn: checkInValues,
+            checkInNote: checkInNote,
+            streakDays: streak > 0 ? streak : nil,
             screenTimeExceededLimit: nil
         )
+    }
+
+    private func mealDescription(_ meal: Meal) -> String {
+        var parts: [String] = []
+        if let calories = meal.calories { parts.append("~\(calories) kcal") }
+        var macros: [String] = []
+        if let protein = meal.proteinGrams { macros.append("P \(Int(protein))") }
+        if let carbs = meal.carbsGrams { macros.append("C \(Int(carbs))") }
+        if let fat = meal.fatGrams { macros.append("F \(Int(fat))") }
+        if !macros.isEmpty { parts.append(macros.joined(separator: "/")) }
+        return parts.isEmpty ? meal.rawText : "\(meal.rawText) (\(parts.joined(separator: ", ")))"
+    }
+
+    private func workoutDescription(_ session: WorkoutSession) -> String {
+        var parts = [session.type]
+        if !session.sets.isEmpty { parts.append("\(session.sets.count) set(s)") }
+        if let effort = session.perceivedEffort { parts.append("effort \(effort)/10") }
+        if let minutes = session.durationMinutes { parts.append("\(minutes) min") }
+        return parts.joined(separator: ", ")
+    }
+
+    private func sleepDescription(_ entry: SleepEntry) -> String {
+        var parts: [String] = []
+        if let hours = sleepHours(entry) { parts.append(String(format: "%.1f h", hours)) }
+        if let quality = entry.perceivedQuality { parts.append("quality \(quality)/5") }
+        if let tiredness = entry.tiredness { parts.append("woke tired \(tiredness)/5") }
+        return parts.isEmpty ? "logged" : parts.joined(separator: ", ")
     }
 
     /// Attach an AI-generated summary to today's rollup (upserting it first), and

@@ -55,10 +55,14 @@ struct ClaudeAIClient: AIClient {
     func summarizeDay(_ context: DailyContext) async throws -> DailySummaryResult {
         let system = """
         You are a supportive personal wellness assistant. You are NOT a doctor and do \
-        not diagnose. Give a short (2–4 sentence) summary connecting the day's sleep, \
-        food, workout, and habits. Use hedged language ("rough", "consider", "general \
+        not diagnose. Write a 3–5 sentence summary of the user's day that connects \
+        the data: comment on the food actually eaten (calorie/macro balance when the \
+        numbers are there), the workout and how it fits with sleep and energy, and \
+        acknowledge the streak if present. End with one small, concrete, gentle \
+        suggestion for tomorrow. Use hedged language ("rough", "consider", "general \
         wellness suggestion"). Avoid "you must", medical claims, extreme diet or \
-        unsafe workout advice.
+        unsafe workout advice. If a section has no data, skip it rather than \
+        commenting on its absence more than once.
         """
         let userText = "Here is today's data as JSON:\n" + encodeToString(context)
         let text = try await sendForText(system: system, userText: userText)

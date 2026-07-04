@@ -58,11 +58,38 @@ private struct WorkoutEntryForm: View {
     @State private var newReps = 8
     @State private var newWeight = ""
 
+    @State private var freeformText = ""
+    @State private var isParsing = false
+    @State private var parseError: String?
+
     private var repo: HealthDataRepository { HealthDataRepository(context: modelContext) }
+    private var hasKey: Bool { APIKeyStore.read()?.isEmpty == false }
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Describe it") {
+                    TextField("e.g. push day — bench 3×8 at 60 kg", text: $freeformText, axis: .vertical)
+                    Button {
+                        parseWithAI()
+                    } label: {
+                        if isParsing {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("Filling in…")
+                            }
+                        } else {
+                            Label("Fill in with AI", systemImage: "sparkles")
+                        }
+                    }
+                    .disabled(freeformText.trimmed.isEmpty || isParsing)
+                    if let parseError {
+                        Text(parseError)
+                            .font(.caption)
+                            .foregroundStyle(Theme.clay)
+                    }
+                }
+
                 Section("Session") {
                     TextField("Type, e.g. Push / Run", text: $type)
                     Stepper("Effort: \(effort)/10", value: $effort, in: 1...10)
@@ -97,6 +124,31 @@ private struct WorkoutEntryForm: View {
                     Button("Save", action: save).disabled(type.trimmed.isEmpty)
                 }
             }
+        }
+    }
+
+    private func parseWithAI() {
+        parseError = nil
+        guard hasKey else {
+            parseError = "Add your Claude API key in Settings first."
+            return
+        }
+        isParsing = true
+        Task { @MainActor in
+            do {
+                let parsed = try await AIClientFactory.makeDefault()
+                    .parseWorkout(text: freeformText.trimmed)
+                type = parsed.type
+                if let parsedEffort = parsed.perceivedEffort {
+                    effort = min(max(parsedEffort, 1), 10)
+                }
+                draftSets = parsed.sets.map {
+                    DraftSet(name: $0.exerciseName, reps: $0.reps, weight: $0.weightKilograms)
+                }
+            } catch {
+                parseError = "Couldn't parse that. Check your connection and try again."
+            }
+            isParsing = false
         }
     }
 
