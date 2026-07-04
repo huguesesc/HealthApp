@@ -34,6 +34,10 @@
 		180AD88F2FF3E65A00218ACA /* AIClientFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD84F2FF3E65A00218ACA /* AIClientFactory.swift */; };
 		180AD8902FF3E65A00218ACA /* AIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD84E2FF3E65A00218ACA /* AIClient.swift */; };
 		180AD8912FF3E65A00218ACA /* SleepEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180AD8622FF3E65A00218ACA /* SleepEntryView.swift */; };
+		18C7B1112FF3E65A00218ACA /* ChatTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1012FF3E65A00218ACA /* ChatTypes.swift */; };
+		18C7B1122FF3E65A00218ACA /* ChatEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1022FF3E65A00218ACA /* ChatEngine.swift */; };
+		18C7B1132FF3E65A00218ACA /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1032FF3E65A00218ACA /* ChatView.swift */; };
+		18C7B1142FF3E65A00218ACA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1042FF3E65A00218ACA /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +88,10 @@
 		180AD8712FF3E65A00218ACA /* RewardsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsEngine.swift; sourceTree = "<group>"; };
 		180AD8732FF3E65A00218ACA /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		180AD8742FF3E65A00218ACA /* String+Trim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Trim.swift"; sourceTree = "<group>"; };
+		18C7B1012FF3E65A00218ACA /* ChatTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTypes.swift; sourceTree = "<group>"; };
+		18C7B1022FF3E65A00218ACA /* ChatEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatEngine.swift; sourceTree = "<group>"; };
+		18C7B1032FF3E65A00218ACA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		18C7B1042FF3E65A00218ACA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -156,6 +164,7 @@
 				180AD84E2FF3E65A00218ACA /* AIClient.swift */,
 				180AD84F2FF3E65A00218ACA /* AIClientFactory.swift */,
 				180AD8502FF3E65A00218ACA /* APIKeyStore.swift */,
+				18C7B1012FF3E65A00218ACA /* ChatTypes.swift */,
 				180AD8512FF3E65A00218ACA /* ClaudeAIClient.swift */,
 				180AD8522FF3E65A00218ACA /* StubAIClient.swift */,
 				180AD8532FF3E65A00218ACA /* VoiceTranscriber.swift */,
@@ -222,9 +231,19 @@
 			path = Workout;
 			sourceTree = "<group>";
 		};
+		18C7B1052FF3E65A00218ACA /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1022FF3E65A00218ACA /* ChatEngine.swift */,
+				18C7B1032FF3E65A00218ACA /* ChatView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
 		180AD8662FF3E65A00218ACA /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				18C7B1052FF3E65A00218ACA /* Chat */,
 				180AD85B2FF3E65A00218ACA /* Dashboard */,
 				180AD85D2FF3E65A00218ACA /* Nutrition */,
 				180AD8602FF3E65A00218ACA /* ScreenTime */,
@@ -269,6 +288,7 @@
 			children = (
 				180AD8732FF3E65A00218ACA /* AppGroup.swift */,
 				180AD8742FF3E65A00218ACA /* String+Trim.swift */,
+				18C7B1042FF3E65A00218ACA /* Theme.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -459,6 +479,10 @@
 				180AD88F2FF3E65A00218ACA /* AIClientFactory.swift in Sources */,
 				180AD8902FF3E65A00218ACA /* AIClient.swift in Sources */,
 				180AD8912FF3E65A00218ACA /* SleepEntryView.swift in Sources */,
+				18C7B1112FF3E65A00218ACA /* ChatTypes.swift in Sources */,
+				18C7B1122FF3E65A00218ACA /* ChatEngine.swift in Sources */,
+				18C7B1132FF3E65A00218ACA /* ChatView.swift in Sources */,
+				18C7B1142FF3E65A00218ACA /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
