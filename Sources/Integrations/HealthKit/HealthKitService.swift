@@ -35,8 +35,9 @@ final class HealthKitService {
         guard isAvailable else { throw HealthKitServiceError.unavailable }
 
         let readTypes = try healthTypesToRead()
+        let healthStore = store
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            store.requestAuthorization(toShare: Set<HKSampleType>(), read: readTypes) { success, error in
+            healthStore.requestAuthorization(toShare: Set<HKSampleType>(), read: readTypes) { success, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if success {
@@ -188,13 +189,17 @@ final class HealthKitService {
             options: [.strictStartDate]
         )
 
+        let queryCalendar = calendar
+        let healthStore = store
+        let anchorDate = queryCalendar.startOfDay(for: start)
+
         return try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<[Date: Double], Error>) in
             let query = HKStatisticsCollectionQuery(
                 quantityType: quantityType,
                 quantitySamplePredicate: predicate,
                 options: options,
-                anchorDate: calendar.startOfDay(for: start),
+                anchorDate: anchorDate,
                 intervalComponents: DateComponents(day: 1)
             )
             query.initialResultsHandler = { _, collection, error in
@@ -211,12 +216,13 @@ final class HealthKitService {
                         quantity = statistics.averageQuantity()
                     }
                     if let quantity {
-                        result[calendar.startOfDay(for: statistics.startDate)] = quantity.doubleValue(for: unit)
+                        let day = queryCalendar.startOfDay(for: statistics.startDate)
+                        result[day] = quantity.doubleValue(for: unit)
                     }
                 }
                 continuation.resume(returning: result)
             }
-            store.execute(query)
+            healthStore.execute(query)
         }
     }
 
@@ -231,6 +237,7 @@ final class HealthKitService {
             options: [.strictStartDate]
         )
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let healthStore = store
         let workouts: [HKWorkout] = try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let query = HKSampleQuery(
@@ -245,7 +252,7 @@ final class HealthKitService {
                 }
                 continuation.resume(returning: (samples as? [HKWorkout]) ?? [])
             }
-            store.execute(query)
+            healthStore.execute(query)
         }
 
         var summariesByDay: [Date: [String]] = [:]
@@ -280,6 +287,7 @@ final class HealthKitService {
             options: []
         )
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let healthStore = store
         let samples: [HKCategorySample] = try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<[HKCategorySample], Error>) in
             let query = HKSampleQuery(
@@ -294,7 +302,7 @@ final class HealthKitService {
                 }
                 continuation.resume(returning: (samples as? [HKCategorySample]) ?? [])
             }
-            store.execute(query)
+            healthStore.execute(query)
         }
 
         var secondsByDay: [Date: TimeInterval] = [:]
