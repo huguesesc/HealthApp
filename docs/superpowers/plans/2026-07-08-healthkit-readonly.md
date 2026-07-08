@@ -28,38 +28,38 @@
 
 ### Task 1: Pure Import Model and Tests
 
-- [ ] Add `HealthKitDailyImport` with date, steps, active energy, exercise minutes, workout count, workout summary, sleep hours, resting heart rate.
-- [ ] Add a merge helper that preserves manual meal/workout data while filling HealthKit fields.
-- [ ] Add Swift Testing tests for merge behavior.
-- [ ] Commit.
+- [x] Add `HealthKitDailyImport` with date, steps, active energy, exercise minutes, workout count, workout summary, sleep hours, resting heart rate.
+- [x] Add a merge helper that preserves manual meal/workout data while filling HealthKit fields.
+- [x] Add Swift Testing tests for merge behavior.
+- [x] Commit.
 
 ### Task 2: Rollup Persistence
 
-- [ ] Add optional HealthKit fields to `DailyRollup`.
-- [ ] Add repository method `applyHealthImports(_:)` that upserts one rollup per day.
-- [ ] Extend `RollupSnapshot` and `todayContext()` so chat and summary see imported health stats.
-- [ ] Commit.
+- [x] Add optional HealthKit fields to `DailyRollup`.
+- [x] Add repository method `applyHealthImports(_:)` that upserts one rollup per day.
+- [x] Extend `RollupSnapshot` and `todayContext()` so chat and summary see imported health stats.
+- [x] Commit.
 
 ### Task 3: HealthKit Service
 
-- [ ] Add HealthKit authorization and query code behind `HealthKitService`.
-- [ ] Read recent samples for steps, active energy, exercise time, workouts, sleep, and resting heart rate.
-- [ ] Return compact `[HealthKitDailyImport]`.
-- [ ] Commit.
+- [x] Add HealthKit authorization and query code behind `HealthKitService`.
+- [x] Read recent samples for steps, active energy, exercise time, workouts, sleep, and resting heart rate.
+- [x] Return compact `[HealthKitDailyImport]`.
+- [x] Commit.
 
 ### Task 4: Settings and Dashboard UI
 
-- [ ] Add Apple Health controls to Settings.
-- [ ] Add sync state and clear user-facing error messages.
-- [ ] Add imported stats to dashboard cards without displacing manual logging.
-- [ ] Commit.
+- [x] Add Apple Health controls to Settings.
+- [x] Add sync state and clear user-facing error messages.
+- [x] Add imported stats to dashboard cards without displacing manual logging.
+- [x] Commit.
 
 ### Task 5: Xcode Project, Entitlements, Docs
 
-- [ ] Register new Swift files and entitlement file in the Xcode project.
-- [ ] Add `NSHealthShareUsageDescription`.
-- [ ] Add HealthKit capability.
-- [ ] Update architecture docs and journal.
+- [x] Register new Swift files and entitlement file in the Xcode project.
+- [x] Add `NSHealthShareUsageDescription`.
+- [x] Add HealthKit capability.
+- [x] Update architecture docs and journal.
 - [ ] Push `feature/healthkit-readonly`.
 
 ## Verification

@@ -16,7 +16,7 @@ AIClient (protocol) ──► StubAIClient (default)  ──► ClaudeAIClient (
                                    ▲
                           reads compact RollupSnapshots, not raw rows
 
-HealthKit (later) + Screen Time (App Group bridge, coarse signal only)
+HealthKit read-only import + Screen Time (App Group bridge, coarse signal only)
 ```
 
 - **Native iOS / SwiftUI / SwiftData.** Single app target plus one app-extension
@@ -58,6 +58,10 @@ done, sleep quality/hours, energy/mood, screen-time signal, optional AI summary)
 The assistant reads these small records over weeks instead of thousands of raw
 rows — the key cost-control move. `RollupSnapshot` is its plain Codable mirror,
 handed to the AI layer so SwiftData models never leak into it.
+
+HealthKit imports also land here as daily aggregates: steps, active energy,
+exercise minutes, workout count/summary, Health sleep hours, and resting heart
+rate. Raw HealthKit samples never leave `HealthKitService`.
 
 ### ActivityEvent + RewardsEngine
 
@@ -123,6 +127,18 @@ per-app durations stay sandboxed, so only a **coarse "exceeded limit" signal**
 crosses (via App Group) into the rollup and the AI. Needs the Family Controls
 entitlement + a real device. The rest of the app does not depend on it.
 
+## HealthKit
+
+`Sources/Integrations/HealthKit/HealthKitService.swift` is read-only. It requests
+permission for Apple Health activity, workouts, sleep, and resting heart rate, then
+returns `[HealthKitDailyImport]` aggregates for recent days. `SettingsView` owns the
+manual Connect/Sync flow and writes those aggregates through
+`HealthDataRepository.applyHealthImports(_:)`.
+
+No HealthKit writes, no watchOS target, no live workout tracking. The simulator can
+compile the code, but real permission and data sync must be tested on an iPhone with
+Health data.
+
 ## Safety
 
 Summary/estimate/assistant prompts use hedged language ("rough estimate",
@@ -131,9 +147,10 @@ unsafe workout advice. Prompt text lives next to `ClaudeAIClient` for review.
 
 ### Known compliance risk (flagged, not yet relevant)
 
-Once HealthKit data is in play, sending it to a third-party LLM is restricted by
-App Store guideline 5.1.3. The assistant will need explicit, per-data-type consent
-and a privacy policy. Designed for, not built yet.
+HealthKit data is sensitive. The app requests Health permission through the system
+sheet and summarizes data locally before AI calls. Do not send raw HealthKit samples
+to Claude; keep using `RollupSnapshot` / `DailyContext` aggregates. App Store
+privacy copy and policy still need product-level review before distribution.
 
 ## Navigation & identity
 
