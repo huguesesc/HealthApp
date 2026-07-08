@@ -23,7 +23,7 @@ struct MealEntryView: View {
 
     var body: some View {
         Form {
-            Section("Log a meal") {
+            Section {
                 TextField("Describe it, e.g. two eggs and toast", text: $text, axis: .vertical)
 
                 Button {
@@ -62,6 +62,8 @@ struct MealEntryView: View {
 
                 Button("Add meal", action: addMeal)
                     .disabled(text.trimmed.isEmpty)
+            } header: {
+                Text("Log a meal")
             } footer: {
                 Text("Estimates are rough — portions are guessed from your description. "
                     + "Adjust the numbers before saving if they look off.")
