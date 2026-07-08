@@ -59,7 +59,7 @@ struct SettingsView: View {
                 )
             }
 
-            Section("Apple Health") {
+            Section {
                 Label(
                     healthKit.isAvailable ? "Available on this device." : "Not available on this device.",
                     systemImage: healthKit.isAvailable ? "heart.text.square" : "exclamationmark.triangle"
@@ -86,6 +86,8 @@ struct SettingsView: View {
                 Text(healthStatus)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                Text("Apple Health")
             } footer: {
                 Text(
                     "The app reads Apple Health activity, workouts, sleep and heart "
