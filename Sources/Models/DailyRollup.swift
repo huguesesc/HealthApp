@@ -24,6 +24,16 @@ final class DailyRollup {
     var energy: Int?
     var mood: Int?
 
+    /// Read-only Apple Health imports. These are compact daily aggregates, not raw
+    /// HealthKit samples.
+    var healthStepCount: Int?
+    var healthActiveEnergyKcal: Int?
+    var healthExerciseMinutes: Int?
+    var healthWorkoutCount: Int?
+    var healthWorkoutSummary: String?
+    var healthSleepHours: Double?
+    var healthRestingHeartRate: Int?
+
     /// Coarse screen-time signal for the day (see ScreenTimeSnapshot / architecture).
     var screenTimeExceeded: Bool?
 
@@ -42,6 +52,13 @@ final class DailyRollup {
         sleepQuality: Int? = nil,
         energy: Int? = nil,
         mood: Int? = nil,
+        healthStepCount: Int? = nil,
+        healthActiveEnergyKcal: Int? = nil,
+        healthExerciseMinutes: Int? = nil,
+        healthWorkoutCount: Int? = nil,
+        healthWorkoutSummary: String? = nil,
+        healthSleepHours: Double? = nil,
+        healthRestingHeartRate: Int? = nil,
         screenTimeExceeded: Bool? = nil,
         summaryText: String? = nil,
         modelUsed: String? = nil
@@ -55,6 +72,13 @@ final class DailyRollup {
         self.sleepQuality = sleepQuality
         self.energy = energy
         self.mood = mood
+        self.healthStepCount = healthStepCount
+        self.healthActiveEnergyKcal = healthActiveEnergyKcal
+        self.healthExerciseMinutes = healthExerciseMinutes
+        self.healthWorkoutCount = healthWorkoutCount
+        self.healthWorkoutSummary = healthWorkoutSummary
+        self.healthSleepHours = healthSleepHours
+        self.healthRestingHeartRate = healthRestingHeartRate
         self.screenTimeExceeded = screenTimeExceeded
         self.summaryText = summaryText
         self.modelUsed = modelUsed

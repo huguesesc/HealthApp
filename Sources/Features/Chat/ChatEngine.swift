@@ -379,8 +379,9 @@ final class ChatEngine {
         ChatToolDef(
             name: "get_recent_summaries",
             description: "Fetch the user's compact daily summaries (meals, calories, "
-                + "workouts, sleep, energy, mood) for recent days, as JSON. Use this "
-                + "to answer any question about their data or trends.",
+                + "workouts, sleep, energy, mood, and Apple Health activity aggregates) "
+                + "for recent days, as JSON. Use this to answer any question about "
+                + "their data or trends.",
             inputSchemaJSON: """
             {
               "type": "object",

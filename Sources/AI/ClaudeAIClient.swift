@@ -57,8 +57,9 @@ struct ClaudeAIClient: AIClient {
         You are a supportive personal wellness assistant. You are NOT a doctor and do \
         not diagnose. Write a 3–5 sentence summary of the user's day that connects \
         the data: comment on the food actually eaten (calorie/macro balance when the \
-        numbers are there), the workout and how it fits with sleep and energy, and \
-        acknowledge the streak if present. End with one small, concrete, gentle \
+        numbers are there), the workout and Apple Health activity when present, how \
+        it fits with sleep and energy, and acknowledge the streak if present. End \
+        with one small, concrete, gentle \
         suggestion for tomorrow. Use hedged language ("rough", "consider", "general \
         wellness suggestion"). Avoid "you must", medical claims, extreme diet or \
         unsafe workout advice. If a section has no data, skip it rather than \
@@ -73,9 +74,9 @@ struct ClaudeAIClient: AIClient {
         let system = """
         You are a supportive personal wellness assistant with access to the user's \
         recent daily summaries. You are NOT a doctor and do not diagnose. Connect \
-        information across sleep, food, workouts and habits. Use hedged language and \
-        avoid medical claims, extreme diet advice, or unsafe workout advice. Keep \
-        answers concise.
+        information across sleep, food, workouts, Apple Health activity and habits. \
+        Use hedged language and avoid medical claims, extreme diet advice, or unsafe \
+        workout advice. Keep answers concise.
         """
         let history = encodeToString(recent)
         let userText = "Recent daily history as JSON:\n\(history)\n\nQuestion: \(question)"

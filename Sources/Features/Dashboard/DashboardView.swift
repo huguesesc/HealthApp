@@ -35,6 +35,8 @@ struct DashboardView: View {
 
                 todayRow
 
+                healthCard
+
                 streakCard
 
                 summaryCard
@@ -147,6 +149,31 @@ struct DashboardView: View {
                 icon: "moon.zzz",
                 color: Theme.clay
             )
+        }
+    }
+
+    @ViewBuilder
+    private var healthCard: some View {
+        if !healthParts.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Apple Health", systemImage: "heart.text.square")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.moss)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
+                    ForEach(healthParts, id: \.self) { part in
+                        Text(part)
+                            .font(.footnote.weight(.medium))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(
+                                Color(.tertiarySystemGroupedBackground),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                    }
+                }
+            }
+            .card()
         }
     }
 
@@ -294,6 +321,26 @@ struct DashboardView: View {
 
     private var workoutsToday: [WorkoutSession] {
         workouts.filter { Calendar.current.isDateInToday($0.date) }
+    }
+
+    private var todayRollup: DailyRollup? {
+        rollups.first { Calendar.current.isDateInToday($0.date) }
+    }
+
+    private var healthParts: [String] {
+        guard let rollup = todayRollup else { return [] }
+        var parts: [String] = []
+        if let steps = rollup.healthStepCount { parts.append("\(steps) steps") }
+        if let energy = rollup.healthActiveEnergyKcal { parts.append("\(energy) active kcal") }
+        if let exercise = rollup.healthExerciseMinutes { parts.append("\(exercise) exercise min") }
+        if let workouts = rollup.healthWorkoutCount, workouts > 0 {
+            parts.append(rollup.healthWorkoutSummary ?? "\(workouts) workout(s)")
+        }
+        if let sleep = rollup.healthSleepHours {
+            parts.append(String(format: "%.1f h sleep", sleep))
+        }
+        if let resting = rollup.healthRestingHeartRate { parts.append("\(resting) bpm resting") }
+        return parts
     }
 
     private var lastSleepValue: String {

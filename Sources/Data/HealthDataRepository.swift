@@ -78,6 +78,18 @@ struct HealthDataRepository {
 
     // MARK: - Daily rollup (cheap history layer)
 
+    func applyHealthImports(_ imports: [HealthKitDailyImport]) {
+        guard !imports.isEmpty else { return }
+        for imported in imports {
+            let day = Calendar.current.startOfDay(for: imported.date)
+            let existing = rollup(for: day)
+            let rollup = existing ?? DailyRollup(date: day)
+            HealthKitImportMerger.apply(imported, to: rollup)
+            if existing == nil { context.insert(rollup) }
+        }
+        persist()
+    }
+
     /// Recompute today's rollup from raw data and upsert it. Cheap; safe to call on
     /// dashboard appearance.
     @discardableResult
@@ -122,6 +134,13 @@ struct HealthDataRepository {
                 sleepQuality: rollup.sleepQuality,
                 energy: rollup.energy,
                 mood: rollup.mood,
+                healthStepCount: rollup.healthStepCount,
+                healthActiveEnergyKcal: rollup.healthActiveEnergyKcal,
+                healthExerciseMinutes: rollup.healthExerciseMinutes,
+                healthWorkoutCount: rollup.healthWorkoutCount,
+                healthWorkoutSummary: rollup.healthWorkoutSummary,
+                healthSleepHours: rollup.healthSleepHours,
+                healthRestingHeartRate: rollup.healthRestingHeartRate,
                 screenTimeExceeded: rollup.screenTimeExceeded
             )
         }
@@ -150,6 +169,7 @@ struct HealthDataRepository {
         let fat = meals.compactMap(\.fatGrams)
 
         let streak = RewardsEngine().headlineStreak(in: recentEvents())
+        let todayRollup = rollup(for: Calendar.current.startOfDay(for: .now))
 
         return DailyContext(
             date: Calendar.current.startOfDay(for: .now),
@@ -160,6 +180,7 @@ struct HealthDataRepository {
             fatGrams: fat.isEmpty ? nil : fat.reduce(0, +),
             workoutSummary: workoutsToday().first.map(workoutDescription),
             sleepSummary: latestSleep().map(sleepDescription),
+            healthSummary: todayRollup.flatMap(healthDescription),
             checkIn: checkInValues,
             checkInNote: checkInNote,
             streakDays: streak > 0 ? streak : nil,
@@ -194,6 +215,28 @@ struct HealthDataRepository {
         return parts.isEmpty ? "logged" : parts.joined(separator: ", ")
     }
 
+    private func healthDescription(_ rollup: DailyRollup) -> String? {
+        var parts: [String] = []
+        if let steps = rollup.healthStepCount { parts.append("\(steps) steps") }
+        if let activeEnergy = rollup.healthActiveEnergyKcal {
+            parts.append("\(activeEnergy) active kcal")
+        }
+        if let exercise = rollup.healthExerciseMinutes {
+            parts.append("\(exercise) exercise min")
+        }
+        if let workouts = rollup.healthWorkoutCount, workouts > 0 {
+            let summary = rollup.healthWorkoutSummary ?? "\(workouts) Health workout(s)"
+            parts.append(summary)
+        }
+        if let sleep = rollup.healthSleepHours {
+            parts.append(String(format: "%.1f h Health sleep", sleep))
+        }
+        if let resting = rollup.healthRestingHeartRate {
+            parts.append("\(resting) bpm resting HR")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     /// Attach an AI-generated summary to today's rollup (upserting it first), and
     /// record which model produced it. Called after `summarizeDay` succeeds.
     func saveTodaySummary(_ result: DailySummaryResult) {
@@ -215,6 +258,12 @@ struct HealthDataRepository {
 
     private func isToday(_ date: Date) -> Bool {
         Calendar.current.isDateInToday(date)
+    }
+
+    private func rollup(for day: Date) -> DailyRollup? {
+        let normalized = Calendar.current.startOfDay(for: day)
+        return fetch(sortedBy: \DailyRollup.date)
+            .first { Calendar.current.isDate($0.date, inSameDayAs: normalized) }
     }
 
     private func sleepHours(_ entry: SleepEntry) -> Double? {
@@ -242,5 +291,12 @@ struct RollupSnapshot: Codable, Equatable {
     var sleepQuality: Int?
     var energy: Int?
     var mood: Int?
+    var healthStepCount: Int?
+    var healthActiveEnergyKcal: Int?
+    var healthExerciseMinutes: Int?
+    var healthWorkoutCount: Int?
+    var healthWorkoutSummary: String?
+    var healthSleepHours: Double?
+    var healthRestingHeartRate: Int?
     var screenTimeExceeded: Bool?
 }

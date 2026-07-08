@@ -63,6 +63,8 @@ struct DailyContext: Codable, Equatable {
     var fatGrams: Double?
     var workoutSummary: String?
     var sleepSummary: String?
+    /// Compact Apple Health import summary, if the user authorized HealthKit.
+    var healthSummary: String?
     var checkIn: [String: Int]
     var checkInNote: String?
     /// Current logging streak in days, for encouragement.
