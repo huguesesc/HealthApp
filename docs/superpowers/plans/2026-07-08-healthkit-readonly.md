@@ -60,7 +60,7 @@
 - [x] Add `NSHealthShareUsageDescription`.
 - [x] Add HealthKit capability.
 - [x] Update architecture docs and journal.
-- [ ] Push `feature/healthkit-readonly`.
+- [x] Push `feature/healthkit-readonly`.
 
 ## Verification
 
