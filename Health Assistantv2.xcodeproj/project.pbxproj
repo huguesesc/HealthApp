@@ -38,6 +38,7 @@
 		18C7B1122FF3E65A00218ACA /* ChatEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1022FF3E65A00218ACA /* ChatEngine.swift */; };
 		18C7B1132FF3E65A00218ACA /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1032FF3E65A00218ACA /* ChatView.swift */; };
 		18C7B1142FF3E65A00218ACA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1042FF3E65A00218ACA /* Theme.swift */; };
+		18C7B1162FF3E65A00218ACA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C7B1152FF3E65A00218ACA /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 		18C7B1022FF3E65A00218ACA /* ChatEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatEngine.swift; sourceTree = "<group>"; };
 		18C7B1032FF3E65A00218ACA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		18C7B1042FF3E65A00218ACA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		18C7B1152FF3E65A00218ACA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -240,6 +242,14 @@
 			path = Chat;
 			sourceTree = "<group>";
 		};
+		18C7B1172FF3E65A00218ACA /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1152FF3E65A00218ACA /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		180AD8662FF3E65A00218ACA /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -247,6 +257,7 @@
 				180AD85B2FF3E65A00218ACA /* Dashboard */,
 				180AD85D2FF3E65A00218ACA /* Nutrition */,
 				180AD8602FF3E65A00218ACA /* ScreenTime */,
+				18C7B1172FF3E65A00218ACA /* Settings */,
 				180AD8632FF3E65A00218ACA /* Sleep */,
 				180AD8652FF3E65A00218ACA /* Workout */,
 			);
@@ -483,6 +494,7 @@
 				18C7B1122FF3E65A00218ACA /* ChatEngine.swift in Sources */,
 				18C7B1132FF3E65A00218ACA /* ChatView.swift in Sources */,
 				18C7B1142FF3E65A00218ACA /* Theme.swift in Sources */,
+				18C7B1162FF3E65A00218ACA /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
