@@ -1,9 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// The app's front door: a chat with the assistant. Freeform logging ("I had two
-/// eggs and toast") renders inline confirmation cards that show the model's
-/// per-food assumptions; questions are answered from recent rollup data.
+/// The app's front door: a chat with the assistant. Freeform logging renders inline
+/// confirmation cards; future workout-plan requests render editable saved-plan drafts.
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var engine: ChatEngine?
@@ -50,7 +49,6 @@ struct ChatView: View {
                             .font(.footnote)
                             .foregroundStyle(Theme.clay)
                     }
-                    // Anchor for scroll-to-bottom.
                     Color.clear
                         .frame(height: 1)
                         .id("bottom")
@@ -100,7 +98,7 @@ struct ChatView: View {
 
     private func composer(_ engine: ChatEngine) -> some View {
         HStack(spacing: 10) {
-            TextField("Log a meal, a workout, or ask anything…", text: $draft, axis: .vertical)
+            TextField("Log something, ask a question, or build a plan…", text: $draft, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(.vertical, 9)
                 .padding(.horizontal, 14)
@@ -142,7 +140,7 @@ private struct ChatEmptyState: View {
             Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.evergreen)
-            Text("Tell me about your day")
+            Text("Tell me what you need")
                 .font(.title3.weight(.semibold))
             Text("Try one of these:")
                 .font(.subheadline)
@@ -150,6 +148,7 @@ private struct ChatEmptyState: View {
             VStack(alignment: .leading, spacing: 6) {
                 suggestion("“I had two eggs and toast”")
                 suggestion("“Did push day — bench 3×8 at 60 kg”")
+                suggestion("“Build me a 35-minute workout for Home”")
                 suggestion("“How has my week been?”")
             }
             if !hasKey {
@@ -187,6 +186,8 @@ private struct ProposalCard: View {
                 MealCardContent(meal: meal)
             case .workout(let workout):
                 WorkoutCardContent(workout: workout)
+            case .workoutPlan(let plan):
+                WorkoutPlanCardContent(plan: plan)
             }
             footer
         }
@@ -205,6 +206,11 @@ private struct ProposalCard: View {
         }
     }
 
+    private var saveLabel: String {
+        if case .workoutPlan = proposal.kind { return "Save plan" }
+        return "Save"
+    }
+
     @ViewBuilder
     private var footer: some View {
         switch proposal.status {
@@ -213,7 +219,7 @@ private struct ProposalCard: View {
                 Button {
                     engine.confirm(proposal)
                 } label: {
-                    Text("Save")
+                    Text(saveLabel)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                 }
@@ -229,7 +235,7 @@ private struct ProposalCard: View {
                 .buttonStyle(.bordered)
             }
         case .saved:
-            Label("Saved", systemImage: "checkmark.circle.fill")
+            Label(saveLabel == "Save plan" ? "Plan saved" : "Saved", systemImage: "checkmark.circle.fill")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Theme.moss)
         case .discarded:
@@ -326,7 +332,7 @@ private struct WorkoutCardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Workout", systemImage: "figure.strengthtraining.traditional")
+            Label("Completed workout", systemImage: "figure.strengthtraining.traditional")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.moss)
             Text(workout.type)
@@ -362,6 +368,97 @@ private struct WorkoutCardContent: View {
         }
         return "\(set.exercise) — \(set.reps) reps"
     }
+}
+
+private struct WorkoutPlanCardContent: View {
+    let plan: WorkoutPlanProposal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Label("Future workout plan", systemImage: "list.clipboard")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.moss)
+
+            Text(plan.title)
+                .font(.headline)
+
+            if let detailLine {
+                Text(detailLine)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let goal = plan.goal, !goal.isEmpty {
+                Text(goal)
+                    .font(.subheadline)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(plan.steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\(index + 1)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, alignment: .trailing)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(step.title)
+                                .font(.callout.weight(.medium))
+                            Text(stepDetail(step))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if let notes = plan.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    private var detailLine: String? {
+        var parts: [String] = []
+        if let minutes = plan.estimatedDurationMinutes { parts.append("\(minutes) min") }
+        if let effort = plan.targetEffort { parts.append("effort \(effort)/10") }
+        if let location = plan.location { parts.append(location) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private func stepDetail(_ step: WorkoutPlanStepProposal) -> String {
+        var parts = [stepTypeLabel(step.type)]
+        if let sets = step.sets, let reps = step.reps { parts.append("\(sets) × \(reps)") }
+        else if let sets = step.sets { parts.append("\(sets) set(s)") }
+        else if let reps = step.reps { parts.append("\(reps) reps") }
+        if let seconds = step.durationSeconds { parts.append(planDurationLabel(seconds)) }
+        if let meters = step.distanceMeters { parts.append(planDistanceLabel(meters)) }
+        if let weight = step.targetWeightKilograms { parts.append(String(format: "%g kg", weight)) }
+        if let equipment = step.equipment { parts.append(equipment) }
+        if let rest = step.restSeconds, rest > 0 { parts.append("rest \(planDurationLabel(rest))") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func stepTypeLabel(_ raw: String) -> String {
+        WorkoutStepType(rawValue: raw)?.displayName ?? "Step"
+    }
+}
+
+private func planDurationLabel(_ seconds: Int) -> String {
+    if seconds < 60 { return "\(seconds) sec" }
+    let minutes = seconds / 60
+    let remainder = seconds % 60
+    return remainder == 0 ? "\(minutes) min" : "\(minutes)m \(remainder)s"
+}
+
+private func planDistanceLabel(_ meters: Double) -> String {
+    meters >= 1_000
+        ? String(format: "%.1f km", meters / 1_000)
+        : String(format: "%g m", meters)
 }
 
 #Preview {
