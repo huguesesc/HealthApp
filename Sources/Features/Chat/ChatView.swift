@@ -1,9 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// The app's front door: a chat with the assistant. Freeform logging ("I had two
-/// eggs and toast") renders inline confirmation cards that show the model's
-/// per-food assumptions; questions are answered from recent rollup data.
+/// The app's front door: a chat with the assistant. Freeform logging renders inline
+/// confirmation cards; future workout-plan requests render editable saved-plan drafts.
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var engine: ChatEngine?
@@ -50,7 +49,6 @@ struct ChatView: View {
                             .font(.footnote)
                             .foregroundStyle(Theme.clay)
                     }
-                    // Anchor for scroll-to-bottom.
                     Color.clear
                         .frame(height: 1)
                         .id("bottom")
@@ -100,7 +98,7 @@ struct ChatView: View {
 
     private func composer(_ engine: ChatEngine) -> some View {
         HStack(spacing: 10) {
-            TextField("Log a meal, a workout, or ask anything…", text: $draft, axis: .vertical)
+            TextField("Log something, ask a question, or build a plan…", text: $draft, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(.vertical, 9)
                 .padding(.horizontal, 14)
@@ -142,7 +140,7 @@ private struct ChatEmptyState: View {
             Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.evergreen)
-            Text("Tell me about your day")
+            Text("Tell me what you need")
                 .font(.title3.weight(.semibold))
             Text("Try one of these:")
                 .font(.subheadline)
@@ -150,6 +148,7 @@ private struct ChatEmptyState: View {
             VStack(alignment: .leading, spacing: 6) {
                 suggestion("“I had two eggs and toast”")
                 suggestion("“Did push day — bench 3×8 at 60 kg”")
+                suggestion("“Build me a 35-minute workout for Home”")
                 suggestion("“How has my week been?”")
             }
             if !hasKey {
@@ -180,6 +179,9 @@ private struct ProposalCard: View {
     let proposal: ChatProposal
     let engine: ChatEngine
 
+    @State private var editedPlan: WorkoutPlanProposal?
+    @State private var showingPlanEditor = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             switch proposal.kind {
@@ -187,6 +189,8 @@ private struct ProposalCard: View {
                 MealCardContent(meal: meal)
             case .workout(let workout):
                 WorkoutCardContent(workout: workout)
+            case .workoutPlan(let plan):
+                WorkoutPlanCardContent(plan: editedPlan ?? plan)
             }
             footer
         }
@@ -195,6 +199,15 @@ private struct ProposalCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
+        .sheet(isPresented: $showingPlanEditor) {
+            if let plan = effectivePlan {
+                NavigationStack {
+                    WorkoutPlanProposalEditorView(initialDraft: plan) { updated in
+                        editedPlan = updated
+                    }
+                }
+            }
+        }
     }
 
     private var borderColor: Color {
@@ -205,31 +218,71 @@ private struct ProposalCard: View {
         }
     }
 
+    private var isWorkoutPlan: Bool {
+        if case .workoutPlan = proposal.kind { return true }
+        return false
+    }
+
+    private var effectivePlan: WorkoutPlanProposal? {
+        if let editedPlan { return editedPlan }
+        if case .workoutPlan(let plan) = proposal.kind { return plan }
+        return nil
+    }
+
     @ViewBuilder
     private var footer: some View {
         switch proposal.status {
         case .pending:
-            HStack(spacing: 12) {
-                Button {
-                    engine.confirm(proposal)
-                } label: {
-                    Text("Save")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.evergreen)
+            if isWorkoutPlan {
+                VStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        Button {
+                            confirmProposal()
+                        } label: {
+                            Text("Save plan")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.evergreen)
 
-                Button {
-                    engine.discard(proposal)
-                } label: {
-                    Text("Discard")
-                        .frame(maxWidth: .infinity)
+                        Button("Edit") {
+                            showingPlanEditor = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Button {
+                        engine.discard(proposal)
+                    } label: {
+                        Text("Discard")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+            } else {
+                HStack(spacing: 12) {
+                    Button {
+                        engine.confirm(proposal)
+                    } label: {
+                        Text("Save")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.evergreen)
+
+                    Button {
+                        engine.discard(proposal)
+                    } label: {
+                        Text("Discard")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         case .saved:
-            Label("Saved", systemImage: "checkmark.circle.fill")
+            Label(isWorkoutPlan ? "Plan saved" : "Saved", systemImage: "checkmark.circle.fill")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Theme.moss)
         case .discarded:
@@ -237,6 +290,17 @@ private struct ProposalCard: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func confirmProposal() {
+        guard let editedPlan else {
+            engine.confirm(proposal)
+            return
+        }
+
+        let editedProposal = ChatProposal(kind: .workoutPlan(editedPlan))
+        engine.confirm(editedProposal)
+        proposal.status = editedProposal.status
     }
 }
 
@@ -326,7 +390,7 @@ private struct WorkoutCardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Workout", systemImage: "figure.strengthtraining.traditional")
+            Label("Completed workout", systemImage: "figure.strengthtraining.traditional")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.moss)
             Text(workout.type)
@@ -362,6 +426,345 @@ private struct WorkoutCardContent: View {
         }
         return "\(set.exercise) — \(set.reps) reps"
     }
+}
+
+private struct WorkoutPlanCardContent: View {
+    let plan: WorkoutPlanProposal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Label("Future workout plan", systemImage: "list.clipboard")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.moss)
+
+            Text(plan.title)
+                .font(.headline)
+
+            if let detailLine {
+                Text(detailLine)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let goal = plan.goal, !goal.isEmpty {
+                Text(goal)
+                    .font(.subheadline)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(plan.steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\(index + 1)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, alignment: .trailing)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(step.title)
+                                .font(.callout.weight(.medium))
+                            Text(stepDetail(step))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if let notes = plan.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    private var detailLine: String? {
+        var parts: [String] = []
+        if let minutes = plan.estimatedDurationMinutes { parts.append("\(minutes) min") }
+        if let effort = plan.targetEffort { parts.append("effort \(effort)/10") }
+        if let location = plan.location { parts.append(location) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private func stepDetail(_ step: WorkoutPlanStepProposal) -> String {
+        var parts = [stepTypeLabel(step.type)]
+        if let sets = step.sets, let reps = step.reps { parts.append("\(sets) × \(reps)") }
+        else if let sets = step.sets { parts.append("\(sets) set(s)") }
+        else if let reps = step.reps { parts.append("\(reps) reps") }
+        if let seconds = step.durationSeconds { parts.append(planDurationLabel(seconds)) }
+        if let meters = step.distanceMeters { parts.append(planDistanceLabel(meters)) }
+        if let weight = step.targetWeightKilograms { parts.append(String(format: "%g kg", weight)) }
+        if let equipment = step.equipment { parts.append(equipment) }
+        if let rest = step.restSeconds, rest > 0 { parts.append("rest \(planDurationLabel(rest))") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func stepTypeLabel(_ raw: String) -> String {
+        WorkoutStepType(rawValue: raw)?.displayName ?? "Step"
+    }
+}
+
+// MARK: - Editable plan proposal
+
+private struct WorkoutPlanProposalEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: WorkoutPlanProposal
+
+    let onSave: (WorkoutPlanProposal) -> Void
+
+    init(initialDraft: WorkoutPlanProposal, onSave: @escaping (WorkoutPlanProposal) -> Void) {
+        _draft = State(initialValue: initialDraft)
+        self.onSave = onSave
+    }
+
+    var body: some View {
+        Form {
+            Section("Plan") {
+                TextField("Title", text: $draft.title)
+                TextField("Goal or focus", text: optionalString(\.goal), axis: .vertical)
+                    .lineLimit(2...4)
+                Stepper(
+                    "Estimated duration: \(draft.estimatedDurationMinutes ?? 45) min",
+                    value: optionalInt(\.estimatedDurationMinutes, default: 45),
+                    in: 5...240,
+                    step: 5
+                )
+                Stepper(
+                    "Target effort: \(draft.targetEffort ?? 6)/10",
+                    value: optionalInt(\.targetEffort, default: 6),
+                    in: 1...10
+                )
+                TextField("Location", text: optionalString(\.location))
+                TextField("Notes", text: optionalString(\.notes), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+
+            Section {
+                ForEach(draft.steps.indices, id: \.self) { index in
+                    NavigationLink {
+                        WorkoutPlanProposalStepEditor(step: $draft.steps[index])
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(draft.steps[index].title)
+                                .font(.headline)
+                            Text(proposalStepSummary(draft.steps[index]))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .onDelete { draft.steps.remove(atOffsets: $0) }
+                .onMove { draft.steps.move(fromOffsets: $0, toOffset: $1) }
+
+                Button {
+                    draft.steps.append(Self.newStep())
+                } label: {
+                    Label("Add step", systemImage: "plus")
+                }
+            } header: {
+                HStack {
+                    Text("Ordered steps")
+                    Spacer()
+                    EditButton()
+                }
+            } footer: {
+                Text("Review every step before saving. You can also edit the saved plan later in Settings.")
+            }
+        }
+        .navigationTitle("Edit plan draft")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    draft.title = draft.title.trimmed
+                    onSave(draft)
+                    dismiss()
+                }
+                .disabled(draft.title.trimmed.isEmpty || draft.steps.isEmpty)
+            }
+        }
+    }
+
+    private func optionalString(
+        _ keyPath: WritableKeyPath<WorkoutPlanProposal, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { draft[keyPath: keyPath] ?? "" },
+            set: {
+                let value = $0.trimmed
+                draft[keyPath: keyPath] = value.isEmpty ? nil : value
+            }
+        )
+    }
+
+    private func optionalInt(
+        _ keyPath: WritableKeyPath<WorkoutPlanProposal, Int?>,
+        default defaultValue: Int
+    ) -> Binding<Int> {
+        Binding(
+            get: { draft[keyPath: keyPath] ?? defaultValue },
+            set: { draft[keyPath: keyPath] = $0 }
+        )
+    }
+
+    private func proposalStepSummary(_ step: WorkoutPlanStepProposal) -> String {
+        var parts = [WorkoutStepType(rawValue: step.type)?.displayName ?? "Step"]
+        if let sets = step.sets, let reps = step.reps { parts.append("\(sets) × \(reps)") }
+        if let seconds = step.durationSeconds { parts.append(planDurationLabel(seconds)) }
+        if let equipment = step.equipment { parts.append(equipment) }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func newStep() -> WorkoutPlanStepProposal {
+        WorkoutPlanStepProposal(
+            type: WorkoutStepType.exercise.rawValue,
+            title: "New exercise",
+            instruction: nil,
+            sets: 3,
+            reps: 8,
+            durationSeconds: nil,
+            distanceMeters: nil,
+            targetWeightKilograms: nil,
+            restSeconds: 60,
+            side: WorkoutStepSide.none.rawValue,
+            equipment: nil,
+            notes: nil
+        )
+    }
+}
+
+private struct WorkoutPlanProposalStepEditor: View {
+    @Binding var step: WorkoutPlanStepProposal
+
+    private var type: WorkoutStepType {
+        WorkoutStepType(rawValue: step.type) ?? .freeform
+    }
+
+    var body: some View {
+        Form {
+            Section("Step") {
+                Picker("Type", selection: $step.type) {
+                    ForEach(WorkoutStepType.allCases) { type in
+                        Label(type.displayName, systemImage: type.systemImage).tag(type.rawValue)
+                    }
+                }
+                TextField("Title", text: $step.title)
+                TextField("Instructions", text: optionalString(\.instruction), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+
+            if type.supportsSets || type.supportsReps {
+                Section("Volume") {
+                    if type.supportsSets {
+                        TextField("Sets", text: optionalIntText(\.sets))
+                            .keyboardType(.numberPad)
+                    }
+                    if type.supportsReps {
+                        TextField("Reps", text: optionalIntText(\.reps))
+                            .keyboardType(.numberPad)
+                    }
+                    Picker("Side", selection: optionalSide) {
+                        ForEach(WorkoutStepSide.allCases) { side in
+                            Text(side.displayName).tag(side.rawValue)
+                        }
+                    }
+                }
+            }
+
+            if type.supportsDuration {
+                Section("Duration") {
+                    TextField("Duration in seconds", text: optionalIntText(\.durationSeconds))
+                        .keyboardType(.numberPad)
+                }
+            }
+
+            if type.supportsDistance {
+                Section("Distance") {
+                    TextField("Distance in meters", text: optionalDoubleText(\.distanceMeters))
+                        .keyboardType(.decimalPad)
+                }
+            }
+
+            if type.supportsLoad || type.supportsRestAfter {
+                Section("Load and recovery") {
+                    if type.supportsLoad {
+                        TextField("Target weight (kg)", text: optionalDoubleText(\.targetWeightKilograms))
+                            .keyboardType(.decimalPad)
+                    }
+                    if type.supportsRestAfter {
+                        TextField("Rest after (seconds)", text: optionalIntText(\.restSeconds))
+                            .keyboardType(.numberPad)
+                    }
+                }
+            }
+
+            Section("Equipment and notes") {
+                TextField("Equipment", text: optionalString(\.equipment))
+                TextField("Notes", text: optionalString(\.notes), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+        }
+        .navigationTitle("Edit step")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var optionalSide: Binding<String> {
+        Binding(
+            get: { step.side ?? WorkoutStepSide.none.rawValue },
+            set: { step.side = $0 }
+        )
+    }
+
+    private func optionalString(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath] ?? "" },
+            set: {
+                let value = $0.trimmed
+                step[keyPath: keyPath] = value.isEmpty ? nil : value
+            }
+        )
+    }
+
+    private func optionalIntText(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, Int?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath].map(String.init) ?? "" },
+            set: { step[keyPath: keyPath] = Int($0.trimmed) }
+        )
+    }
+
+    private func optionalDoubleText(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, Double?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath].map { String(format: "%g", $0) } ?? "" },
+            set: {
+                let normalized = $0.replacingOccurrences(of: ",", with: ".").trimmed
+                step[keyPath: keyPath] = Double(normalized)
+            }
+        )
+    }
+}
+
+private func planDurationLabel(_ seconds: Int) -> String {
+    if seconds < 60 { return "\(seconds) sec" }
+    let minutes = seconds / 60
+    let remainder = seconds % 60
+    return remainder == 0 ? "\(minutes) min" : "\(minutes)m \(remainder)s"
+}
+
+private func planDistanceLabel(_ meters: Double) -> String {
+    meters >= 1_000
+        ? String(format: "%.1f km", meters / 1_000)
+        : String(format: "%g m", meters)
 }
 
 #Preview {
