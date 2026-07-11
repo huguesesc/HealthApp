@@ -211,19 +211,36 @@ final class ChatEngine {
             struct DaysInput: Codable { var days: Int? }
             let days = (try? JSONDecoder().decode(DaysInput.self, from: data))?.days ?? 14
             let snapshots = repo.recentRollupSnapshots(days: min(max(days, 1), 60))
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            guard let encoded = try? encoder.encode(snapshots),
-                  let json = String(data: encoded, encoding: .utf8) else {
-                return "Error: could not encode the recent summaries."
-            }
             return snapshots.isEmpty
                 ? "No history yet — the user hasn't logged anything on previous days."
-                : json
+                : encodeJSON(snapshots, failure: "recent summaries")
+
+        case "get_health_profile":
+            guard let snapshot = repo.healthProfileSnapshot() else {
+                return "The user has not set up their health and training profile yet."
+            }
+            return encodeJSON(snapshot, failure: "health profile")
+
+        case "get_workout_locations":
+            let snapshots = repo.workoutLocationSnapshots()
+            return snapshots.isEmpty
+                ? "The user has not added any active workout locations or equipment yet."
+                : encodeJSON(snapshots, failure: "workout locations")
 
         default:
             return "Error: unknown tool \(call.name)."
         }
+    }
+
+    private func encodeJSON<T: Encodable>(_ value: T, failure label: String) -> String {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+        guard let encoded = try? encoder.encode(value),
+              let json = String(data: encoded, encoding: .utf8) else {
+            return "Error: could not encode the \(label)."
+        }
+        return json
     }
 
     // MARK: Confirmation
@@ -304,7 +321,13 @@ final class ChatEngine {
     saved or logged; say it's ready for them to review.
 
     To answer questions about how they've been doing, call get_recent_summaries and \
-    ground your answer in that data; if it's empty, say there's no history yet.
+    ground your answer in that data; if it's empty, say there's no history yet. Use \
+    get_health_profile when goals, preferences, measurements, previous surgery, old \
+    injuries, asymmetries, or movement considerations are relevant. The returned \
+    considerations are the user's own reports, not diagnoses. Account for them \
+    conservatively and never infer a condition, prescribe treatment, or override \
+    clinician guidance. Use get_workout_locations before recommending equipment-\
+    dependent exercises or when the user names a location.
 
     Keep replies short and conversational — a sentence or two around a card is enough.
     """
@@ -389,6 +412,20 @@ final class ChatEngine {
                 "days": {"type": "integer", "description": "How many recent days to fetch (default 14, max 60)"}
               }
             }
+            """
+        ),
+        ChatToolDef(
+            name: "get_health_profile",
+            description: "Read the user's compact, user-confirmed health and training profile: goals, experience, preferences, availability, user-reported movement considerations, and a compact body-metric trend. Read-only; never changes profile data.",
+            inputSchemaJSON: """
+            {"type": "object", "properties": {}}
+            """
+        ),
+        ChatToolDef(
+            name: "get_workout_locations",
+            description: "Read active workout locations with available equipment, space limitations, and notes. Use before suggesting equipment-dependent exercises. Read-only.",
+            inputSchemaJSON: """
+            {"type": "object", "properties": {}}
             """
         ),
     ]
