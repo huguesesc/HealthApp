@@ -3,6 +3,7 @@
 xcuserdata/
 DerivedData/
 build/
+.local-handoff/
 *.xcuserstate
 
 # XcodeGen project.yml is kept for the later Screen Time milestone; if you ever
