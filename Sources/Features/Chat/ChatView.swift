@@ -179,6 +179,9 @@ private struct ProposalCard: View {
     let proposal: ChatProposal
     let engine: ChatEngine
 
+    @State private var editedPlan: WorkoutPlanProposal?
+    @State private var showingPlanEditor = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             switch proposal.kind {
@@ -187,7 +190,7 @@ private struct ProposalCard: View {
             case .workout(let workout):
                 WorkoutCardContent(workout: workout)
             case .workoutPlan(let plan):
-                WorkoutPlanCardContent(plan: plan)
+                WorkoutPlanCardContent(plan: editedPlan ?? plan)
             }
             footer
         }
@@ -196,6 +199,15 @@ private struct ProposalCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
+        .sheet(isPresented: $showingPlanEditor) {
+            if let plan = effectivePlan {
+                NavigationStack {
+                    WorkoutPlanProposalEditorView(initialDraft: plan) { updated in
+                        editedPlan = updated
+                    }
+                }
+            }
+        }
     }
 
     private var borderColor: Color {
@@ -206,36 +218,71 @@ private struct ProposalCard: View {
         }
     }
 
-    private var saveLabel: String {
-        if case .workoutPlan = proposal.kind { return "Save plan" }
-        return "Save"
+    private var isWorkoutPlan: Bool {
+        if case .workoutPlan = proposal.kind { return true }
+        return false
+    }
+
+    private var effectivePlan: WorkoutPlanProposal? {
+        if let editedPlan { return editedPlan }
+        if case .workoutPlan(let plan) = proposal.kind { return plan }
+        return nil
     }
 
     @ViewBuilder
     private var footer: some View {
         switch proposal.status {
         case .pending:
-            HStack(spacing: 12) {
-                Button {
-                    engine.confirm(proposal)
-                } label: {
-                    Text(saveLabel)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.evergreen)
+            if isWorkoutPlan {
+                VStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        Button {
+                            confirmProposal()
+                        } label: {
+                            Text("Save plan")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.evergreen)
 
-                Button {
-                    engine.discard(proposal)
-                } label: {
-                    Text("Discard")
-                        .frame(maxWidth: .infinity)
+                        Button("Edit") {
+                            showingPlanEditor = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Button {
+                        engine.discard(proposal)
+                    } label: {
+                        Text("Discard")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+            } else {
+                HStack(spacing: 12) {
+                    Button {
+                        engine.confirm(proposal)
+                    } label: {
+                        Text("Save")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.evergreen)
+
+                    Button {
+                        engine.discard(proposal)
+                    } label: {
+                        Text("Discard")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         case .saved:
-            Label(saveLabel == "Save plan" ? "Plan saved" : "Saved", systemImage: "checkmark.circle.fill")
+            Label(isWorkoutPlan ? "Plan saved" : "Saved", systemImage: "checkmark.circle.fill")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Theme.moss)
         case .discarded:
@@ -243,6 +290,17 @@ private struct ProposalCard: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func confirmProposal() {
+        guard let editedPlan else {
+            engine.confirm(proposal)
+            return
+        }
+
+        let editedProposal = ChatProposal(kind: .workoutPlan(editedPlan))
+        engine.confirm(editedProposal)
+        proposal.status = editedProposal.status
     }
 }
 
@@ -445,6 +503,254 @@ private struct WorkoutPlanCardContent: View {
 
     private func stepTypeLabel(_ raw: String) -> String {
         WorkoutStepType(rawValue: raw)?.displayName ?? "Step"
+    }
+}
+
+// MARK: - Editable plan proposal
+
+private struct WorkoutPlanProposalEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: WorkoutPlanProposal
+
+    let onSave: (WorkoutPlanProposal) -> Void
+
+    init(initialDraft: WorkoutPlanProposal, onSave: @escaping (WorkoutPlanProposal) -> Void) {
+        _draft = State(initialValue: initialDraft)
+        self.onSave = onSave
+    }
+
+    var body: some View {
+        Form {
+            Section("Plan") {
+                TextField("Title", text: $draft.title)
+                TextField("Goal or focus", text: optionalString(\.goal), axis: .vertical)
+                    .lineLimit(2...4)
+                Stepper(
+                    "Estimated duration: \(draft.estimatedDurationMinutes ?? 45) min",
+                    value: optionalInt(\.estimatedDurationMinutes, default: 45),
+                    in: 5...240,
+                    step: 5
+                )
+                Stepper(
+                    "Target effort: \(draft.targetEffort ?? 6)/10",
+                    value: optionalInt(\.targetEffort, default: 6),
+                    in: 1...10
+                )
+                TextField("Location", text: optionalString(\.location))
+                TextField("Notes", text: optionalString(\.notes), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+
+            Section {
+                ForEach(draft.steps.indices, id: \.self) { index in
+                    NavigationLink {
+                        WorkoutPlanProposalStepEditor(step: $draft.steps[index])
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(draft.steps[index].title)
+                                .font(.headline)
+                            Text(proposalStepSummary(draft.steps[index]))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .onDelete { draft.steps.remove(atOffsets: $0) }
+                .onMove { draft.steps.move(fromOffsets: $0, toOffset: $1) }
+
+                Button {
+                    draft.steps.append(Self.newStep())
+                } label: {
+                    Label("Add step", systemImage: "plus")
+                }
+            } header: {
+                HStack {
+                    Text("Ordered steps")
+                    Spacer()
+                    EditButton()
+                }
+            } footer: {
+                Text("Review every step before saving. You can also edit the saved plan later in Settings.")
+            }
+        }
+        .navigationTitle("Edit plan draft")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    draft.title = draft.title.trimmed
+                    onSave(draft)
+                    dismiss()
+                }
+                .disabled(draft.title.trimmed.isEmpty || draft.steps.isEmpty)
+            }
+        }
+    }
+
+    private func optionalString(
+        _ keyPath: WritableKeyPath<WorkoutPlanProposal, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { draft[keyPath: keyPath] ?? "" },
+            set: {
+                let value = $0.trimmed
+                draft[keyPath: keyPath] = value.isEmpty ? nil : value
+            }
+        )
+    }
+
+    private func optionalInt(
+        _ keyPath: WritableKeyPath<WorkoutPlanProposal, Int?>,
+        default defaultValue: Int
+    ) -> Binding<Int> {
+        Binding(
+            get: { draft[keyPath: keyPath] ?? defaultValue },
+            set: { draft[keyPath: keyPath] = $0 }
+        )
+    }
+
+    private func proposalStepSummary(_ step: WorkoutPlanStepProposal) -> String {
+        var parts = [WorkoutStepType(rawValue: step.type)?.displayName ?? "Step"]
+        if let sets = step.sets, let reps = step.reps { parts.append("\(sets) × \(reps)") }
+        if let seconds = step.durationSeconds { parts.append(planDurationLabel(seconds)) }
+        if let equipment = step.equipment { parts.append(equipment) }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func newStep() -> WorkoutPlanStepProposal {
+        WorkoutPlanStepProposal(
+            type: WorkoutStepType.exercise.rawValue,
+            title: "New exercise",
+            instruction: nil,
+            sets: 3,
+            reps: 8,
+            durationSeconds: nil,
+            distanceMeters: nil,
+            targetWeightKilograms: nil,
+            restSeconds: 60,
+            side: WorkoutStepSide.none.rawValue,
+            equipment: nil,
+            notes: nil
+        )
+    }
+}
+
+private struct WorkoutPlanProposalStepEditor: View {
+    @Binding var step: WorkoutPlanStepProposal
+
+    private var type: WorkoutStepType {
+        WorkoutStepType(rawValue: step.type) ?? .freeform
+    }
+
+    var body: some View {
+        Form {
+            Section("Step") {
+                Picker("Type", selection: $step.type) {
+                    ForEach(WorkoutStepType.allCases) { type in
+                        Label(type.displayName, systemImage: type.systemImage).tag(type.rawValue)
+                    }
+                }
+                TextField("Title", text: $step.title)
+                TextField("Instructions", text: optionalString(\.instruction), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+
+            if type.supportsSets || type.supportsReps {
+                Section("Volume") {
+                    if type.supportsSets {
+                        TextField("Sets", text: optionalIntText(\.sets))
+                            .keyboardType(.numberPad)
+                    }
+                    if type.supportsReps {
+                        TextField("Reps", text: optionalIntText(\.reps))
+                            .keyboardType(.numberPad)
+                    }
+                    Picker("Side", selection: optionalSide) {
+                        ForEach(WorkoutStepSide.allCases) { side in
+                            Text(side.displayName).tag(side.rawValue)
+                        }
+                    }
+                }
+            }
+
+            if type.supportsDuration {
+                Section("Duration") {
+                    TextField("Duration in seconds", text: optionalIntText(\.durationSeconds))
+                        .keyboardType(.numberPad)
+                }
+            }
+
+            if type.supportsDistance {
+                Section("Distance") {
+                    TextField("Distance in meters", text: optionalDoubleText(\.distanceMeters))
+                        .keyboardType(.decimalPad)
+                }
+            }
+
+            if type.supportsLoad || type.supportsRestAfter {
+                Section("Load and recovery") {
+                    if type.supportsLoad {
+                        TextField("Target weight (kg)", text: optionalDoubleText(\.targetWeightKilograms))
+                            .keyboardType(.decimalPad)
+                    }
+                    if type.supportsRestAfter {
+                        TextField("Rest after (seconds)", text: optionalIntText(\.restSeconds))
+                            .keyboardType(.numberPad)
+                    }
+                }
+            }
+
+            Section("Equipment and notes") {
+                TextField("Equipment", text: optionalString(\.equipment))
+                TextField("Notes", text: optionalString(\.notes), axis: .vertical)
+                    .lineLimit(2...5)
+            }
+        }
+        .navigationTitle("Edit step")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var optionalSide: Binding<String> {
+        Binding(
+            get: { step.side ?? WorkoutStepSide.none.rawValue },
+            set: { step.side = $0 }
+        )
+    }
+
+    private func optionalString(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath] ?? "" },
+            set: {
+                let value = $0.trimmed
+                step[keyPath: keyPath] = value.isEmpty ? nil : value
+            }
+        )
+    }
+
+    private func optionalIntText(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, Int?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath].map(String.init) ?? "" },
+            set: { step[keyPath: keyPath] = Int($0.trimmed) }
+        )
+    }
+
+    private func optionalDoubleText(
+        _ keyPath: WritableKeyPath<WorkoutPlanStepProposal, Double?>
+    ) -> Binding<String> {
+        Binding(
+            get: { step[keyPath: keyPath].map { String(format: "%g", $0) } ?? "" },
+            set: {
+                let normalized = $0.replacingOccurrences(of: ",", with: ".").trimmed
+                step[keyPath: keyPath] = Double(normalized)
+            }
+        )
     }
 }
 
