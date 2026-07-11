@@ -44,6 +44,18 @@ struct SettingsView: View {
                 } label: {
                     Label("Structured workout plans", systemImage: "list.clipboard")
                 }
+
+                NavigationLink {
+                    WorkoutStartView()
+                } label: {
+                    Label("Start or continue workout", systemImage: "figure.run.circle.fill")
+                }
+
+                NavigationLink {
+                    ActiveWorkoutsView()
+                } label: {
+                    Label("Workout execution history", systemImage: "clock.arrow.circlepath")
+                }
             }
 
             Section("Claude API key") {
