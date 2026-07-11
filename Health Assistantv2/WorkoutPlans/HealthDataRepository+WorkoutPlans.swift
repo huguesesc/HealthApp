@@ -99,7 +99,21 @@ extension HealthDataRepository {
 
     func moveWorkoutSteps(in plan: WorkoutPlan, from source: IndexSet, to destination: Int) {
         var ordered = plan.orderedSteps
-        ordered.move(fromOffsets: source, toOffset: destination)
+        let validOffsets = source.filter { ordered.indices.contains($0) }
+        guard !validOffsets.isEmpty else { return }
+
+        let moving = validOffsets.map { ordered[$0] }
+        for index in validOffsets.sorted(by: >) {
+            ordered.remove(at: index)
+        }
+
+        let removedBeforeDestination = validOffsets.filter { $0 < destination }.count
+        let adjustedDestination = min(
+            max(destination - removedBeforeDestination, 0),
+            ordered.count
+        )
+        ordered.insert(contentsOf: moving, at: adjustedDestination)
+
         for (index, step) in ordered.enumerated() {
             step.order = index
             step.updatedAt = .now
@@ -109,10 +123,11 @@ extension HealthDataRepository {
     }
 
     func replaceWorkoutSteps(in plan: WorkoutPlan, with steps: [WorkoutStep]) {
-        for oldStep in plan.steps {
+        let oldSteps = plan.steps
+        plan.steps.removeAll()
+        for oldStep in oldSteps {
             context.delete(oldStep)
         }
-        plan.steps.removeAll()
 
         for (index, step) in steps.enumerated() {
             step.order = index
