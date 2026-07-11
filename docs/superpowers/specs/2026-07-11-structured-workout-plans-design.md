@@ -20,8 +20,8 @@ A user can:
 - add, edit, delete, and reorder structured steps;
 - archive and restore plans;
 - ask the assistant to draft a plan;
-- review the complete ordered draft before saving;
-- edit an assistant-authored plan after saving.
+- review and edit the complete ordered draft before saving;
+- edit an assistant-authored plan again after saving.
 
 The assistant can read the profile, active locations, available equipment, recent summaries, and saved-plan snapshots. It cannot save a plan without the user pressing **Save plan**.
 
@@ -63,7 +63,7 @@ For a future-plan request, the system prompt requires this sequence:
 2. `get_workout_locations`
 3. `propose_workout_plan`
 
-The proposal includes ordered steps and appears as a confirmation card. `get_workout_plans` supports questions about existing plans.
+The proposal includes ordered steps and appears as a confirmation card. The user can edit plan metadata, add/delete/reorder steps, and edit step prescriptions before confirmation. `get_workout_plans` supports questions about existing plans.
 
 The assistant must:
 
@@ -77,7 +77,7 @@ The assistant must:
 
 Settings → Profile & coaching gains **Structured workout plans**.
 
-The plan list separates active and archived plans. The editor supports location snapshots, ordered steps, drag-to-reorder, and type-specific fields. The chat proposal card shows the complete ordered workout before confirmation.
+The plan list separates active and archived plans. The saved-plan editor supports location snapshots, ordered steps, drag-to-reorder, and type-specific fields. The chat proposal card shows the complete ordered workout and provides an **Edit** action before **Save plan**.
 
 ## Out of scope
 
@@ -100,6 +100,6 @@ Before merge, run a clean simulator build and tests on macOS, then manually veri
 - step add/edit/delete/reorder;
 - archive/restore;
 - location and equipment snapshots;
-- assistant draft, discard, and confirmation;
+- assistant draft editing, discard, and confirmation;
 - invalid/unavailable assistant equipment is not stored;
 - existing meal/workout confirmation and HealthKit behavior remain intact.
