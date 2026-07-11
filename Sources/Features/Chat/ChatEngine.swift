@@ -73,6 +73,56 @@ struct WorkoutProposal: Codable, Equatable {
     }
 }
 
+struct WorkoutPlanStepProposal: Codable, Equatable {
+    var type: String
+    var title: String
+    var instruction: String?
+    var sets: Int?
+    var reps: Int?
+    var durationSeconds: Int?
+    var distanceMeters: Double?
+    var targetWeightKilograms: Double?
+    var restSeconds: Int?
+    var side: String?
+    var equipment: String?
+    var notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case title
+        case instruction
+        case sets
+        case reps
+        case durationSeconds = "duration_seconds"
+        case distanceMeters = "distance_meters"
+        case targetWeightKilograms = "target_weight_kg"
+        case restSeconds = "rest_seconds"
+        case side
+        case equipment
+        case notes
+    }
+}
+
+struct WorkoutPlanProposal: Codable, Equatable {
+    var title: String
+    var goal: String?
+    var estimatedDurationMinutes: Int?
+    var targetEffort: Int?
+    var location: String?
+    var notes: String?
+    var steps: [WorkoutPlanStepProposal]
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case goal
+        case estimatedDurationMinutes = "estimated_duration_minutes"
+        case targetEffort = "target_effort"
+        case location
+        case notes
+        case steps
+    }
+}
+
 /// A pending write drafted by the assistant, rendered as an inline confirmation
 /// card. Nothing touches the store until the user taps Save.
 @MainActor
@@ -81,6 +131,7 @@ final class ChatProposal: Identifiable {
     enum Kind {
         case meal(MealProposal)
         case workout(WorkoutProposal)
+        case workoutPlan(WorkoutPlanProposal)
     }
 
     enum Status {
@@ -155,8 +206,8 @@ final class ChatEngine {
     private func runLoop() async {
         let client = AIClientFactory.makeDefault()
         do {
-            // Bounded so a confused model can't loop forever on our token budget.
-            for _ in 0..<6 {
+            // Bounded so a confused model cannot loop forever on the token budget.
+            for _ in 0..<8 {
                 let reply = try await client.chat(history, tools: Self.tools, system: Self.systemPrompt)
 
                 var assistantContent: [ChatContent] = []
@@ -204,8 +255,18 @@ final class ChatEngine {
                 return "Error: could not parse the workout proposal input."
             }
             items.append(.proposal(ChatProposal(kind: .workout(proposal))))
-            return "Drafted a workout card and showed it to the user for confirmation. "
+            return "Drafted a completed-workout card and showed it to the user for confirmation. "
                 + "It is NOT saved yet — the user must tap Save."
+
+        case "propose_workout_plan":
+            guard let proposal = try? JSONDecoder().decode(WorkoutPlanProposal.self, from: data),
+                  !proposal.title.trimmed.isEmpty,
+                  !proposal.steps.isEmpty else {
+                return "Error: could not parse a complete workout-plan proposal."
+            }
+            items.append(.proposal(ChatProposal(kind: .workoutPlan(proposal))))
+            return "Drafted a structured workout plan and showed it to the user for confirmation. "
+                + "It is NOT saved yet — the user must tap Save plan."
 
         case "get_recent_summaries":
             struct DaysInput: Codable { var days: Int? }
@@ -227,6 +288,12 @@ final class ChatEngine {
                 ? "The user has not added any active workout locations or equipment yet."
                 : encodeJSON(snapshots, failure: "workout locations")
 
+        case "get_workout_plans":
+            let snapshots = repo.workoutPlanSnapshots(limit: 20)
+            return snapshots.isEmpty
+                ? "The user has no active saved workout plans yet."
+                : encodeJSON(snapshots, failure: "workout plans")
+
         default:
             return "Error: unknown tool \(call.name)."
         }
@@ -247,6 +314,8 @@ final class ChatEngine {
 
     func confirm(_ proposal: ChatProposal) {
         guard proposal.status == .pending else { return }
+        var refreshesDailyRollup = false
+
         switch proposal.kind {
         case .meal(let meal):
             let record = Meal(rawText: meal.description)
@@ -257,6 +326,8 @@ final class ChatEngine {
             record.confidence = Self.confidenceValue(meal.confidence)
             record.uncertaintyNote = "Estimated by the assistant from: \"\(meal.description)\""
             repo.addMeal(record)
+            refreshesDailyRollup = true
+
         case .workout(let workout):
             let session = WorkoutSession(
                 type: workout.type,
@@ -272,14 +343,82 @@ final class ChatEngine {
                 )
             }
             repo.addWorkout(session)
+            refreshesDailyRollup = true
+
+        case .workoutPlan(let draft):
+            saveWorkoutPlan(draft)
         }
+
         proposal.status = .saved
-        repo.refreshTodayRollup()
+        if refreshesDailyRollup {
+            repo.refreshTodayRollup()
+        }
+    }
+
+    private func saveWorkoutPlan(_ draft: WorkoutPlanProposal) {
+        let resolvedLocation = repo.matchingActiveLocation(named: draft.location)
+        let plan = WorkoutPlan(
+            title: draft.title.trimmed,
+            goalText: draft.goal?.trimmed.nilIfEmpty,
+            notes: draft.notes?.trimmed.nilIfEmpty,
+            estimatedDurationMinutes: draft.estimatedDurationMinutes.map { min(max($0, 5), 240) },
+            targetEffort: draft.targetEffort.map { min(max($0, 1), 10) },
+            source: .assistant
+        )
+        repo.addWorkoutPlan(plan)
+        repo.applyWorkoutLocationSnapshot(resolvedLocation, to: plan)
+
+        let steps = draft.steps.enumerated().compactMap { index, proposed -> WorkoutStep? in
+            let cleanedTitle = proposed.title.trimmed
+            guard !cleanedTitle.isEmpty else { return nil }
+            let type = WorkoutStepType(rawValue: proposed.type) ?? .freeform
+            let side = WorkoutStepSide(rawValue: proposed.side ?? "") ?? .none
+            let equipment = repo.isEquipmentNameAvailable(proposed.equipment, at: resolvedLocation)
+                ? proposed.equipment?.trimmed.nilIfEmpty
+                : nil
+
+            return WorkoutStep(
+                order: index,
+                type: type,
+                title: cleanedTitle,
+                instruction: proposed.instruction?.trimmed.nilIfEmpty,
+                sets: positive(proposed.sets),
+                reps: positive(proposed.reps),
+                durationSeconds: positive(proposed.durationSeconds),
+                distanceMeters: positive(proposed.distanceMeters),
+                targetWeightKilograms: nonnegative(proposed.targetWeightKilograms),
+                restSeconds: nonnegative(proposed.restSeconds),
+                side: side,
+                equipmentNameSnapshot: equipment,
+                notes: proposed.notes?.trimmed.nilIfEmpty
+            )
+        }
+        repo.replaceWorkoutSteps(in: plan, with: steps)
     }
 
     func discard(_ proposal: ChatProposal) {
         guard proposal.status == .pending else { return }
         proposal.status = .discarded
+    }
+
+    private func positive(_ value: Int?) -> Int? {
+        guard let value, value > 0 else { return nil }
+        return value
+    }
+
+    private func positive(_ value: Double?) -> Double? {
+        guard let value, value > 0 else { return nil }
+        return value
+    }
+
+    private func nonnegative(_ value: Int?) -> Int? {
+        guard let value, value >= 0 else { return nil }
+        return value
+    }
+
+    private func nonnegative(_ value: Double?) -> Double? {
+        guard let value, value >= 0 else { return nil }
+        return value
     }
 
     private static func confidenceValue(_ label: String?) -> Double? {
@@ -316,43 +455,47 @@ final class ChatEngine {
     When the user describes food they ate, call propose_meal. Always fill the `items` \
     array with your per-food portion assumptions (grams and per-item macros) so the \
     user can verify your guesses, plus estimated totals and a confidence level. When \
-    they describe a workout, call propose_workout with structured sets. Both tools \
-    only DRAFT a card that the user must confirm — never claim something is already \
-    saved or logged; say it's ready for them to review.
+    they describe a workout they already completed, call propose_workout with structured \
+    sets. These tools only DRAFT cards that the user must confirm — never claim something \
+    is already saved or logged.
 
-    To answer questions about how they've been doing, call get_recent_summaries and \
-    ground your answer in that data; if it's empty, say there's no history yet. Use \
-    get_health_profile when goals, preferences, measurements, previous surgery, old \
-    injuries, asymmetries, or movement considerations are relevant. The returned \
-    considerations are the user's own reports, not diagnoses. Account for them \
-    conservatively and never infer a condition, prescribe treatment, or override \
-    clinician guidance. Use get_workout_locations before recommending equipment-\
-    dependent exercises or when the user names a location.
+    When the user asks you to CREATE, DESIGN, or SUGGEST a future workout plan, first \
+    call get_health_profile and get_workout_locations. Then call propose_workout_plan. \
+    Use only equipment marked available at the selected active location. Include ordered \
+    warm-up, exercise, mobility/cardio/rest as appropriate, and cooldown steps. Make the \
+    plan realistic for the user's stated duration, experience, goal, and preferences. \
+    The plan is a draft requiring Save plan; do not describe it as saved before confirmation.
 
-    Keep replies short and conversational — a sentence or two around a card is enough.
+    Health considerations returned by get_health_profile are the user's own reports, not \
+    diagnoses. Account for them conservatively. Do not infer a medical condition, prescribe \
+    treatment or rehabilitation, claim an exercise is medically safe, or override clinician \
+    guidance. Prefer neutral adjustments such as reduced load, stable support, shorter range, \
+    lower volume, or an alternative movement when appropriate.
+
+    To answer questions about how the user has been doing, call get_recent_summaries. Use \
+    get_workout_plans when they ask about an existing saved plan. Keep replies concise; a \
+    sentence or two around a proposal card is enough.
     """
 
     static let tools: [ChatToolDef] = [
         ChatToolDef(
             name: "propose_meal",
             description: "Draft a meal log entry for the user to confirm. Include a "
-                + "per-food breakdown of your portion assumptions in `items` so the "
-                + "user can verify them, plus estimated totals. This only shows a "
-                + "card — the user must tap Save.",
+                + "per-food breakdown of portion assumptions and totals. This only shows "
+                + "a card — the user must tap Save.",
             inputSchemaJSON: """
             {
               "type": "object",
               "properties": {
-                "description": {"type": "string", "description": "The meal in the user's words, e.g. '2 eggs and toast'"},
+                "description": {"type": "string"},
                 "items": {
                   "type": "array",
-                  "description": "Per-food portion assumptions and per-item estimates",
                   "items": {
                     "type": "object",
                     "properties": {
                       "food": {"type": "string"},
-                      "quantity": {"type": "string", "description": "e.g. 'x2', '1 slice', '1 cup'"},
-                      "grams": {"type": "number", "description": "Assumed portion weight in grams"},
+                      "quantity": {"type": "string"},
+                      "grams": {"type": "number"},
                       "calories": {"type": "integer"},
                       "protein_g": {"type": "number"},
                       "carbs_g": {"type": "number"},
@@ -361,7 +504,7 @@ final class ChatEngine {
                     "required": ["food"]
                   }
                 },
-                "calories": {"type": "integer", "description": "Estimated total calories"},
+                "calories": {"type": "integer"},
                 "protein_g": {"type": "number"},
                 "carbs_g": {"type": "number"},
                 "fat_g": {"type": "number"},
@@ -373,14 +516,14 @@ final class ChatEngine {
         ),
         ChatToolDef(
             name: "propose_workout",
-            description: "Draft a workout log entry for the user to confirm. This only "
-                + "shows a card — the user must tap Save.",
+            description: "Draft a log entry for a workout the user already completed. "
+                + "This only shows a card — the user must tap Save.",
             inputSchemaJSON: """
             {
               "type": "object",
               "properties": {
-                "type": {"type": "string", "description": "e.g. 'Push', 'Run', 'Mobility'"},
-                "perceived_effort": {"type": "integer", "description": "RPE 1-10"},
+                "type": {"type": "string"},
+                "perceived_effort": {"type": "integer"},
                 "duration_minutes": {"type": "integer"},
                 "sets": {
                   "type": "array",
@@ -400,33 +543,88 @@ final class ChatEngine {
             """
         ),
         ChatToolDef(
-            name: "get_recent_summaries",
-            description: "Fetch the user's compact daily summaries (meals, calories, "
-                + "workouts, sleep, energy, mood, and Apple Health activity aggregates) "
-                + "for recent days, as JSON. Use this to answer any question about "
-                + "their data or trends.",
+            name: "propose_workout_plan",
+            description: "Draft an ordered future workout plan for user confirmation. "
+                + "Call get_health_profile and get_workout_locations first. Use only "
+                + "available equipment at the named location. This does not start or "
+                + "complete a workout; the user must tap Save plan.",
             inputSchemaJSON: """
             {
               "type": "object",
               "properties": {
-                "days": {"type": "integer", "description": "How many recent days to fetch (default 14, max 60)"}
+                "title": {"type": "string"},
+                "goal": {"type": "string"},
+                "estimated_duration_minutes": {"type": "integer", "minimum": 5, "maximum": 240},
+                "target_effort": {"type": "integer", "minimum": 1, "maximum": 10},
+                "location": {"type": "string", "description": "Exact active location name from get_workout_locations"},
+                "notes": {"type": "string"},
+                "steps": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {"type": "string", "enum": ["warm_up", "exercise", "mobility", "hold", "cardio", "interval", "distance", "rest", "cooldown", "freeform"]},
+                      "title": {"type": "string"},
+                      "instruction": {"type": "string"},
+                      "sets": {"type": "integer", "minimum": 1},
+                      "reps": {"type": "integer", "minimum": 1},
+                      "duration_seconds": {"type": "integer", "minimum": 1},
+                      "distance_meters": {"type": "number", "minimum": 0},
+                      "target_weight_kg": {"type": "number", "minimum": 0},
+                      "rest_seconds": {"type": "integer", "minimum": 0},
+                      "side": {"type": "string", "enum": ["none", "left", "right", "both", "alternating"]},
+                      "equipment": {"type": "string", "description": "Exact available equipment name from the selected location"},
+                      "notes": {"type": "string"}
+                    },
+                    "required": ["type", "title"]
+                  }
+                }
+              },
+              "required": ["title", "steps"]
+            }
+            """
+        ),
+        ChatToolDef(
+            name: "get_recent_summaries",
+            description: "Fetch compact daily summaries for recent days as JSON.",
+            inputSchemaJSON: """
+            {
+              "type": "object",
+              "properties": {
+                "days": {"type": "integer", "description": "Default 14, maximum 60"}
               }
             }
             """
         ),
         ChatToolDef(
             name: "get_health_profile",
-            description: "Read the user's compact, user-confirmed health and training profile: goals, experience, preferences, availability, user-reported movement considerations, and a compact body-metric trend. Read-only; never changes profile data.",
+            description: "Read the compact, user-confirmed health and training profile. "
+                + "Includes goals, experience, availability, preferences, user-reported "
+                + "considerations, and a compact body-metric trend. Read-only.",
             inputSchemaJSON: """
             {"type": "object", "properties": {}}
             """
         ),
         ChatToolDef(
             name: "get_workout_locations",
-            description: "Read active workout locations with available equipment, space limitations, and notes. Use before suggesting equipment-dependent exercises. Read-only.",
+            description: "Read active workout locations with available equipment and "
+                + "space limitations. Read-only.",
+            inputSchemaJSON: """
+            {"type": "object", "properties": {}}
+            """
+        ),
+        ChatToolDef(
+            name: "get_workout_plans",
+            description: "Read compact snapshots of active saved workout plans and their "
+                + "ordered steps. Read-only.",
             inputSchemaJSON: """
             {"type": "object", "properties": {}}
             """
         ),
     ]
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
