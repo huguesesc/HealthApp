@@ -38,6 +38,12 @@ struct SettingsView: View {
                 } label: {
                     Label("Workout locations & equipment", systemImage: "mappin.and.ellipse")
                 }
+
+                NavigationLink {
+                    WorkoutPlansView()
+                } label: {
+                    Label("Structured workout plans", systemImage: "list.clipboard")
+                }
             }
 
             Section("Claude API key") {
