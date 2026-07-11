@@ -23,6 +23,8 @@ struct PersistenceController {
         BodyMetricEntry.self,
         WorkoutLocation.self,
         EquipmentItem.self,
+        WorkoutPlan.self,
+        WorkoutStep.self,
     ])
 
     init(inMemory: Bool = false) {
