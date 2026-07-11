@@ -6,7 +6,7 @@ extension HealthDataRepository {
     // MARK: - Session lifecycle
 
     /// Creates a durable execution snapshot from a saved plan. Returns nil for an
-    /// empty plan because there is nothing safe or useful to execute.
+    /// empty plan because there is nothing useful to execute.
     @discardableResult
     func startActiveWorkout(from plan: WorkoutPlan) -> ActiveWorkoutSession? {
         let planSteps = plan.orderedSteps
@@ -26,8 +26,9 @@ extension HealthDataRepository {
         )
         context.insert(session)
 
+        var executionSteps: [ActiveWorkoutStep] = []
         for (index, planStep) in planSteps.enumerated() {
-            let executionStep = ActiveWorkoutStep(
+            let step = ActiveWorkoutStep(
                 order: index,
                 sourcePlanStepIDSnapshot: planStep.id,
                 type: planStep.type,
@@ -42,12 +43,12 @@ extension HealthDataRepository {
                 side: planStep.side,
                 equipmentNameSnapshot: planStep.equipmentNameSnapshot,
                 plannedNotes: planStep.notes,
-                status: index == 0 ? .active : .pending,
-                session: session
+                status: index == 0 ? .active : .pending
             )
-            context.insert(executionStep)
-            session.steps.append(executionStep)
+            context.insert(step)
+            executionSteps.append(step)
         }
+        session.steps = executionSteps
 
         persistActiveWorkoutChanges()
         return session
@@ -77,9 +78,7 @@ extension HealthDataRepository {
 
     func pauseActiveWorkout(_ session: ActiveWorkoutSession, at date: Date = .now) {
         guard session.status == .inProgress else { return }
-        if let segmentStart = session.activeSegmentStartedAt {
-            session.accumulatedActiveSeconds += max(Int(date.timeIntervalSince(segmentStart)), 0)
-        }
+        captureActiveTime(for: session, at: date)
         session.activeSegmentStartedAt = nil
         session.statusRaw = ActiveWorkoutStatus.paused.rawValue
 
@@ -146,19 +145,21 @@ extension HealthDataRepository {
         session.completedAt = date
         session.activeSegmentStartedAt = nil
         session.actualEffort = actualEffort.map { min(max($0, 1), 10) }
-        session.notes = notes?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        let cleanedNotes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        session.notes = cleanedNotes?.isEmpty == false ? cleanedNotes : nil
         session.updatedAt = date
 
         if !session.workoutLogCreated {
-            let loggedSets = executionSets(from: session)
             let seconds = session.elapsedSeconds(at: date)
-            let durationMinutes = seconds > 0 ? max(Int((Double(seconds) / 60).rounded()), 1) : nil
+            let durationMinutes = seconds > 0
+                ? max(Int((Double(seconds) / 60).rounded()), 1)
+                : nil
             let workout = WorkoutSession(
                 date: date,
                 type: session.titleSnapshot,
                 durationMinutes: durationMinutes,
                 perceivedEffort: session.actualEffort,
-                sets: loggedSets
+                sets: executionSets(from: session)
             )
             addWorkout(workout)
             session.workoutLogCreated = true
@@ -174,7 +175,9 @@ extension HealthDataRepository {
         let ordered = session.orderedSteps
         guard ordered.indices.contains(index) else { return }
 
-        if let previous = session.currentStep, previous.status == .active, previous.id != ordered[index].id {
+        if let previous = session.currentStep,
+           previous.status == .active,
+           previous.id != ordered[index].id {
             previous.statusRaw = ActiveWorkoutStepStatus.pending.rawValue
             previous.updatedAt = .now
         }
@@ -201,6 +204,12 @@ extension HealthDataRepository {
 
     func reopenActiveWorkoutStep(_ step: ActiveWorkoutStep) {
         guard let session = step.session else { return }
+        if let active = session.currentStep,
+           active.status == .active,
+           active.id != step.id {
+            active.statusRaw = ActiveWorkoutStepStatus.pending.rawValue
+            active.updatedAt = .now
+        }
         step.statusRaw = ActiveWorkoutStepStatus.active.rawValue
         step.completedAt = nil
         step.skippedAt = nil
@@ -289,7 +298,8 @@ extension HealthDataRepository {
     func startActiveStepTimer(_ step: ActiveWorkoutStep, at date: Date = .now) {
         guard !step.timerIsRunning,
               step.status != .completed,
-              step.status != .skipped else { return }
+              step.status != .skipped,
+              step.session?.status == .inProgress else { return }
         step.statusRaw = ActiveWorkoutStepStatus.active.rawValue
         step.startedAt = step.startedAt ?? date
         step.timerStartedAt = date
@@ -359,7 +369,9 @@ extension HealthDataRepository {
         guard let resolvedIndex = ordered.firstIndex(where: { $0.id == step.id }) else { return }
 
         let nextIndex = ordered.indices.first {
-            $0 > resolvedIndex && ordered[$0].status != .completed && ordered[$0].status != .skipped
+            $0 > resolvedIndex
+                && ordered[$0].status != .completed
+                && ordered[$0].status != .skipped
         }
         guard let nextIndex else {
             session.currentStepIndex = ordered.count
@@ -376,7 +388,8 @@ extension HealthDataRepository {
     }
 
     private func captureActiveTime(for session: ActiveWorkoutSession, at date: Date) {
-        guard session.status == .inProgress, let segmentStart = session.activeSegmentStartedAt else { return }
+        guard session.status == .inProgress,
+              let segmentStart = session.activeSegmentStartedAt else { return }
         session.accumulatedActiveSeconds += max(Int(date.timeIntervalSince(segmentStart)), 0)
     }
 
@@ -408,8 +421,4 @@ extension HealthDataRepository {
     private func persistActiveWorkoutChanges() {
         try? context.save()
     }
-}
-
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
