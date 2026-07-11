@@ -6,92 +6,162 @@ Date: 2026-07-11
 
 - Original base branch: `test/fix-settings-section-initializers`
 - Original base commit: `9c9f4a8bdc5fc59a221e9f0fb1cadfec129d76c9`
-- Handoff branch: `feature/adaptive-coach-foundation`
+- Implementation branch: `feature/adaptive-coach-foundation`
 - Main was not modified or merged.
+- The initial WIP preservation commit was `ce710ee21280fd95f9487685ecf60ba02293cd42`.
 
-## What this handoff preserves
+## Product boundary
 
-- `docs/superpowers/specs/2026-07-11-adaptive-coach-design.md` is the approved
-  Phase 1 design and the longer-term product direction.
-- The design document previously stated that Phase 1 was implemented. Repository
-  inspection found no Phase 1 source files, SwiftData entities, repository
-  extension, views, assistant tools, tests, or Xcode project registrations. Its
-  status has been corrected to avoid a false implementation claim.
-- A non-empty local recovery patch was created before this documentation work at
-  `.local-handoff/adaptive-coach-recovery.patch`. It is intentionally ignored and
-  is not committed.
+The durable direction is recorded in
+`docs/superpowers/specs/2026-07-11-adaptive-coach-design.md`. This branch implements
+Phase 1 only:
 
-## Files changed for this handoff
+- local health/training profile;
+- user-reported considerations;
+- body metrics;
+- workout locations;
+- equipment inventory;
+- compact read-only assistant context.
 
-- Modified: `.gitignore` to exclude `.local-handoff/`.
-- Modified: `docs/superpowers/specs/2026-07-11-adaptive-coach-design.md` to state
-  that Phase 1 is specified, not implemented.
-- Created: this journal entry.
+It does not implement structured workout plans, active workout execution, timers,
+movement feedback, payments, backend work, watchOS, or model-written memory.
 
-## Phase 1 status
+## Implemented files
 
-Completed:
+New app-target files are under the existing Xcode 16 file-system-synchronized
+`Health Assistantv2/AdaptiveCoach` group:
 
-- Durable adaptive-coach design specification, including the local-first,
-  user-confirmed, read-only-assistant and no-diagnosis boundaries.
-- Preservation patch and Git handoff documentation.
+- `AdaptiveCoachModels.swift`
+- `HealthDataRepository+AdaptiveCoach.swift`
+- `ProfileViews.swift`
+- `WorkoutEnvironmentViews.swift`
 
-Not implemented:
+Other modified files:
 
-- `HealthProfile`, `HealthConsideration`, `BodyMetricEntry`, `WorkoutLocation`,
-  and `EquipmentItem` SwiftData entities.
-- Explicit schema registration and migration verification.
-- `HealthDataRepository+AdaptiveCoach.swift` persistence operations and compact
-  Codable snapshots.
-- Profile, consideration, body-metric, location, and equipment SwiftUI screens.
-- Assistant read tools (`get_health_profile`, `get_workout_locations`) and system
-  prompt constraints.
-- Xcode target registration, Swift Testing coverage, simulator verification and
-  manual accessibility testing.
+- `Sources/Persistence/PersistenceController.swift`
+- `Sources/Features/Settings/SettingsView.swift`
+- `Sources/Features/Chat/ChatEngine.swift`
 
-## Architecture and migration notes
+New tests:
 
-The specification intentionally requires new SwiftData entities only, raw-string
-enum storage, SI storage for body metrics, compact Codable snapshots rather than
-model encoding, assistant reads that never create a profile, and no Phase 1
-`ActivityEvent` writes. The intended migration is lightweight only if those new
-tables are added without changing existing entities. This remains an unverified
-design decision because no schema change has been made.
+- `Health Assistantv2Tests/AdaptiveCoachFoundationTests.swift`
+- `Health Assistantv2Tests/AdaptiveCoachAssistantToolTests.swift`
 
-## Verification
+Documentation:
 
-The Windows handoff environment has no Xcode command-line tools:
+- `docs/superpowers/specs/2026-07-11-adaptive-coach-design.md`
+- `docs/superpowers/plans/2026-07-11-adaptive-coach-foundation.md`
+- this journal entry.
 
-```text
-xcrun : Le terme «xcrun» n'est pas reconnu comme nom d'applet de commande...
-xcodebuild : Le terme «xcodebuild» n'est pas reconnu comme nom d'applet de commande...
-```
+## SwiftData and migration decisions
 
-No simulator could be discovered, so no build or test ran. On a Mac, select an
-actual available iPhone simulator and run:
+Five new entities were added to the explicit app schema:
+
+- `HealthProfile`
+- `HealthConsideration`
+- `BodyMetricEntry`
+- `WorkoutLocation`
+- `EquipmentItem`
+
+Existing entities were not changed. Persisted categories use raw strings and body
+metrics use SI units. BMI is derived rather than stored. The intended migration is
+SwiftData lightweight migration because the change adds new tables only; this must
+still be verified against an existing on-device store during the Mac compile pass.
+No destructive store fallback was added.
+
+`WorkoutLocation` owns equipment through a cascade relationship. Locations and
+considerations are archived instead of deleted by normal UI actions. Deleting one
+equipment item affects only that inventory item.
+
+## Repository and assistant decisions
+
+`HealthDataRepository+AdaptiveCoach.swift` owns all Phase 1 persistence operations.
+Assistant snapshots are plain Codable values; SwiftData models are never encoded
+directly. Snapshot reads do not create a profile or mutate the store.
+
+`ChatEngine` adds two read-only tools:
+
+- `get_health_profile`
+- `get_workout_locations`
+
+The profile tool returns only user-confirmed, non-archived considerations and a
+compact body-metric trend. The location tool returns only active locations and
+available equipment. Existing meal/workout proposals still require user
+confirmation.
+
+The assistant prompt explicitly states that considerations are the user's own
+reports and prohibits diagnosis, treatment prescription, and overriding clinician
+guidance.
+
+## UI delivered
+
+Settings now links to:
+
+- Health and training profile
+- Workout locations & equipment
+
+The profile flow supports goals, experience, weekly availability, preferred
+session length, activities, preferences, user-reported considerations, and body
+measurements. The location flow supports active/archived locations, equipment,
+availability, weights/resistance notes, and one-tap suggestions that save only after
+the user taps them.
+
+## Verification status
+
+Implementation and tests are committed, but this environment cannot run Xcode,
+SwiftData, SwiftUI, HealthKit, or an iOS simulator. No build or test result is being
+claimed.
+
+Required Mac commands:
 
 ```bash
-xcodebuild \
-  -project "Health Assistantv2.xcodeproj" \
-  -scheme "Health Assistantv2" \
-  -destination "platform=iOS Simulator,name=<AVAILABLE_DEVICE>,OS=latest" \
-  -derivedDataPath "$PWD/build/HandoffDerivedData" \
-  build
+xcrun simctl list devices available
 
 xcodebuild \
   -project "Health Assistantv2.xcodeproj" \
   -scheme "Health Assistantv2" \
   -destination "platform=iOS Simulator,name=<AVAILABLE_DEVICE>,OS=latest" \
-  -derivedDataPath "$PWD/build/HandoffDerivedData" \
+  -derivedDataPath "$PWD/build/AdaptiveCoachDerivedData" \
+  clean build
+
+xcodebuild \
+  -project "Health Assistantv2.xcodeproj" \
+  -scheme "Health Assistantv2" \
+  -destination "platform=iOS Simulator,name=<AVAILABLE_DEVICE>,OS=latest" \
+  -derivedDataPath "$PWD/build/AdaptiveCoachDerivedData" \
   test
 ```
 
-Known compiler errors: none observed; compilation was not possible here.
-Manual testing was not performed.
+## Manual verification checklist
+
+1. Launch with the existing local store and confirm prior meals/workouts remain.
+2. Open Settings → Health and training profile.
+3. Save a goal, experience level, availability, and preferences.
+4. Add a user-reported left-knee consideration.
+5. Add metric and imperial body measurements.
+6. Create Home and add bands, stability ball, balance pad, and dumbbells.
+7. Create Gym and add bike, treadmill, cable station, and leg press.
+8. Mark one item unavailable and confirm it remains in the inventory.
+9. Relaunch and verify persistence.
+10. Ask the assistant what equipment is available at Home.
+11. Ask what user-reported considerations should be accounted for.
+12. Confirm the answer is neutral and does not diagnose.
+13. Confirm existing meal and workout proposal cards still save only after review.
+14. Confirm Apple Health connect/sync still opens and works on a physical device.
+
+## Known risks
+
+- The SwiftData migration has not been exercised against the user's existing store.
+- The new files rely on the existing Xcode 16 file-system-synchronized app group for
+  target inclusion; verify they appear in Compile Sources automatically in Xcode.
+- SwiftUI layout and Dynamic Type require simulator/device review.
+- HealthKit cannot be fully verified on the simulator.
+- No dashboard shortcut was added in this slice; the complete feature is available
+  from Settings. A dashboard entry can follow after the first compile pass.
 
 ## Recommended next step
 
-Implement and test the five Phase 1 SwiftData models plus their explicit
-`PersistenceController` schema registration as one small, independently
-compilable commit. Do not start plans, timers, movement feedback, payments,
-backend work, watchOS, or any later roadmap phase.
+Run the Mac compile/test pass and fix only concrete compiler or migration failures on
+this branch. Once Phase 1 is green, begin Phase 2 on a new branch with structured,
+editable `WorkoutPlan` and `WorkoutStep` models. Do not combine that work with the
+first migration verification.
