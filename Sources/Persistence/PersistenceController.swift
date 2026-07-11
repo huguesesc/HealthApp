@@ -18,6 +18,11 @@ struct PersistenceController {
         DailyRollup.self,
         ActivityEvent.self,
         ScreenTimeSnapshot.self,
+        HealthProfile.self,
+        HealthConsideration.self,
+        BodyMetricEntry.self,
+        WorkoutLocation.self,
+        EquipmentItem.self,
     ])
 
     init(inMemory: Bool = false) {
