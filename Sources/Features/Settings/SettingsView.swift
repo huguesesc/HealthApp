@@ -26,6 +26,20 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Profile & coaching") {
+                NavigationLink {
+                    ProfileView()
+                } label: {
+                    Label("Health and training profile", systemImage: "person.crop.circle")
+                }
+
+                NavigationLink {
+                    WorkoutLocationsView()
+                } label: {
+                    Label("Workout locations & equipment", systemImage: "mappin.and.ellipse")
+                }
+            }
+
             Section("Claude API key") {
                 SecureField("sk-ant-…", text: $draftKey)
                     .textInputAutocapitalization(.never)
@@ -162,4 +176,5 @@ struct SettingsView: View {
 
 #Preview {
     NavigationStack { SettingsView() }
+        .modelContainer(PersistenceController.preview.container)
 }
