@@ -1,9 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// Workout history plus an add sheet. The add form builds a session with one or
-/// more exercise sets before saving. Voice/AI parsing (`AIClient.parseWorkout`)
-/// arrives later; this is manual structured entry.
+/// Workout history plus an add sheet. Natural-language parsing uses the lightweight
+/// one-shot AI route and always leaves the result editable before it is saved.
 struct WorkoutLogView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
     @State private var showingAdd = false
@@ -20,6 +19,8 @@ struct WorkoutLogView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.ColorToken.backgroundPrimary)
         .overlay {
             if sessions.isEmpty {
                 ContentUnavailableView(
@@ -29,7 +30,7 @@ struct WorkoutLogView: View {
                 )
             }
         }
-        .navigationTitle("Workout")
+        .navigationTitle("Workout log")
         .toolbar {
             Button { showingAdd = true } label: { Image(systemName: "plus") }
         }
@@ -84,9 +85,9 @@ private struct WorkoutEntryForm: View {
                     }
                     .disabled(freeformText.trimmed.isEmpty || isParsing)
                     if let parseError {
-                        Text(parseError)
+                        Label(parseError, systemImage: "exclamationmark.triangle")
                             .font(.caption)
-                            .foregroundStyle(Theme.clay)
+                            .foregroundStyle(Theme.ColorToken.destructive)
                     }
                 }
 
@@ -107,7 +108,7 @@ private struct WorkoutEntryForm: View {
                 }
 
                 if !draftSets.isEmpty {
-                    Section("Sets") {
+                    Section("Parsed sets — review before saving") {
                         ForEach(draftSets) { set in
                             Text(setLabel(set))
                         }
@@ -115,6 +116,8 @@ private struct WorkoutEntryForm: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.ColorToken.backgroundSecondary)
             .navigationTitle("New Workout")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -130,7 +133,7 @@ private struct WorkoutEntryForm: View {
     private func parseWithAI() {
         parseError = nil
         guard hasKey else {
-            parseError = "Add your Claude API key in Settings first."
+            parseError = "No Claude API key is saved. Review Coach connection in Settings."
             return
         }
         isParsing = true
@@ -146,7 +149,7 @@ private struct WorkoutEntryForm: View {
                     DraftSet(name: $0.exerciseName, reps: $0.reps, weight: $0.weightKilograms)
                 }
             } catch {
-                parseError = "Couldn't parse that. Check your connection and try again."
+                parseError = AIErrorMessage.describe(error, operation: "workout")
             }
             isParsing = false
         }
