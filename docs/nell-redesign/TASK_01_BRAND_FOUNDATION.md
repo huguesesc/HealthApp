@@ -1,26 +1,35 @@
 # Task 01 — Brand Foundation and Asset Contract
 
+## Status
+
+**Implemented in source. Physical-device build verification pending.**
+
+Detailed implementation report: `IMPLEMENTATION_TASKS_01_02.md`
+
 ## Goal
 
 Create the single source of truth for Nell branding before individual screens are redesigned.
 
-## Work
+## Work completed
 
-- Rename all user-facing product references from Health Assistant to Nell.
-- Keep the Xcode project, target, module, and bundle identifier unchanged during this feature.
-- Add semantic brand tokens for light and dark mode.
-- Add reusable SwiftUI representations of the Shell Bowl mark and Care Companion mark where raster artwork is unnecessary.
-- Prepare the asset catalogue contract for app icon, mascot poses, and workout movement avatars.
-- Add a typed asset registry so screens never use raw image-name strings.
+- Added central product naming for **Nell** and **Your personal health companion**.
+- Added semantic brand and layout aliases.
+- Added typed identifiers for logo, Coach mark, and mascot assets.
+- Added safe missing-asset fallbacks.
+- Added reusable SwiftUI Shell Bowl and Care Companion marks.
+- Updated the central Coach tab to use the shared mark.
+- Added the Nell installed-app display name through `Base.lproj/InfoPlist.strings`.
+- Updated Settings and Apple Health permission wording to Nell.
+- Added brand-foundation tests.
 
-## Proposed source files
+## Source files
 
 ```text
 Health Assistantv2/Brand/NellBrand.swift
 Health Assistantv2/Brand/NellAssets.swift
 Health Assistantv2/Brand/NellLogoView.swift
-Health Assistantv2/Brand/NellCoachMark.swift
-Health Assistantv2/Brand/NellMascotView.swift
+Health Assistantv2/Base.lproj/InfoPlist.strings
+Health Assistantv2Tests/NellBrandFoundationTests.swift
 ```
 
 ## Asset groups
@@ -28,6 +37,7 @@ Health Assistantv2/Brand/NellMascotView.swift
 ```text
 NellLogoFullColor
 NellLogoMonochrome
+NellAppIconReference
 NellCoachMark
 NellMascotThoughtful
 NellMascotWave
@@ -36,6 +46,7 @@ NellMascotTraining
 NellMascotRecovery
 NellMascotProgress
 NellMascotBalance
+NellMascotSuccess
 ```
 
 ## Acceptance criteria
@@ -47,8 +58,9 @@ NellMascotBalance
 - Existing persistence remains compatible.
 - Asset failures degrade to a safe SwiftUI placeholder rather than crashing.
 
-## Verification
+## Remaining verification
 
 - Build on the physical iPhone.
-- Inspect icon, launch, Coach tab, and one mascot state in both appearances.
-- Verify Dynamic Type does not distort the brand lockup.
+- Inspect installed name, Coach tab, logo fallback, and one mascot state.
+- Verify light/dark appearance and Dynamic Type.
+- Add final production raster assets after export cleanup.
