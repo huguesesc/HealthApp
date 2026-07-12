@@ -56,6 +56,12 @@ struct SettingsView: View {
                 } label: {
                     Label("Workout execution history", systemImage: "clock.arrow.circlepath")
                 }
+
+                NavigationLink {
+                    MovementFeedbackHistoryView()
+                } label: {
+                    Label("Movement feedback", systemImage: "slider.horizontal.3")
+                }
             }
 
             Section("Claude API key") {

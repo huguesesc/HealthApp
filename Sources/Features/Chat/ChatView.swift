@@ -82,7 +82,8 @@ struct ChatView: View {
             }
         case .assistant(_, let text):
             HStack {
-                Text(text)
+                MarkdownMessageView(markdown: text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 10)
                     .padding(.horizontal, 14)
                     .background(

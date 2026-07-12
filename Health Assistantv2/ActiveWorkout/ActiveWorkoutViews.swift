@@ -133,6 +133,7 @@ struct ActiveWorkoutView: View {
 
     @State private var showingFinish = false
     @State private var showingAbandonConfirmation = false
+    @State private var adjustmentStep: ActiveWorkoutStep?
 
     private var repo: HealthDataRepository { HealthDataRepository(context: modelContext) }
 
@@ -159,6 +160,19 @@ struct ActiveWorkoutView: View {
                                 step: step,
                                 now: timeline.date
                             )
+
+                            MovementFeedbackStepSummaryView(stepID: step.id)
+
+                            Button {
+                                adjustmentStep = step
+                            } label: {
+                                Label("Adjust", systemImage: "slider.horizontal.3")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(session.status != .inProgress)
+                            .accessibilityHint("Record how this exercise felt and what you changed")
+
                             navigationControls
                         } else {
                             readyToFinishCard
@@ -176,6 +190,11 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showingFinish) {
             NavigationStack {
                 ActiveWorkoutCompletionView(session: session)
+            }
+        }
+        .sheet(item: $adjustmentStep) { step in
+            NavigationStack {
+                MovementFeedbackEditorView(session: session, step: step)
             }
         }
         .confirmationDialog(
