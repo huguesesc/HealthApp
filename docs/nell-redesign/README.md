@@ -20,8 +20,8 @@ Base: `feature/branded-navigation-core-ui-implementation`
 
 ## Implementation sequence
 
-1. Brand foundation and asset contract
-2. Shared Nell component library
+1. Brand foundation and asset contract — **implemented in source; device verification pending**
+2. Shared Nell component library — **implemented in source; device verification pending**
 3. Root navigation, product naming, and app icon
 4. Today and Coach redesign
 5. Nutrition and Log redesign
@@ -29,7 +29,7 @@ Base: `feature/branded-navigation-core-ui-implementation`
 7. Active Workout and completion states
 8. Progress, profile, settings, onboarding, and final visual QA
 
-Each task has its own Markdown specification in this folder.
+Each task has its own Markdown specification in this folder. Tasks 01 and 02 also have a detailed implementation report in `IMPLEMENTATION_TASKS_01_02.md`.
 
 ## Rules for the workout avatar system
 
@@ -49,4 +49,4 @@ The exercise visuals are not mascot illustrations and must not use realistic peo
 
 ## Current status
 
-This commit establishes the implementation plan and contracts. It does not claim the full redesign has been compiled or device-tested yet.
+Task 01 and Task 02 code is committed. The branch has no CI result and has not yet been compiled in Xcode or verified on the physical iPhone. Production raster logo, app-icon, mascot, and workout-avatar exports remain separate from the source contracts and will be integrated in later tasks.
