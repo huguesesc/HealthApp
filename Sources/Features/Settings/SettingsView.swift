@@ -38,13 +38,7 @@ struct SettingsView: View {
             NavigationLink {
                 NellProfilePreferencesView()
             } label: {
-                Label("Nell profile", systemImage: "person.crop.circle")
-            }
-
-            NavigationLink {
-                ProfileView()
-            } label: {
-                Label("Detailed health and training profile", systemImage: "list.clipboard")
+                Label("Personalisation and profile", systemImage: "person.crop.circle")
             }
 
             NavigationLink {
