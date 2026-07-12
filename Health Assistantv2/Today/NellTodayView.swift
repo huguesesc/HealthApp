@@ -4,6 +4,8 @@ import SwiftUI
 struct NellTodayView: View {
     @Environment(\.modelContext) private var modelContext
 
+    @AppStorage("nell.profile.displayName") private var displayName = ""
+
     @Query(sort: \Meal.timestamp, order: .reverse) private var meals: [Meal]
     @Query(sort: \WorkoutSession.date, order: .reverse) private var workouts: [WorkoutSession]
     @Query(sort: \SleepEntry.date, order: .reverse) private var sleeps: [SleepEntry]
@@ -47,7 +49,7 @@ struct NellTodayView: View {
     private var greetingHeader: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.md) {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text("\(greeting), Hugues")
+                Text(greetingTitle)
                     .font(Theme.FontToken.largeScreenTitle)
                     .foregroundStyle(NellPalette.textPrimary)
 
@@ -204,6 +206,11 @@ struct NellTodayView: View {
         case 12..<18: return "Good afternoon"
         default: return "Good evening"
         }
+    }
+
+    private var greetingTitle: String {
+        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? greeting : "\(greeting), \(name)"
     }
 
     private var todayHeadline: String {
