@@ -60,7 +60,7 @@ struct SettingsView: View {
                 Text(
                     "Get a key at console.anthropic.com → API Keys. Usage is billed to "
                         + "your Anthropic account. The key is stored in this device's "
-                        + "Keychain, never in the app's files."
+                        + "Keychain, never in Nell's files."
                 )
             }
 
@@ -95,15 +95,15 @@ struct SettingsView: View {
                 Text("Apple Health")
             } footer: {
                 Text(
-                    "The app reads Apple Health activity, workouts, sleep and heart "
+                    "Nell reads Apple Health activity, workouts, sleep and heart "
                         + "summaries for personal coaching. Raw HealthKit samples stay on "
-                        + "device; only compact daily summaries are used by the assistant."
+                        + "device; only compact daily summaries are used by the Coach."
                 )
             }
 
             Section("About and privacy") {
                 Label("Your health data remains stored locally by default.", systemImage: "lock.shield")
-                Text("Health Assistant does not diagnose or replace professional care.")
+                Text("Nell does not diagnose or replace professional care.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
