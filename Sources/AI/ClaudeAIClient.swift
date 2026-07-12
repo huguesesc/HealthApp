@@ -1,23 +1,11 @@
 import Foundation
 
-/// Talks to the Claude Messages API over raw HTTPS (there is no official Swift SDK).
-/// Not the default — `AIClientFactory` returns the stub until this is deliberately
-/// enabled in M2. The key is read from the Keychain; never hardcoded.
-///
-/// Default model is the cheapest current model, which is plenty for one daily
-/// summary or a short answer. Change `model` to upgrade quality — nothing else in
-/// the app changes.
-///
-/// BACKEND NOTE: for premium/metered features (e.g. photo estimation), point this
-/// at your own proxy instead of api.anthropic.com so the key and usage limits live
-/// server-side. The protocol seam means callers are unaffected.
+/// Talks to the Claude Messages API over raw HTTPS.
+/// One-shot extraction uses Haiku; the agentic assistant uses Sonnet.
 struct ClaudeAIClient: AIClient {
-    /// Swap this single constant to change models (e.g. "claude-sonnet-4-6").
     var model = "claude-haiku-4-5"
     var maxTokens = 1024
 
-    /// The agentic chat assistant runs on a stronger model: reliable tool-calling
-    /// matters when it is drafting real data. One-shot calls stay on the cheap model.
     var chatModel = "claude-sonnet-4-6"
     var chatMaxTokens = 2048
 
@@ -28,14 +16,12 @@ struct ClaudeAIClient: AIClient {
         self.session = session
     }
 
-    // MARK: - AIClient
-
     func parseMeal(text: String) async throws -> MealEstimate {
         let system = """
         You estimate nutrition from a short meal description. Always treat numbers as \
         rough estimates. If portions are uncertain, say so. Respond ONLY with a JSON \
         object: {"calories":int,"proteinGrams":number,"carbsGrams":number,\
-        "fatGrams":number,"confidence":number(0..1),"uncertaintyNote":string}.
+        "fatGrams":number,"confidence":number(0..1),"uncertaintyNote":string|null}.
         """
         let json = try await sendForJSON(system: system, userText: text)
         return try decode(MealEstimate.self, from: json)
@@ -59,11 +45,8 @@ struct ClaudeAIClient: AIClient {
         the data: comment on the food actually eaten (calorie/macro balance when the \
         numbers are there), the workout and Apple Health activity when present, how \
         it fits with sleep and energy, and acknowledge the streak if present. End \
-        with one small, concrete, gentle \
-        suggestion for tomorrow. Use hedged language ("rough", "consider", "general \
-        wellness suggestion"). Avoid "you must", medical claims, extreme diet or \
-        unsafe workout advice. If a section has no data, skip it rather than \
-        commenting on its absence more than once.
+        with one small, concrete, gentle suggestion for tomorrow. Use hedged language. \
+        Avoid medical claims, extreme diet advice, or unsafe workout advice.
         """
         let userText = "Here is today's data as JSON:\n" + encodeToString(context)
         let text = try await sendForText(system: system, userText: userText)
@@ -84,11 +67,8 @@ struct ClaudeAIClient: AIClient {
     }
 
     func estimateMeal(image: Data) async throws -> MealEstimate {
-        // Vision / photo estimation is deliberately deferred (premium feature).
         throw AIClientError.notImplemented
     }
-
-    // MARK: - Tool-use chat (the agentic assistant)
 
     func chat(_ turns: [ChatTurn], tools: [ChatToolDef], system: String) async throws -> ChatReply {
         guard let key = APIKeyStore.read(), !key.isEmpty else {
@@ -176,13 +156,9 @@ struct ClaudeAIClient: AIClient {
         return ChatReply(text: text, toolCalls: toolCalls)
     }
 
-    /// Parse a raw JSON object string; malformed input degrades to an empty object
-    /// rather than failing the whole request.
     private func jsonObject(from json: String) -> [String: Any] {
         (try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any]) ?? [:]
     }
-
-    // MARK: - Transport
 
     private func makeRequest(system: String, userText: String) throws -> URLRequest {
         guard let key = APIKeyStore.read(), !key.isEmpty else {
@@ -217,12 +193,56 @@ struct ClaudeAIClient: AIClient {
         return try extractText(from: data)
     }
 
+    /// Haiku occasionally wraps otherwise valid JSON in Markdown fences or a brief
+    /// sentence. Extract the first balanced JSON object instead of decoding the raw
+    /// response text verbatim.
     private func sendForJSON(system: String, userText: String) async throws -> Data {
         let text = try await sendForText(system: system, userText: userText)
-        guard let data = text.data(using: .utf8) else {
-            throw AIClientError.decodingFailed("response text was not UTF-8")
+        let candidate = try extractJSONObject(from: text)
+        guard JSONSerialization.isValidJSONObject(
+            try JSONSerialization.jsonObject(with: Data(candidate.utf8))
+        ) else {
+            throw AIClientError.decodingFailed("response did not contain a valid JSON object")
         }
-        return data
+        return Data(candidate.utf8)
+    }
+
+    private func extractJSONObject(from text: String) throws -> String {
+        guard let start = text.firstIndex(of: "{") else {
+            throw AIClientError.decodingFailed("no JSON object found")
+        }
+
+        var depth = 0
+        var inString = false
+        var escaping = false
+
+        for index in text.indices[start...] {
+            let character = text[index]
+
+            if inString {
+                if escaping {
+                    escaping = false
+                } else if character == "\\" {
+                    escaping = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                continue
+            }
+
+            if character == "\"" {
+                inString = true
+            } else if character == "{" {
+                depth += 1
+            } else if character == "}" {
+                depth -= 1
+                if depth == 0 {
+                    return String(text[start...index])
+                }
+            }
+        }
+
+        throw AIClientError.decodingFailed("unterminated JSON object")
     }
 
     private func extractText(from data: Data) throws -> String {
