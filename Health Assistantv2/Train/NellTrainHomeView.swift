@@ -233,6 +233,13 @@ struct NellTrainHomeView: View {
                         symbol: "slider.horizontal.3",
                         tint: NellPalette.amber
                     ) { MovementFeedbackHistoryView() }
+                    Divider().padding(.leading, 56)
+                    toolLink(
+                        "Progress",
+                        detail: "Review factual workout totals and recent activity.",
+                        symbol: "chart.line.uptrend.xyaxis",
+                        tint: NellPalette.nutrition
+                    ) { NellProgressView() }
                 }
             }
         }
@@ -260,6 +267,22 @@ struct NellTrainHomeView: View {
                     tint: NellPalette.nutrition
                 )
             }
+
+            NavigationLink { NellProgressView() } label: {
+                NellCard {
+                    HStack(spacing: Theme.Spacing.sm) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .foregroundStyle(NellPalette.primary)
+                        Text("View full progress")
+                            .font(Theme.FontToken.button)
+                            .foregroundStyle(NellPalette.textPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(NellPalette.textTertiary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 
