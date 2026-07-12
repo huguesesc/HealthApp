@@ -25,22 +25,23 @@ struct NellTodayView: View {
 
             dailyOverview
             quickCheckIn
-            coachObservation
-            recentInsight
+
+            NellCoachSuggestionCard(
+                title: "Nell's observation",
+                message: observationText
+            )
+
+            insightCard
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SettingsView()
-                } label: {
+                NavigationLink { SettingsView() } label: {
                     Image(systemName: "person.crop.circle")
                 }
                 .accessibilityLabel("Profile and settings")
             }
         }
-        .onAppear {
-            _ = repo.refreshTodayRollup()
-        }
+        .onAppear { _ = repo.refreshTodayRollup() }
     }
 
     private var greetingHeader: some View {
@@ -85,7 +86,6 @@ struct NellTodayView: View {
                     systemImage: "bolt.heart",
                     tint: NellPalette.primary
                 )
-
                 NellMetricTile(
                     title: "Sleep",
                     value: sleepValue,
@@ -93,7 +93,6 @@ struct NellTodayView: View {
                     systemImage: "moon.fill",
                     tint: NellPalette.sleep
                 )
-
                 NellMetricTile(
                     title: "Steps",
                     value: stepsValue,
@@ -101,7 +100,6 @@ struct NellTodayView: View {
                     systemImage: "figure.walk",
                     tint: NellPalette.nutrition
                 )
-
                 NellMetricTile(
                     title: "Meals",
                     value: "\(mealsToday.count)",
@@ -114,9 +112,7 @@ struct NellTodayView: View {
     }
 
     private var quickCheckIn: some View {
-        NavigationLink {
-            CheckInView()
-        } label: {
+        NavigationLink { CheckInView() } label: {
             NellCard {
                 HStack(spacing: Theme.Spacing.md) {
                     Image(systemName: checkInToday == nil ? "face.smiling" : "checkmark.circle.fill")
@@ -127,7 +123,6 @@ struct NellTodayView: View {
                         Text(checkInToday == nil ? "Quick check-in" : "Today's check-in")
                             .font(Theme.FontToken.cardTitle)
                             .foregroundStyle(NellPalette.textPrimary)
-
                         Text(checkInSummary)
                             .font(Theme.FontToken.secondaryBody)
                             .foregroundStyle(NellPalette.textSecondary)
@@ -135,7 +130,6 @@ struct NellTodayView: View {
                     }
 
                     Spacer()
-
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(NellPalette.textTertiary)
@@ -145,46 +139,34 @@ struct NellTodayView: View {
         .buttonStyle(.plain)
     }
 
-    private var coachObservation: some View {
-        NellCoachSuggestionCard(
-            title: "Nell's observation",
-            message: observationText,
-            actionTitle: "Open Coach"
-        )
-    }
-
-    @ViewBuilder
-    private var recentInsight: some View {
+    private var insightCard: some View {
         let streak = rewards.headlineStreak(in: events)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            NellSectionHeader(title: "Insights")
 
-        NellSectionHeader(title: "Insights")
+            NellCard {
+                HStack(alignment: .top, spacing: Theme.Spacing.md) {
+                    Image(systemName: streak > 0 ? "flame.fill" : "leaf.fill")
+                        .font(.title2)
+                        .foregroundStyle(streak > 0 ? NellPalette.amber : NellPalette.primary)
 
-        NellCard {
-            HStack(alignment: .top, spacing: Theme.Spacing.md) {
-                Image(systemName: streak > 0 ? "flame.fill" : "leaf.fill")
-                    .font(.title2)
-                    .foregroundStyle(streak > 0 ? NellPalette.amber : NellPalette.primary)
-
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text(streakTitle(streak))
-                        .font(Theme.FontToken.cardTitle)
-                        .foregroundStyle(NellPalette.textPrimary)
-
-                    Text(todayRollup?.summaryText ?? fallbackInsight)
-                        .font(Theme.FontToken.secondaryBody)
-                        .foregroundStyle(NellPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        Text(streakTitle(streak))
+                            .font(Theme.FontToken.cardTitle)
+                            .foregroundStyle(NellPalette.textPrimary)
+                        Text(todayRollup?.summaryText ?? fallbackInsight)
+                            .font(Theme.FontToken.secondaryBody)
+                            .foregroundStyle(NellPalette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
                 }
-
-                Spacer(minLength: 0)
             }
         }
     }
 
     private func resumeCard(_ session: ActiveWorkoutSession) -> some View {
-        NavigationLink {
-            ActiveWorkoutView(session: session)
-        } label: {
+        NavigationLink { NellActiveWorkoutContainerView(session: session) } label: {
             NellFeaturedCard(tint: NellPalette.training) {
                 HStack(spacing: Theme.Spacing.md) {
                     WorkoutMotionView(
@@ -199,18 +181,15 @@ struct NellTodayView: View {
                             title: session.status.displayName,
                             tone: session.status == .paused ? .attention : .positive
                         )
-
                         Text(session.titleSnapshot)
                             .font(Theme.FontToken.cardTitle)
                             .foregroundStyle(NellPalette.textPrimary)
-
                         Text("\(Int(session.progressFraction * 100))% complete · \(elapsedLabel(session.elapsedSeconds()))")
                             .font(Theme.FontToken.caption)
                             .foregroundStyle(NellPalette.textSecondary)
                     }
 
                     Spacer()
-
                     Image(systemName: "chevron.right")
                         .foregroundStyle(NellPalette.textTertiary)
                 }
@@ -259,7 +238,8 @@ struct NellTodayView: View {
     }
 
     private var energyValue: String {
-        checkInToday?.energy.map { "\($0)/5" } ?? "—"
+        guard let energy = checkInToday?.energy else { return "—" }
+        return "\(energy)/5"
     }
 
     private var sleepValue: String {
@@ -271,7 +251,8 @@ struct NellTodayView: View {
             let hours = wake.timeIntervalSince(bedtime) / 3600
             if hours > 0 { return String(format: "%.1f h", hours) }
         }
-        return sleep.perceivedQuality.map { "\($0)/5" } ?? "Logged"
+        if let quality = sleep.perceivedQuality { return "\(quality)/5" }
+        return "Logged"
     }
 
     private var sleepDetail: String {
@@ -315,9 +296,7 @@ struct NellTodayView: View {
         if let workout = workoutsToday.first {
             return "\(workout.type) is recorded for today. Your history and streak have been updated locally."
         }
-        if let note = checkInToday?.note, !note.isEmpty {
-            return note
-        }
+        if let note = checkInToday?.note, !note.isEmpty { return note }
         return "Complete a check-in, meal log, sleep entry or workout to create a more useful daily picture."
     }
 
@@ -331,17 +310,7 @@ struct NellTodayView: View {
 
     private func elapsedLabel(_ seconds: Int) -> String {
         let minutes = max(seconds, 0) / 60
-        if minutes < 60 { return "\(minutes) min" }
-        return "\(minutes / 60) h \(minutes % 60) min"
-    }
-}
-
-private extension Optional where Wrapped == Int {
-    func map<T>(_ transform: (Int) -> T) -> T? {
-        switch self {
-        case .some(let value): return transform(value)
-        case .none: return nil
-        }
+        return minutes < 60 ? "\(minutes) min" : "\(minutes / 60) h \(minutes % 60) min"
     }
 }
 
