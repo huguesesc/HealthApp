@@ -12,7 +12,7 @@ struct RootView: View {
         Group {
             if onboardingComplete {
                 NellAppShellView()
-                    .task {
+                    .onAppear {
                         NellOnboardingProfileSynchronizer.synchronize(
                             context: modelContext,
                             force: false
