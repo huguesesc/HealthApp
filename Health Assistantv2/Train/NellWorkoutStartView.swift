@@ -106,6 +106,38 @@ struct NellWorkoutStartView: View {
                     }
                 }
             }
+
+            NellSectionHeader(
+                title: "Execution History",
+                subtitle: "Review saved progress, interruptions and completed workout executions."
+            )
+
+            NavigationLink {
+                NellWorkoutExecutionHistoryView()
+            } label: {
+                NellCard {
+                    HStack(spacing: Theme.Spacing.md) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.title2)
+                            .foregroundStyle(NellPalette.primary)
+                            .frame(width: 36)
+
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            Text("View execution history")
+                                .font(Theme.FontToken.cardTitle)
+                                .foregroundStyle(NellPalette.textPrimary)
+                            Text(historyDetail)
+                                .font(Theme.FontToken.caption)
+                                .foregroundStyle(NellPalette.textSecondary)
+                        }
+
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(NellPalette.textTertiary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
@@ -117,6 +149,15 @@ struct NellWorkoutStartView: View {
 
     private var activePlans: [WorkoutPlan] {
         plans.filter { !$0.isArchived && !$0.orderedSteps.isEmpty }
+    }
+
+    private var historyDetail: String {
+        let finishedCount = sessions.filter {
+            $0.status == .completed || $0.status == .abandoned
+        }.count
+        return sessions.isEmpty
+            ? "No saved executions yet."
+            : "\(resumable.count) resumable · \(finishedCount) finished"
     }
 
     private func planSummary(_ plan: WorkoutPlan) -> String {
