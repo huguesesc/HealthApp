@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Five-destination product shell from the current visual identity specification.
+/// Five-destination product shell for Nell.
 /// Log is intentionally presented as a compact action sheet rather than a blank tab.
 struct AppShellView: View {
     @State private var selection: AppSection = .today
@@ -146,7 +146,7 @@ private struct BrandedTabBar: View {
                         .fill(Theme.ColorToken.brandPrimary)
                     Circle()
                         .stroke(Theme.ColorToken.surfacePrimary, lineWidth: Theme.Border.coachKeyline)
-                    CareCompanionMark()
+                    NellCoachMark()
                         .foregroundStyle(colorScheme == .dark
                             ? Theme.ColorToken.backgroundPrimary
                             : Color.white)
@@ -184,47 +184,6 @@ private struct CoachTabButtonStyle: ButtonStyle {
             .animation(.easeOut(duration: configuration.isPressed
                 ? Theme.Motion.buttonPress
                 : Theme.Motion.buttonRelease), value: configuration.isPressed)
-    }
-}
-
-/// Small-size implementation of the approved Care Companion mark.
-struct CareCompanionMark: View {
-    var body: some View {
-        GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            ZStack {
-                Circle()
-                    .frame(width: size * 0.22, height: size * 0.22)
-                    .offset(y: -size * 0.28)
-
-                HStack(spacing: size * 0.03) {
-                    CompanionLeaf()
-                    CompanionLeaf().scaleEffect(x: -1, y: 1)
-                }
-                .frame(width: size * 0.72, height: size * 0.48)
-                .offset(y: size * 0.13)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-private struct CompanionLeaf: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addCurve(
-            to: CGPoint(x: rect.minX, y: rect.maxY * 0.72),
-            control1: CGPoint(x: rect.maxX * 0.72, y: rect.minY),
-            control2: CGPoint(x: rect.minX, y: rect.maxY * 0.18)
-        )
-        path.addCurve(
-            to: CGPoint(x: rect.maxX, y: rect.minY),
-            control1: CGPoint(x: rect.maxX * 0.12, y: rect.maxY),
-            control2: CGPoint(x: rect.maxX * 0.9, y: rect.maxY * 0.72)
-        )
-        return path
     }
 }
 
