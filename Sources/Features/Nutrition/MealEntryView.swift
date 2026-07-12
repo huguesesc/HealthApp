@@ -2,8 +2,8 @@ import SwiftData
 import SwiftUI
 
 /// Natural-language meal logging. Macros can be typed by hand or estimated with
-/// AI (`AIClient.parseMeal`) from the description — the estimate fills the fields
-/// so the user can correct them before saving.
+/// the lightweight one-shot AI model from the description. The estimate fills the
+/// fields so the user can review and correct them before saving.
 struct MealEntryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Meal.timestamp, order: .reverse) private var meals: [Meal]
@@ -41,14 +41,14 @@ struct MealEntryView: View {
                 .disabled(text.trimmed.isEmpty || isEstimating)
 
                 if let estimateNote {
-                    Text(estimateNote)
+                    Label(estimateNote, systemImage: "info.circle")
                         .font(.caption)
-                        .foregroundStyle(Theme.honey)
+                        .foregroundStyle(Theme.ColorToken.warning)
                 }
                 if let estimateError {
-                    Text(estimateError)
+                    Label(estimateError, systemImage: "exclamationmark.triangle")
                         .font(.caption)
-                        .foregroundStyle(Theme.clay)
+                        .foregroundStyle(Theme.ColorToken.destructive)
                 }
 
                 TextField("Calories (optional)", text: $calories)
@@ -65,8 +65,7 @@ struct MealEntryView: View {
             } header: {
                 Text("Log a meal")
             } footer: {
-                Text("Estimates are rough — portions are guessed from your description. "
-                    + "Adjust the numbers before saving if they look off.")
+                Text("Estimates are rough — portions are inferred from your description. Review the values before saving.")
             }
 
             Section("History") {
@@ -88,14 +87,16 @@ struct MealEntryView: View {
                 }
             }
         }
-        .navigationTitle("Meals")
+        .scrollContentBackground(.hidden)
+        .background(Theme.ColorToken.backgroundPrimary)
+        .navigationTitle("Nutrition")
     }
 
     private func estimateWithAI() {
         estimateError = nil
         estimateNote = nil
         guard hasKey else {
-            estimateError = "Add your Claude API key in Settings first."
+            estimateError = "No Claude API key is saved. Review Coach connection in Settings."
             return
         }
         isEstimating = true
@@ -108,7 +109,7 @@ struct MealEntryView: View {
                 fat = String(format: "%g", estimate.fatGrams)
                 estimateNote = estimate.uncertaintyNote
             } catch {
-                estimateError = "Couldn't estimate that. Check your connection and try again."
+                estimateError = AIErrorMessage.describe(error, operation: "meal estimate")
             }
             isEstimating = false
         }
