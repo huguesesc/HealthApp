@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 enum NellAppearancePreference: String, CaseIterable, Identifiable {
@@ -32,47 +33,56 @@ enum NellAppearancePreference: String, CaseIterable, Identifiable {
     }
 }
 
+/// Lightweight personalisation plus links into the authoritative SwiftData
+/// profile. Goals, training context and movement considerations are no longer
+/// edited through a second AppStorage-backed profile path.
 struct NellProfilePreferencesView: View {
     @AppStorage("nell.profile.displayName") private var displayName = ""
-    @AppStorage("nell.profile.goals") private var goals = ""
-    @AppStorage("nell.profile.trainingContext") private var trainingContext = "mixed"
-    @AppStorage("nell.profile.movementNotes") private var movementNotes = ""
+    @Query(sort: \HealthProfile.createdAt, order: .forward) private var profiles: [HealthProfile]
 
     var body: some View {
         Form {
             Section("Personalisation") {
                 TextField("Preferred name", text: $displayName)
                     .textInputAutocapitalization(.words)
-
-                TextField("Goals", text: $goals, axis: .vertical)
-                    .lineLimit(2...4)
             } footer: {
-                Text("These values provide context for organisation and Coach responses. They are not medical targets.")
+                Text("The preferred name is a display preference. Coach-relevant health and training information is stored in the local SwiftData profile.")
             }
 
-            Section("Training context") {
-                Picker("Usual setting", selection: $trainingContext) {
-                    Text("Mostly at home").tag("home")
-                    Text("Mostly at a gym").tag("gym")
-                    Text("Mostly outdoors").tag("outdoors")
-                    Text("A mix of settings").tag("mixed")
+            Section("Health and training profile") {
+                NavigationLink {
+                    ProfileView()
+                } label: {
+                    Label("Edit coaching profile", systemImage: "list.clipboard")
                 }
-            }
 
-            Section("Movement considerations") {
-                TextField(
-                    "Self-reported limitations or movements to avoid",
-                    text: $movementNotes,
-                    axis: .vertical
-                )
-                .lineLimit(4...8)
+                NavigationLink {
+                    HealthConsiderationsView()
+                } label: {
+                    Label("Movement considerations", systemImage: "figure.mind.and.body")
+                }
+
+                if let profile = profiles.first {
+                    LabeledContent("Primary goal", value: profile.primaryGoal.displayName)
+                    LabeledContent("Experience", value: profile.experienceLevel.displayName)
+
+                    if let detail = profile.goalDetail, !detail.trimmed.isEmpty {
+                        Text(detail)
+                            .font(Theme.FontToken.caption)
+                            .foregroundStyle(NellPalette.textSecondary)
+                    }
+                } else {
+                    Text("The profile will be created when onboarding finishes or when you open the coaching profile.")
+                        .font(Theme.FontToken.caption)
+                        .foregroundStyle(NellPalette.textSecondary)
+                }
             } footer: {
-                Text("Nell does not diagnose injuries. Seek qualified care when pain, instability, swelling, or other concerning symptoms are present.")
+                Text("Onboarding writes its confirmed choices into this same profile. Nell Coach reads this profile rather than a separate preference copy.")
             }
         }
         .scrollContentBackground(.hidden)
         .background(NellPalette.groupedBackground)
-        .navigationTitle("Nell Profile")
+        .navigationTitle("Personalisation")
     }
 }
 
