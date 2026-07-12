@@ -1,14 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// Lets the user paste their Claude API key, stored in the iOS Keychain via
-/// `APIKeyStore`. This is what flips `AIClientFactory` from the offline stub to the
-/// real `ClaudeAIClient` (M2). The key is never written to source or plist files.
-///
-/// BYOK (bring-your-own-key) is the dev / early-user model: the key is the user's own
-/// Anthropic API key (console.anthropic.com, pay-per-use) — not a Claude.ai
-/// subscription. A backend proxy replaces this for real users later, swapped in behind
-/// `AIClientFactory` with no change here.
+/// Configuration only. Product destinations such as workout plans, active sessions,
+/// history and movement feedback live in the Train tab.
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -26,7 +20,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Profile & coaching") {
+            Section("Profile") {
                 NavigationLink {
                     ProfileView()
                 } label: {
@@ -36,35 +30,11 @@ struct SettingsView: View {
                 NavigationLink {
                     WorkoutLocationsView()
                 } label: {
-                    Label("Workout locations & equipment", systemImage: "mappin.and.ellipse")
-                }
-
-                NavigationLink {
-                    WorkoutPlansView()
-                } label: {
-                    Label("Structured workout plans", systemImage: "list.clipboard")
-                }
-
-                NavigationLink {
-                    WorkoutStartView()
-                } label: {
-                    Label("Start or continue workout", systemImage: "figure.run.circle.fill")
-                }
-
-                NavigationLink {
-                    ActiveWorkoutsView()
-                } label: {
-                    Label("Workout execution history", systemImage: "clock.arrow.circlepath")
-                }
-
-                NavigationLink {
-                    MovementFeedbackHistoryView()
-                } label: {
-                    Label("Movement feedback", systemImage: "slider.horizontal.3")
+                    Label("Equipment and locations", systemImage: "mappin.and.ellipse")
                 }
             }
 
-            Section("Claude API key") {
+            Section("Coach connection") {
                 SecureField("sk-ant-…", text: $draftKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -73,16 +43,13 @@ struct SettingsView: View {
                     .disabled(trimmedKey.isEmpty)
 
                 if hasStoredKey {
+                    Label("A key is saved on this device.", systemImage: "checkmark.seal")
+                        .foregroundStyle(Color.green)
                     Button("Clear key", role: .destructive) { clear() }
+                } else {
+                    Label("No key saved yet.", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
                 }
-            }
-
-            Section {
-                Label(
-                    hasStoredKey ? "A key is saved on this device." : "No key saved yet.",
-                    systemImage: hasStoredKey ? "checkmark.seal" : "exclamationmark.triangle"
-                )
-                .foregroundStyle(hasStoredKey ? Color.green : Color.secondary)
 
                 if justSaved {
                     Text("Saved.")
@@ -92,8 +59,8 @@ struct SettingsView: View {
             } footer: {
                 Text(
                     "Get a key at console.anthropic.com → API Keys. Usage is billed to "
-                        + "your own Anthropic account. The key is stored only in this "
-                        + "device's Keychain, never in the app's files."
+                        + "your Anthropic account. The key is stored in this device's "
+                        + "Keychain, never in the app's files."
                 )
             }
 
@@ -102,7 +69,7 @@ struct SettingsView: View {
                     healthKit.isAvailable ? "Available on this device." : "Not available on this device.",
                     systemImage: healthKit.isAvailable ? "heart.text.square" : "exclamationmark.triangle"
                 )
-                .foregroundStyle(healthKit.isAvailable ? Color.secondary : Theme.clay)
+                .foregroundStyle(healthKit.isAvailable ? Color.secondary : Theme.ColorToken.destructive)
 
                 Button("Connect Apple Health") {
                     connectAppleHealth()
@@ -117,7 +84,7 @@ struct SettingsView: View {
                 if isHealthSyncing {
                     HStack(spacing: 8) {
                         ProgressView()
-                        Text("Syncing...")
+                        Text("Syncing…")
                     }
                 }
 
@@ -133,7 +100,16 @@ struct SettingsView: View {
                         + "device; only compact daily summaries are used by the assistant."
                 )
             }
+
+            Section("About and privacy") {
+                Label("Your health data remains stored locally by default.", systemImage: "lock.shield")
+                Text("Health Assistant does not diagnose or replace professional care.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.ColorToken.backgroundSecondary)
         .navigationTitle("Settings")
     }
 
@@ -158,7 +134,7 @@ struct SettingsView: View {
 
     private func connectAppleHealth() {
         isHealthSyncing = true
-        healthStatus = "Requesting Apple Health permission..."
+        healthStatus = "Requesting Apple Health permission…"
         Task { @MainActor in
             do {
                 try await healthKit.requestAuthorization()
@@ -172,7 +148,7 @@ struct SettingsView: View {
 
     private func syncAppleHealth() {
         isHealthSyncing = true
-        healthStatus = "Syncing recent Apple Health data..."
+        healthStatus = "Syncing recent Apple Health data…"
         Task { @MainActor in
             do {
                 try await healthKit.requestAuthorization()
