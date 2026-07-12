@@ -1,40 +1,37 @@
 # Task 04 — Modular Workout Motion Avatar System
 
-## Goal
+## Status
 
-Add clear, replaceable exercise illustrations without coupling workout logic to one permanent character set.
+**Implemented in source with vector fallback figures. Xcode and visual verification pending.**
 
-## Approved direction
+Detailed report: `IMPLEMENTATION_TASKS_03_04.md`
 
-The reference direction uses faceless, calm, theme-coloured humanoid figures with two poses per movement. They are separate from the tortoise mascot.
+## Approved direction implemented
 
-Visual rules:
+The system uses faceless, calm, theme-coloured humanoid figures that remain separate from the tortoise mascot.
 
-- faceless and inclusive
-- neutral grey skin tone
+- neutral grey skin
 - dark neutral hair
-- Nell green clothing with restrained accent colours
+- Nell green clothing
 - simplified Wii-like proportions
-- clean light or transparent background
-- two-pose start/end presentation where useful
-- no extra limbs or malformed anatomy
+- one-pose or two-pose start/finish presentation
+- no extra limbs
 - no turtle-human hybrids
 - no realistic identifiable person
 
-## Data model contract
+## Architecture implemented
 
-Workout models keep movement names and optional asset identifiers. Views resolve assets through a registry.
-
-```swift
-struct WorkoutMotionAsset: Hashable, Codable {
-    let movementID: String
-    let characterStyleID: String
-    let startAssetName: String
-    let endAssetName: String?
-}
+```text
+Health Assistantv2/WorkoutMotion/WorkoutAvatarStyle.swift
+Health Assistantv2/WorkoutMotion/WorkoutAvatarEquipment+Codable.swift
+Health Assistantv2/WorkoutMotion/WorkoutMotionRegistry.swift
+Health Assistantv2/WorkoutMotion/WorkoutMotionView.swift
+Health Assistantv2/Train/NellActiveWorkoutContainerView.swift
 ```
 
-Suggested IDs:
+The initial renderer is a SwiftUI `Canvas` fallback. Future raster, vector or 3D character packs can replace the artwork while keeping the same stable movement IDs and screen API.
+
+## Stable movement IDs
 
 ```text
 goblet_squat
@@ -47,48 +44,54 @@ side_stretch
 yoga_balance
 ```
 
-## Registry
+Aliases such as `shoulder press`, `renegade row`, `tree pose`, `RDL` and `good morning` resolve through the registry. Unknown movements receive a generic pose rather than failing.
 
-```text
-Health Assistantv2/WorkoutMotion/WorkoutMotionRegistry.swift
-Health Assistantv2/WorkoutMotion/WorkoutMotionView.swift
-Health Assistantv2/WorkoutMotion/WorkoutAvatarStyle.swift
-```
-
-The registry must:
-
-- map stable movement IDs to current assets
-- support one-pose and two-pose movements
-- support multiple future character packs
-- fall back to a neutral SF Symbol or generic movement card
-- avoid forcing a SwiftData migration when artwork changes
-
-## Initial character style
+## Initial style
 
 ```text
 styleID: nell_neutral_01
 skin: neutral grey
 hair: dark grey
-clothing: forest/moss green
-rendering: soft 2D/3D hybrid illustration
+clothing: forest and moss green
+rendering: lightweight vector figure
 ```
 
-## Placement
-
-Use avatars in:
+## Placement implemented
 
 - Train overview cards
-- workout-plan rows
-- workout detail
+- workout-plan cards and rows
+- plan detail
 - exercise detail
-- active workout as a compact motion guide
+- workout history
+- workout start/resume picker
+- active workout through the Nell container
 
-Do not use them as large decoration inside timers or data-heavy history rows.
+The motion guide remains compact during an active workout and does not replace the timer or set controls.
 
-## Acceptance criteria
+## Extensibility
 
-- Replacing an image file does not require changing workout business logic.
-- Adding a second character style requires registry data, not rewriting views.
-- A missing image never blocks starting a workout.
-- Start and end poses are clearly distinguishable.
-- Assets remain legible at small row-card size.
+- screen code requests a movement by stable ID or title
+- title aliases resolve centrally
+- character style is selected by `characterStyleID`
+- a missing or unknown movement falls back safely
+- artwork replacement does not require a SwiftData migration
+- future character packs can be registered without rewriting workout logic
+
+## Tests
+
+`Health Assistantv2Tests/NellNavigationAndWorkoutMotionTests.swift` covers:
+
+- unique stable movement IDs
+- alias resolution
+- safe unknown-movement fallback
+- JSON round-trip of definitions
+- character-style fallback
+
+## Verification remaining
+
+- compile Canvas renderer in Xcode
+- inspect every pose for anatomical clarity
+- test compact row size and active-workout size
+- test light and dark mode
+- verify Reduce Motion behaviour in surrounding screens
+- replace or supplement vector figures with approved production artwork when available
