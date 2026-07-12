@@ -9,14 +9,26 @@ struct NellTrainHomeView: View {
 
     var body: some View {
         NellScreen {
-            header
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text("Train")
+                    .font(Theme.FontToken.largeScreenTitle)
+                    .foregroundStyle(NellPalette.textPrimary)
+
+                Text("Plans, active workouts and movement feedback in one place.")
+                    .font(Theme.FontToken.secondaryBody)
+                    .foregroundStyle(NellPalette.textSecondary)
+            }
 
             if let session = resumableSession {
                 activeSessionCard(session)
             } else if let plan = activePlans.first {
                 nextPlanCard(plan)
             } else {
-                noPlanCard
+                NellEmptyState(
+                    title: "No active workout plan",
+                    message: "Create one manually or ask the Coach to draft a plan for review.",
+                    systemImage: "list.clipboard"
+                )
             }
 
             planSection
@@ -25,9 +37,7 @@ struct NellTrainHomeView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SettingsView()
-                } label: {
+                NavigationLink { SettingsView() } label: {
                     Image(systemName: "person.crop.circle")
                 }
                 .accessibilityLabel("Profile and settings")
@@ -35,21 +45,9 @@ struct NellTrainHomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Text("Train")
-                .font(Theme.FontToken.largeScreenTitle)
-                .foregroundStyle(NellPalette.textPrimary)
-
-            Text("Plans, active workouts and movement feedback in one place.")
-                .font(Theme.FontToken.secondaryBody)
-                .foregroundStyle(NellPalette.textSecondary)
-        }
-    }
-
     private func activeSessionCard(_ session: ActiveWorkoutSession) -> some View {
         NavigationLink {
-            ActiveWorkoutView(session: session)
+            NellActiveWorkoutContainerView(session: session)
         } label: {
             NellFeaturedCard(tint: NellPalette.training) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.md) {
@@ -76,16 +74,13 @@ struct NellTrainHomeView: View {
                             Text(session.titleSnapshot)
                                 .font(Theme.FontToken.navigationTitle)
                                 .foregroundStyle(NellPalette.textPrimary)
-
                             Text(session.currentStep?.title ?? "Ready to finish")
                                 .font(Theme.FontToken.secondaryBody)
                                 .foregroundStyle(NellPalette.textSecondary)
-
                             Text("Saved progress · \(elapsedLabel(session.elapsedSeconds()))")
                                 .font(Theme.FontToken.caption)
                                 .foregroundStyle(NellPalette.textTertiary)
                         }
-
                         Spacer(minLength: 0)
                     }
 
@@ -94,7 +89,10 @@ struct NellTrainHomeView: View {
                         .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: NellLayout.primaryButtonHeight)
-                        .background(NellPalette.primary, in: RoundedRectangle(cornerRadius: NellLayout.buttonRadius))
+                        .background(
+                            NellPalette.primary,
+                            in: RoundedRectangle(cornerRadius: NellLayout.buttonRadius, style: .continuous)
+                        )
                 }
             }
         }
@@ -106,17 +104,14 @@ struct NellTrainHomeView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                 HStack {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                        Text("Today's Workout")
+                        Text("Next Workout")
                             .font(Theme.FontToken.caption)
                             .foregroundStyle(NellPalette.primary)
-
                         Text(plan.title)
                             .font(Theme.FontToken.navigationTitle)
                             .foregroundStyle(NellPalette.textPrimary)
                     }
-
                     Spacer()
-
                     WorkoutMotionView(
                         title: plan.orderedSteps.first?.title ?? plan.title,
                         type: plan.orderedSteps.first?.type,
@@ -130,7 +125,7 @@ struct NellTrainHomeView: View {
                     .foregroundStyle(NellPalette.textSecondary)
 
                 NavigationLink {
-                    ActiveWorkoutLauncherView(plan: plan)
+                    NellActiveWorkoutLauncherView(plan: plan)
                 } label: {
                     Label("Start Workout", systemImage: "play.fill")
                 }
@@ -139,22 +134,12 @@ struct NellTrainHomeView: View {
         }
     }
 
-    private var noPlanCard: some View {
-        NellEmptyState(
-            title: "No active workout plan",
-            message: "Create one manually or ask the Coach to draft a plan for review.",
-            systemImage: "list.clipboard"
-        )
-    }
-
     @ViewBuilder
     private var planSection: some View {
-        NellSectionHeader(title: "Your Plan")
+        NellSectionHeader(title: "Your Plans")
 
         if activePlans.isEmpty {
-            NavigationLink {
-                NellWorkoutPlansView()
-            } label: {
+            NavigationLink { NellWorkoutPlansView() } label: {
                 NellCard {
                     HStack {
                         Label("Create or review plans", systemImage: "plus.circle")
@@ -171,9 +156,7 @@ struct NellTrainHomeView: View {
             NellCard(padding: 0) {
                 VStack(spacing: 0) {
                     ForEach(Array(activePlans.prefix(3).enumerated()), id: \.offset) { index, plan in
-                        NavigationLink {
-                            NellWorkoutPlanDetailView(plan: plan)
-                        } label: {
+                        NavigationLink { NellWorkoutPlanDetailView(plan: plan) } label: {
                             HStack(spacing: Theme.Spacing.sm) {
                                 WorkoutMotionView(
                                     title: plan.orderedSteps.first?.title ?? plan.title,
@@ -206,9 +189,7 @@ struct NellTrainHomeView: View {
 
                     Divider()
 
-                    NavigationLink {
-                        NellWorkoutPlansView()
-                    } label: {
+                    NavigationLink { NellWorkoutPlansView() } label: {
                         HStack {
                             Text("See all plans")
                                 .font(Theme.FontToken.button)
@@ -228,7 +209,6 @@ struct NellTrainHomeView: View {
     private var trainingTools: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             NellSectionHeader(title: "Training Tools")
-
             NellCard(padding: 0) {
                 VStack(spacing: 0) {
                     toolLink(
@@ -236,28 +216,15 @@ struct NellTrainHomeView: View {
                         detail: "Choose a plan or resume a saved session.",
                         symbol: "figure.run.circle.fill",
                         tint: NellPalette.training
-                    ) { WorkoutStartView() }
-
+                    ) { NellWorkoutStartView() }
                     Divider().padding(.leading, 56)
-
                     toolLink(
                         "Workout history",
                         detail: "Completed manual and active sessions.",
                         symbol: "clock.arrow.circlepath",
                         tint: NellPalette.primary
                     ) { WorkoutLogView() }
-
                     Divider().padding(.leading, 56)
-
-                    toolLink(
-                        "Execution history",
-                        detail: "Interrupted, completed and ended sessions.",
-                        symbol: "list.bullet.clipboard",
-                        tint: NellPalette.nutrition
-                    ) { ActiveWorkoutsView() }
-
-                    Divider().padding(.leading, 56)
-
                     toolLink(
                         "Movement feedback",
                         detail: feedback.isEmpty
@@ -274,7 +241,6 @@ struct NellTrainHomeView: View {
     private var recentProgress: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             NellSectionHeader(title: "Recent Progress")
-
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 spacing: Theme.Spacing.sm
@@ -286,7 +252,6 @@ struct NellTrainHomeView: View {
                     systemImage: "checkmark.circle",
                     tint: NellPalette.primary
                 )
-
                 NellMetricTile(
                     title: "Duration",
                     value: durationThisWeekLabel,
@@ -305,15 +270,12 @@ struct NellTrainHomeView: View {
         tint: Color,
         @ViewBuilder destination: @escaping () -> Destination
     ) -> some View {
-        NavigationLink {
-            destination()
-        } label: {
+        NavigationLink { destination() } label: {
             HStack(spacing: Theme.Spacing.sm) {
                 Image(systemName: symbol)
                     .font(.title3)
                     .foregroundStyle(tint)
                     .frame(width: 32)
-
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                     Text(title)
                         .font(Theme.FontToken.body)
@@ -323,7 +285,6 @@ struct NellTrainHomeView: View {
                         .foregroundStyle(NellPalette.textSecondary)
                         .lineLimit(2)
                 }
-
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
@@ -343,7 +304,9 @@ struct NellTrainHomeView: View {
     }
 
     private var workoutsThisWeek: Int {
-        workoutHistory.filter { Calendar.current.isDate($0.date, equalTo: .now, toGranularity: .weekOfYear) }.count
+        workoutHistory.filter {
+            Calendar.current.isDate($0.date, equalTo: .now, toGranularity: .weekOfYear)
+        }.count
     }
 
     private var durationThisWeekLabel: String {
