@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// Editable meal draft. Natural-language estimation uses the lightweight one-shot
 /// model and never saves until the user reviews the result.
@@ -12,7 +13,6 @@ struct MealEntryView: View {
     @State private var protein = ""
     @State private var carbs = ""
     @State private var fat = ""
-
     @State private var isEstimating = false
     @State private var estimateNote: String?
     @State private var estimateError: String?
@@ -31,7 +31,6 @@ struct MealEntryView: View {
                 Text("Log a Meal")
                     .font(Theme.FontToken.largeScreenTitle)
                     .foregroundStyle(NellPalette.textPrimary)
-
                 Text("Describe it naturally, then review every estimate before saving.")
                     .font(Theme.FontToken.secondaryBody)
                     .foregroundStyle(NellPalette.textSecondary)
@@ -47,13 +46,10 @@ struct MealEntryView: View {
                         lineLimit: 2...6
                     )
 
-                    Button {
-                        estimateWithAI()
-                    } label: {
+                    Button(action: estimateWithAI) {
                         if isEstimating {
                             HStack(spacing: Theme.Spacing.xs) {
-                                ProgressView()
-                                    .tint(Color.white)
+                                ProgressView().tint(Color.white)
                                 Text("Estimating…")
                             }
                         } else {
@@ -64,9 +60,12 @@ struct MealEntryView: View {
                     .disabled(text.trimmed.isEmpty || isEstimating)
 
                     if !hasKey {
-                        Label("Coach connection is required only for estimation. Manual logging still works.", systemImage: "key")
-                            .font(Theme.FontToken.caption)
-                            .foregroundStyle(NellPalette.textSecondary)
+                        Label(
+                            "Coach connection is required only for estimation. Manual logging still works.",
+                            systemImage: "key"
+                        )
+                        .font(Theme.FontToken.caption)
+                        .foregroundStyle(NellPalette.textSecondary)
                     }
 
                     if let estimateNote {
@@ -74,7 +73,6 @@ struct MealEntryView: View {
                             .font(Theme.FontToken.caption)
                             .foregroundStyle(NellPalette.warning)
                     }
-
                     if let estimateError {
                         Label(estimateError, systemImage: "exclamationmark.triangle")
                             .font(Theme.FontToken.caption)
@@ -112,7 +110,7 @@ struct MealEntryView: View {
                 NellSectionHeader(title: "Recent meals")
                 NellCard(padding: 0) {
                     VStack(spacing: 0) {
-                        ForEach(Array(meals.prefix(5).enumerated()), id: \.element.persistentModelID) { index, meal in
+                        ForEach(Array(meals.prefix(5).enumerated()), id: \.offset) { index, meal in
                             mealRow(meal)
                             if index < min(meals.count, 5) - 1 {
                                 Divider().padding(.leading, Theme.Spacing.md)
@@ -136,14 +134,11 @@ struct MealEntryView: View {
             Text(title)
                 .font(Theme.FontToken.body)
                 .foregroundStyle(NellPalette.textPrimary)
-
             Spacer()
-
             TextField("Optional", text: text)
                 .keyboardType(keyboard)
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: 110)
-
             Text(unit)
                 .font(Theme.FontToken.caption)
                 .foregroundStyle(NellPalette.textTertiary)
@@ -158,20 +153,16 @@ struct MealEntryView: View {
                 .fill(NellPalette.nutrition)
                 .frame(width: 9, height: 9)
                 .padding(.top, 6)
-
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 Text(meal.rawText)
                     .font(Theme.FontToken.body)
                     .foregroundStyle(NellPalette.textPrimary)
                     .lineLimit(2)
-
                 Text(meal.timestamp, format: .dateTime.month(.abbreviated).day().hour().minute())
                     .font(Theme.FontToken.caption)
                     .foregroundStyle(NellPalette.textTertiary)
             }
-
             Spacer(minLength: Theme.Spacing.xs)
-
             if let calories = meal.calories {
                 Text("\(calories) kcal")
                     .font(Theme.FontToken.caption)
