@@ -10,7 +10,6 @@ struct NellWorkoutPlansView: View {
                 Text("Workout Plans")
                     .font(Theme.FontToken.largeScreenTitle)
                     .foregroundStyle(NellPalette.textPrimary)
-
                 Text("Choose a plan, review its movements, then start when ready.")
                     .font(Theme.FontToken.secondaryBody)
                     .foregroundStyle(NellPalette.textSecondary)
@@ -24,9 +23,7 @@ struct NellWorkoutPlansView: View {
                 )
             } else {
                 ForEach(activePlans, id: \.id) { plan in
-                    NavigationLink {
-                        NellWorkoutPlanDetailView(plan: plan)
-                    } label: {
+                    NavigationLink { NellWorkoutPlanDetailView(plan: plan) } label: {
                         planCard(plan)
                     }
                     .buttonStyle(.plain)
@@ -36,9 +33,7 @@ struct NellWorkoutPlansView: View {
             if !archivedPlans.isEmpty {
                 NellSectionHeader(title: "Archived")
                 ForEach(archivedPlans.prefix(5), id: \.id) { plan in
-                    NavigationLink {
-                        WorkoutPlanEditorView(plan: plan)
-                    } label: {
+                    NavigationLink { WorkoutPlanEditorView(plan: plan) } label: {
                         NellCard {
                             HStack {
                                 Image(systemName: "archivebox")
@@ -58,22 +53,13 @@ struct NellWorkoutPlansView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    WorkoutPlansView()
-                } label: {
-                    Text("Manage")
-                }
+                NavigationLink("Manage") { WorkoutPlansView() }
             }
         }
     }
 
-    private var activePlans: [WorkoutPlan] {
-        plans.filter { !$0.isArchived }
-    }
-
-    private var archivedPlans: [WorkoutPlan] {
-        plans.filter(\.isArchived)
-    }
+    private var activePlans: [WorkoutPlan] { plans.filter { !$0.isArchived } }
+    private var archivedPlans: [WorkoutPlan] { plans.filter(\.isArchived) }
 
     private func planCard(_ plan: WorkoutPlan) -> some View {
         NellFeaturedCard(tint: NellPalette.training) {
@@ -91,19 +77,15 @@ struct NellWorkoutPlansView: View {
                             .font(Theme.FontToken.cardTitle)
                             .foregroundStyle(NellPalette.textPrimary)
                             .lineLimit(2)
-
                         if plan.source == .assistant {
                             Image(systemName: "sparkles")
                                 .font(.caption)
                                 .foregroundStyle(NellPalette.amber)
                         }
                     }
-
                     Text(planSummary(plan))
                         .font(Theme.FontToken.caption)
                         .foregroundStyle(NellPalette.textSecondary)
-                        .lineLimit(2)
-
                     if let goal = plan.goalText, !goal.isEmpty {
                         Text(goal)
                             .font(Theme.FontToken.caption)
@@ -113,7 +95,6 @@ struct NellWorkoutPlansView: View {
                 }
 
                 Spacer(minLength: Theme.Spacing.xs)
-
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(NellPalette.textTertiary)
@@ -159,17 +140,14 @@ struct NellWorkoutPlanDetailView: View {
 
                 NellCard(padding: 0) {
                     VStack(spacing: 0) {
-                        ForEach(Array(plan.orderedSteps.enumerated()), id: \.element.id) { index, step in
-                            NavigationLink {
-                                NellExerciseDetailView(step: step)
-                            } label: {
+                        ForEach(Array(plan.orderedSteps.enumerated()), id: \.offset) { index, step in
+                            NavigationLink { NellExerciseDetailView(step: step) } label: {
                                 HStack(spacing: Theme.Spacing.sm) {
                                     Text("\(index + 1)")
                                         .font(Theme.FontToken.caption.monospacedDigit())
                                         .foregroundStyle(Color.white)
                                         .frame(width: 24, height: 24)
                                         .background(NellPalette.primary, in: Circle())
-
                                     WorkoutMotionRow(
                                         title: step.title,
                                         type: step.type,
@@ -189,9 +167,7 @@ struct NellWorkoutPlanDetailView: View {
             }
 
             if !plan.orderedSteps.isEmpty, !plan.isArchived {
-                NavigationLink {
-                    ActiveWorkoutLauncherView(plan: plan)
-                } label: {
+                NavigationLink { NellActiveWorkoutLauncherView(plan: plan) } label: {
                     Label("Start Workout", systemImage: "play.fill")
                 }
                 .buttonStyle(.nellPrimary)
@@ -201,11 +177,7 @@ struct NellWorkoutPlanDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    WorkoutPlanEditorView(plan: plan)
-                } label: {
-                    Text("Edit")
-                }
+                NavigationLink("Edit") { WorkoutPlanEditorView(plan: plan) }
             }
         }
     }
@@ -218,7 +190,6 @@ struct NellWorkoutPlanDetailView: View {
                         Text(plan.title)
                             .font(Theme.FontToken.navigationTitle)
                             .foregroundStyle(NellPalette.textPrimary)
-
                         if let goal = plan.goalText, !goal.isEmpty {
                             Text(goal)
                                 .font(Theme.FontToken.secondaryBody)
@@ -285,28 +256,20 @@ struct NellExerciseDetailView: View {
                     Text(step.title)
                         .font(Theme.FontToken.navigationTitle)
                         .foregroundStyle(NellPalette.textPrimary)
-
                     Text(step.type.displayName)
                         .font(Theme.FontToken.caption)
                         .foregroundStyle(NellPalette.primary)
-
-                    if let instruction = step.instruction, !instruction.isEmpty {
-                        Text(instruction)
-                            .font(Theme.FontToken.body)
-                            .foregroundStyle(NellPalette.textSecondary)
-                    } else {
-                        Text("Follow the motion guide and use the plan's targets. Stop or adjust when the movement does not feel appropriate for you.")
-                            .font(Theme.FontToken.secondaryBody)
-                            .foregroundStyle(NellPalette.textSecondary)
-                    }
+                    Text(step.instruction?.isEmpty == false
+                        ? step.instruction!
+                        : "Follow the motion guide and use the plan's targets. Stop or adjust when the movement does not feel appropriate for you.")
+                        .font(Theme.FontToken.secondaryBody)
+                        .foregroundStyle(NellPalette.textSecondary)
                 }
             }
 
             NellSectionHeader(title: "Planned target")
             NellCard {
-                VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                    detailRows
-                }
+                VStack(alignment: .leading, spacing: Theme.Spacing.sm) { detailRows }
             }
 
             NellCoachSuggestionCard(
@@ -332,8 +295,7 @@ struct NellExerciseDetailView: View {
     }
 
     private func durationLabel(_ seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds) sec" }
-        return "\(seconds / 60) min"
+        seconds < 60 ? "\(seconds) sec" : "\(seconds / 60) min"
     }
 }
 
