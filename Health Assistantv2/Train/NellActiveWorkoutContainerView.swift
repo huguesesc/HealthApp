@@ -8,8 +8,11 @@ struct NellActiveWorkoutContainerView: View {
 
     @Bindable var session: ActiveWorkoutSession
 
+    /// The completion presentation must follow the persisted session lifecycle,
+    /// not merely the fact that every step has been resolved. Until the user
+    /// confirms effort/notes and saves, ActiveWorkoutView must remain available.
     private var isComplete: Bool {
-        session.progressFraction >= 0.999 && session.currentStep == nil
+        session.status == .completed && session.workoutLogCreated
     }
 
     var body: some View {
