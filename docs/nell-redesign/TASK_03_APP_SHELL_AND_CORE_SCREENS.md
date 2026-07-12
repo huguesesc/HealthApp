@@ -1,74 +1,91 @@
 # Task 03 — App Shell and Core Screens
 
-## Goal
+## Status
 
-Apply the Nell information architecture and concept-board hierarchy to the main navigation and highest-traffic screens.
+**Implemented in source. Xcode and physical-device verification pending.**
 
-## Navigation
+Detailed report: `IMPLEMENTATION_TASKS_03_04.md`
 
-Final structure:
+## Navigation implemented
 
 ```text
 Today | Log | Coach | Nutrition | Train
 ```
 
-- Coach uses the Care Companion mark in a raised central control.
-- Log opens an action-focused sheet.
-- Profile/settings is accessed from the appropriate top bar rather than occupying a tab.
-- Content receives a bottom inset so the raised Coach control never hides the last row.
+- `NellAppShellView` is now the application root.
+- Coach uses the shared Care Companion mark in a raised central control.
+- Log opens a focused sheet rather than an empty tab.
+- Profile/settings is available from the relevant top bars.
+- Main content receives a safe bottom inset.
 
-## Today
+## Today implemented
 
-Rebuild around:
-
-- concise greeting and daily state
-- small contextual mascot
-- daily overview metrics
-- one Coach observation
+- branded greeting and restrained mascot placement
+- honest daily metrics from logs and Apple Health summaries
 - quick check-in
-- relevant insight or resume-workout card
+- deterministic Nell observation
+- local streak/insight card
+- resumable active-workout card
 
-## Coach
+No readiness, hydration, recovery or other metric is fabricated when the app has no source data.
 
-Rebuild around:
+## Coach implemented
 
+- branded Coach header
 - Care Companion identity
-- restrained mascot greeting when the thread is empty
-- suggested prompts
-- Markdown response blocks
-- confirmation cards for write actions
-- specific thinking/loading state
+- restrained waving companion
+- existing Markdown conversation and write-confirmation engine preserved
+- Settings access retained
 
-## Nutrition
+## Nutrition implemented
 
-Rebuild as a data-led overview rather than only a form:
-
-- today summary
-- calories/macros
-- meal timeline
+- today calorie and macro totals
+- today meal timeline
 - recent meal history
 - prominent log-meal action
-- AI estimate review
+- editable AI estimate flow
+- no food photography or generated food imagery
 
-## Train
+## Train implemented
 
-Rebuild as the training home:
-
-- current/resumable session
-- next plan
-- saved plans
+- resumable session card
+- next workout plan
+- saved plan rows
 - workout history
 - movement feedback
-- recovery/readiness context
+- honest weekly workout count and logged duration
+- direct integration with the modular motion-avatar system
 
-## Central Log defect
+## Central Log defect resolved
 
-The current central Log input must be fixed so the entered text is preserved and routed deliberately. Until a general classifier exists, the user must explicitly select Meal or Workout before analysis.
+- category selection is explicit
+- Meal and Workout text is preserved into the destination editor
+- the lightweight structured model produces an editable draft
+- no category is silently guessed
+- Sleep and Check-in use dedicated manual forms
 
-## Acceptance criteria
+## Primary files
 
-- All five destinations are visually coherent.
-- Training tools are not hidden in Settings.
-- Nutrition is not merely the old logging form.
-- Log never silently assumes a category.
-- Existing records and navigation links remain functional.
+```text
+Health Assistantv2/Navigation/NellAppShellView.swift
+Health Assistantv2/Today/NellTodayView.swift
+Health Assistantv2/Coach/NellCoachScreen.swift
+Health Assistantv2/Log/NellLogSheetView.swift
+Health Assistantv2/Nutrition/NellNutritionView.swift
+Health Assistantv2/Train/NellTrainHomeView.swift
+Health Assistantv2/Train/NellWorkoutPlansView.swift
+Health Assistantv2/Train/NellWorkoutStartView.swift
+Sources/Features/Nutrition/MealEntryView.swift
+Sources/Features/Workout/WorkoutLogView.swift
+Sources/App/RootView.swift
+```
+
+## Verification remaining
+
+- clean Xcode build
+- full tests
+- physical iPhone navigation pass
+- keyboard and sheet behaviour
+- dark mode
+- largest Dynamic Type
+- VoiceOver tab order
