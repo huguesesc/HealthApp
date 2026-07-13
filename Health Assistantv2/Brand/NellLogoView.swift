@@ -45,9 +45,8 @@ private struct NellCompanionLeaf: Shape {
     }
 }
 
-/// Flat SwiftUI reconstruction of the Shell Bowl mark. Production raster artwork
-/// can replace it in marketing and the app icon, while this version remains useful
-/// for small UI states and missing-asset fallbacks.
+/// Flat SwiftUI reconstruction of the Shell Bowl mark. It remains the safe
+/// fallback when a production raster asset is not available.
 struct NellShellBowlMark: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -63,7 +62,7 @@ struct NellShellBowlMark: View {
                 ringSegment(from: 0.85, to: 0.98, colour: NellPalette.primary.opacity(0.80))
 
                 Ellipse()
-                    .fill(colorScheme == .dark ? NellPalette.forest : NellPalette.forest)
+                    .fill(NellPalette.forest)
                     .frame(width: size * 0.46, height: size * 0.34)
                     .offset(y: -size * 0.03)
 
@@ -108,8 +107,8 @@ struct NellBrandLockup: View {
 
     var body: some View {
         HStack(spacing: compact ? Theme.Spacing.sm : Theme.Spacing.md) {
-            NellShellBowlMark()
-                .frame(width: compact ? 42 : 64, height: compact ? 42 : 64)
+            NellAssetImage(asset: .logoFullColor)
+                .frame(width: compact ? 54 : 76, height: compact ? 54 : 76)
 
             VStack(alignment: .leading, spacing: compact ? 0 : 2) {
                 Text(NellBrand.productName)
@@ -118,7 +117,7 @@ struct NellBrandLockup: View {
                         weight: .semibold,
                         design: .serif
                     ))
-                    .foregroundStyle(NellPalette.forest)
+                    .foregroundStyle(NellPalette.primary)
                     .lineLimit(1)
 
                 if showsDescriptor {
@@ -134,9 +133,34 @@ struct NellBrandLockup: View {
     }
 }
 
+/// The full-colour `logo.png` is the stable entry point to profile and settings
+/// on Nell root screens. The generated mark remains available only as fallback.
+struct NellSettingsLogoButton: View {
+    var body: some View {
+        NavigationLink {
+            SettingsView()
+                .toolbar(.visible, for: .navigationBar)
+        } label: {
+            NellAssetImage(asset: .logoFullColor)
+                .frame(width: 36, height: 36)
+                .padding(4)
+                .background(NellPalette.surface, in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(NellPalette.border, lineWidth: Theme.Border.standard)
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Profile and settings")
+        .accessibilityHint("Open your Nell profile and app settings")
+    }
+}
+
 #Preview("Nell marks") {
     VStack(spacing: 32) {
         NellBrandLockup()
+        NellSettingsLogoButton()
         NellShellBowlMark()
             .frame(width: 120, height: 120)
         NellCoachMark()
