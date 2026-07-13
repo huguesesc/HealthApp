@@ -34,12 +34,12 @@ struct NellCoachScreen: View {
             }
 
             Spacer(minLength: 0)
+            NellSettingsLogoButton()
         }
         .padding(.horizontal, NellLayout.screenPadding)
         .padding(.vertical, Theme.Spacing.sm)
         .background(NellPalette.surface)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Nell, your personal health companion")
+        .accessibilityElement(children: .contain)
     }
 }
 
