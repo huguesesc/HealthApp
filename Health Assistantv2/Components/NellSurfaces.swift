@@ -68,13 +68,18 @@ struct NellFeaturedCard<Content: View>: View {
         content
             .padding(Theme.Spacing.screen)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
+            .background {
                 ZStack {
                     NellPalette.surface
                     tint.opacity(Theme.Opacity.subtleTint)
-                },
-                in: RoundedRectangle(cornerRadius: NellLayout.featuredRadius, style: .continuous)
-            )
+                }
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: NellLayout.featuredRadius,
+                        style: .continuous
+                    )
+                )
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: NellLayout.featuredRadius, style: .continuous)
                     .stroke(tint.opacity(0.28), lineWidth: Theme.Border.standard)
