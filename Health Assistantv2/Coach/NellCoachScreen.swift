@@ -6,33 +6,23 @@ struct NellCoachScreen: View {
             coachHeader
             Divider()
             ChatView()
+                .padding(.bottom, Theme.Size.tabBarHeight + Theme.Spacing.sm)
                 .toolbar(.hidden, for: .navigationBar)
         }
         .background(NellPalette.background)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SettingsView()
-                } label: {
-                    Image(systemName: "gearshape")
-                }
-                .accessibilityLabel("Coach settings")
-            }
-        }
     }
 
     private var coachHeader: some View {
         HStack(spacing: Theme.Spacing.md) {
-            NellMascotView(pose: .wave)
+            NellMascotView(pose: .thoughtful)
                 .frame(width: 68, height: 68)
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 HStack(spacing: Theme.Spacing.xs) {
-                    NellCoachMark()
-                        .foregroundStyle(NellPalette.primary)
-                        .frame(width: 24, height: 24)
+                    NellAssetImage(asset: .coachMark)
+                        .frame(width: 28, height: 28)
 
-                    Text("Coach")
+                    Text("Nell")
                         .font(Theme.FontToken.navigationTitle)
                         .foregroundStyle(NellPalette.textPrimary)
                 }
@@ -49,6 +39,7 @@ struct NellCoachScreen: View {
         .padding(.vertical, Theme.Spacing.sm)
         .background(NellPalette.surface)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("Nell, your personal health companion")
     }
 }
 
