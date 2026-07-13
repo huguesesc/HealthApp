@@ -1,10 +1,12 @@
 import SwiftData
 import SwiftUI
 
-/// Configuration only. Product destinations such as workout plans, active sessions,
-/// history and movement feedback live in the Train tab.
+/// Configuration only. Product destinations such as plans, active sessions,
+/// history and progress remain in the Train tab.
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+
+    @AppStorage("nell.onboarding.completed") private var onboardingComplete = false
 
     @State private var draftKey = ""
     @State private var hasStoredKey = APIKeyStore.read()?.isEmpty == false
@@ -20,97 +22,134 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Profile") {
-                NavigationLink {
-                    ProfileView()
-                } label: {
-                    Label("Health and training profile", systemImage: "person.crop.circle")
-                }
-
-                NavigationLink {
-                    WorkoutLocationsView()
-                } label: {
-                    Label("Equipment and locations", systemImage: "mappin.and.ellipse")
-                }
-            }
-
-            Section("Coach connection") {
-                SecureField("sk-ant-…", text: $draftKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-
-                Button("Save key") { save() }
-                    .disabled(trimmedKey.isEmpty)
-
-                if hasStoredKey {
-                    Label("A key is saved on this device.", systemImage: "checkmark.seal")
-                        .foregroundStyle(Color.green)
-                    Button("Clear key", role: .destructive) { clear() }
-                } else {
-                    Label("No key saved yet.", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
-                }
-
-                if justSaved {
-                    Text("Saved.")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                }
-            } footer: {
-                Text(
-                    "Get a key at console.anthropic.com → API Keys. Usage is billed to "
-                        + "your Anthropic account. The key is stored in this device's "
-                        + "Keychain, never in the app's files."
-                )
-            }
-
-            Section {
-                Label(
-                    healthKit.isAvailable ? "Available on this device." : "Not available on this device.",
-                    systemImage: healthKit.isAvailable ? "heart.text.square" : "exclamationmark.triangle"
-                )
-                .foregroundStyle(healthKit.isAvailable ? Color.secondary : Theme.ColorToken.destructive)
-
-                Button("Connect Apple Health") {
-                    connectAppleHealth()
-                }
-                .disabled(!healthKit.isAvailable || isHealthSyncing)
-
-                Button("Sync Apple Health") {
-                    syncAppleHealth()
-                }
-                .disabled(!healthKit.isAvailable || isHealthSyncing)
-
-                if isHealthSyncing {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                        Text("Syncing…")
-                    }
-                }
-
-                Text(healthStatus)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Text("Apple Health")
-            } footer: {
-                Text(
-                    "The app reads Apple Health activity, workouts, sleep and heart "
-                        + "summaries for personal coaching. Raw HealthKit samples stay on "
-                        + "device; only compact daily summaries are used by the assistant."
-                )
-            }
-
-            Section("About and privacy") {
-                Label("Your health data remains stored locally by default.", systemImage: "lock.shield")
-                Text("Health Assistant does not diagnose or replace professional care.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            profileSection
+            experienceSection
+            coachConnectionSection
+            appleHealthSection
+            privacySection
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.ColorToken.backgroundSecondary)
+        .background(NellPalette.groupedBackground)
         .navigationTitle("Settings")
+    }
+
+    private var profileSection: some View {
+        Section("Profile and goals") {
+            NavigationLink {
+                NellProfilePreferencesView()
+            } label: {
+                Label("Personalisation and profile", systemImage: "person.crop.circle")
+            }
+
+            NavigationLink {
+                WorkoutLocationsView()
+            } label: {
+                Label("Equipment and locations", systemImage: "mappin.and.ellipse")
+            }
+        }
+    }
+
+    private var experienceSection: some View {
+        Section("App experience") {
+            NavigationLink {
+                NellAppearanceSettingsView()
+            } label: {
+                Label("Appearance and accessibility", systemImage: "circle.lefthalf.filled")
+            }
+
+            Button {
+                onboardingComplete = false
+            } label: {
+                Label("Show first-run setup again", systemImage: "arrow.counterclockwise")
+            }
+        }
+    }
+
+    private var coachConnectionSection: some View {
+        Section {
+            SecureField("sk-ant-…", text: $draftKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+
+            Button("Save key", action: save)
+                .disabled(trimmedKey.isEmpty)
+
+            if hasStoredKey {
+                Label("A key is saved on this device.", systemImage: "checkmark.seal")
+                    .foregroundStyle(NellPalette.primary)
+                Button("Clear key", role: .destructive, action: clear)
+            } else {
+                Label("No key saved yet.", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(NellPalette.textSecondary)
+            }
+
+            if justSaved {
+                Text("Saved.")
+                    .font(Theme.FontToken.caption)
+                    .foregroundStyle(NellPalette.primary)
+            }
+        } header: {
+            Text("Coach connection")
+        } footer: {
+            Text(
+                "A connected Coach key is optional. Usage is billed to your service account. "
+                    + "The key is stored in this device's Keychain, never in Nell's files."
+            )
+        }
+    }
+
+    private var appleHealthSection: some View {
+        Section {
+            Label(
+                healthKit.isAvailable ? "Available on this device." : "Not available on this device.",
+                systemImage: healthKit.isAvailable ? "heart.text.square" : "exclamationmark.triangle"
+            )
+            .foregroundStyle(healthKit.isAvailable ? NellPalette.textSecondary : NellPalette.destructive)
+
+            Button("Connect Apple Health", action: connectAppleHealth)
+                .disabled(!healthKit.isAvailable || isHealthSyncing)
+
+            Button("Sync Apple Health", action: syncAppleHealth)
+                .disabled(!healthKit.isAvailable || isHealthSyncing)
+
+            if isHealthSyncing {
+                HStack(spacing: Theme.Spacing.xs) {
+                    ProgressView()
+                    Text("Syncing…")
+                }
+            }
+
+            Text(healthStatus)
+                .font(Theme.FontToken.caption)
+                .foregroundStyle(NellPalette.textSecondary)
+        } header: {
+            Text("Apple Health")
+        } footer: {
+            Text(
+                "Nell reads Apple Health activity, workouts, sleep and heart summaries for personal coaching. "
+                    + "Raw HealthKit samples stay on device; only compact daily summaries are used by the Coach."
+            )
+        }
+    }
+
+    private var privacySection: some View {
+        Section("Privacy, safety and product") {
+            NavigationLink {
+                NellPrivacySettingsView()
+            } label: {
+                Label("Privacy and safety", systemImage: "lock.shield")
+            }
+
+            NavigationLink {
+                NellAboutView()
+            } label: {
+                Label("About Nell", systemImage: "info.circle")
+            }
+
+            Text("Nell does not diagnose or replace professional care.")
+                .font(Theme.FontToken.caption)
+                .foregroundStyle(NellPalette.textSecondary)
+        }
     }
 
     private var trimmedKey: String {
