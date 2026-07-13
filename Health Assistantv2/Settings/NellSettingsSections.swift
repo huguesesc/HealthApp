@@ -42,14 +42,16 @@ struct NellProfilePreferencesView: View {
 
     var body: some View {
         Form {
-            Section("Personalisation") {
+            Section {
                 TextField("Preferred name", text: $displayName)
                     .textInputAutocapitalization(.words)
+            } header: {
+                Text("Personalisation")
             } footer: {
                 Text("The preferred name is a display preference. Coach-relevant health and training information is stored in the local SwiftData profile.")
             }
 
-            Section("Health and training profile") {
+            Section {
                 NavigationLink {
                     ProfileView()
                 } label: {
@@ -76,6 +78,8 @@ struct NellProfilePreferencesView: View {
                         .font(Theme.FontToken.caption)
                         .foregroundStyle(NellPalette.textSecondary)
                 }
+            } header: {
+                Text("Health and training profile")
             } footer: {
                 Text("Onboarding writes its confirmed choices into this same profile. Nell Coach reads this profile rather than a separate preference copy.")
             }
@@ -91,7 +95,7 @@ struct NellAppearanceSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Appearance") {
+            Section {
                 ForEach(NellAppearancePreference.allCases) { preference in
                     Button {
                         appearance = preference.rawValue
@@ -109,6 +113,8 @@ struct NellAppearanceSettingsView: View {
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(appearance == preference.rawValue ? .isSelected : [])
                 }
+            } header: {
+                Text("Appearance")
             } footer: {
                 Text("System follows the appearance selected for this iPhone.")
             }
