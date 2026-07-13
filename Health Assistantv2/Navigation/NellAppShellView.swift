@@ -56,7 +56,7 @@ private enum NellAppSheet: String, Identifiable {
 private enum NellAppSection: String, CaseIterable, Identifiable {
     case today = "Today"
     case log = "Log"
-    case coach = "Coach"
+    case coach = "Nell"
     case nutrition = "Nutrition"
     case train = "Train"
 
@@ -143,14 +143,17 @@ private struct NellTabBar: View {
             VStack(spacing: Theme.Spacing.xxs) {
                 ZStack {
                     Circle()
-                        .fill(selection == .coach ? NellPalette.forest : NellPalette.primary)
+                        .fill(NellPalette.surface)
 
                     Circle()
-                        .stroke(NellPalette.surface, lineWidth: Theme.Border.coachKeyline)
+                        .stroke(
+                            selection == .coach ? NellPalette.primary : NellPalette.border,
+                            lineWidth: Theme.Border.coachKeyline
+                        )
 
-                    NellCoachMark()
-                        .foregroundStyle(Color.white)
-                        .frame(width: Theme.Size.coachIcon, height: Theme.Size.coachIcon)
+                    NellAssetImage(asset: .coachMark)
+                        .clipShape(Circle())
+                        .padding(4)
                 }
                 .frame(width: Theme.Size.coachTabDiameter, height: Theme.Size.coachTabDiameter)
                 .shadow(
@@ -171,8 +174,8 @@ private struct NellTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Coach")
-        .accessibilityHint("Open Nell Coach")
+        .accessibilityLabel("Nell")
+        .accessibilityHint("Open your Nell conversation")
     }
 
     private func select(_ section: NellAppSection) {

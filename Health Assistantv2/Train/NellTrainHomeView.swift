@@ -26,7 +26,7 @@ struct NellTrainHomeView: View {
             } else {
                 NellEmptyState(
                     title: "No active workout plan",
-                    message: "Create one manually or ask the Coach to draft a plan for review.",
+                    message: "Create one manually or ask Nell to draft a plan for review.",
                     systemImage: "list.clipboard"
                 )
             }
@@ -37,10 +37,7 @@ struct NellTrainHomeView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink { SettingsView() } label: {
-                    Image(systemName: "person.crop.circle")
-                }
-                .accessibilityLabel("Profile and settings")
+                NellSettingsLogoButton()
             }
         }
     }
