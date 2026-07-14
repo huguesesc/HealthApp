@@ -17,6 +17,7 @@ struct ExerciseCatalogEquipmentTests {
         ]
 
         #expect(taxonomy.schemaVersion == 1)
+        #expect(taxonomy.equipment.count == 28)
         #expect(Set(taxonomy.equipment.map(\.id.rawValue)) == expectedIDs)
         let pair = try #require(taxonomy.definition(for: ExerciseEquipmentID(rawValue: "pair_of_dumbbells")))
         #expect(pair.fulfills == [
@@ -25,6 +26,14 @@ struct ExerciseCatalogEquipmentTests {
                 quantityPerUnit: 2
             )
         ])
+    }
+
+    @Test func taxonomyCategoryUsesAnUnambiguousTypeAlongsideLegacyEquipmentCategory() {
+        let taxonomyCategory = ExerciseEquipmentCategory(rawValue: "free_weight")
+        let legacyCategory: EquipmentCategory = .custom
+
+        #expect(taxonomyCategory.rawValue == "free_weight")
+        #expect(legacyCategory.rawValue == "custom")
     }
 
     @Test func requirementsRequireEveryPrimaryClauseOrOneCompleteAlternativeGroup() {
@@ -122,28 +131,28 @@ struct ExerciseCatalogEquipmentTests {
             EquipmentDefinition(
                 id: ExerciseEquipmentID(rawValue: "alpha"),
                 displayName: "Alpha",
-                category: EquipmentCategory(rawValue: "test"),
+                category: ExerciseEquipmentCategory(rawValue: "test"),
                 parentID: ExerciseEquipmentID(rawValue: "missing_parent"),
                 lifecycle: EquipmentLifecycle(status: .active)
             ),
             EquipmentDefinition(
                 id: ExerciseEquipmentID(rawValue: "bravo"),
                 displayName: "Bravo",
-                category: EquipmentCategory(rawValue: "test"),
+                category: ExerciseEquipmentCategory(rawValue: "test"),
                 parentID: ExerciseEquipmentID(rawValue: "charlie"),
                 lifecycle: EquipmentLifecycle(status: .active)
             ),
             EquipmentDefinition(
                 id: ExerciseEquipmentID(rawValue: "charlie"),
                 displayName: "Charlie",
-                category: EquipmentCategory(rawValue: "test"),
+                category: ExerciseEquipmentCategory(rawValue: "test"),
                 parentID: ExerciseEquipmentID(rawValue: "bravo"),
                 lifecycle: EquipmentLifecycle(status: .active)
             ),
             EquipmentDefinition(
                 id: ExerciseEquipmentID(rawValue: "delta"),
                 displayName: "Delta",
-                category: EquipmentCategory(rawValue: "test"),
+                category: ExerciseEquipmentCategory(rawValue: "test"),
                 fulfills: [EquipmentFulfillment(
                     id: ExerciseEquipmentID(rawValue: "missing_target"),
                     quantityPerUnit: 1
@@ -168,6 +177,127 @@ struct ExerciseCatalogEquipmentTests {
         ])
     }
 
+    @Test func nonpositiveRequirementQuantitiesAreInvalidAndNeverSatisfyAnEmptyInventory() {
+        let taxonomy = fixtureTaxonomy()
+        let requirements = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 0)],
+            alternatives: [[
+                ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "kettlebell"), quantity: -1)
+            ]]
+        )
+
+        #expect(!requirements.isSatisfied(by: EquipmentInventory(quantities: [:]), in: taxonomy))
+        #expect(taxonomy.validationErrors(for: requirements) == [
+            .nonpositiveRequirementQuantity(
+                group: .required,
+                equipmentID: ExerciseEquipmentID(rawValue: "dumbbell"),
+                quantity: 0
+            ),
+            .nonpositiveRequirementQuantity(
+                group: .alternative(index: 0),
+                equipmentID: ExerciseEquipmentID(rawValue: "kettlebell"),
+                quantity: -1
+            )
+        ])
+
+        let validPrimaryWithMalformedAlternative = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 1)],
+            alternatives: [[
+                ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "kettlebell"), quantity: 0)
+            ]]
+        )
+        #expect(!validPrimaryWithMalformedAlternative.isSatisfied(
+            by: EquipmentInventory(quantities: [ExerciseEquipmentID(rawValue: "dumbbell"): 1]),
+            in: taxonomy
+        ))
+    }
+
+    @Test func nonpositiveFulfillmentMultipliersAreInvalidAndNeverCreateAvailability() {
+        let sourceID = ExerciseEquipmentID(rawValue: "source")
+        let negativeTargetID = ExerciseEquipmentID(rawValue: "target_negative")
+        let zeroTargetID = ExerciseEquipmentID(rawValue: "target_zero")
+        let taxonomy = EquipmentTaxonomy(schemaVersion: 1, equipment: [
+            EquipmentDefinition(
+                id: sourceID,
+                displayName: "Source",
+                category: ExerciseEquipmentCategory(rawValue: "test"),
+                fulfills: [
+                    EquipmentFulfillment(id: zeroTargetID, quantityPerUnit: 0),
+                    EquipmentFulfillment(id: negativeTargetID, quantityPerUnit: -1)
+                ],
+                lifecycle: EquipmentLifecycle(status: .active)
+            ),
+            equipment("target_negative"),
+            equipment("target_zero")
+        ])
+        let inventory = EquipmentInventory(quantities: [sourceID: 1])
+
+        #expect(!ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: negativeTargetID, quantity: 1)]
+        ).isSatisfied(by: inventory, in: taxonomy))
+        #expect(!ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: zeroTargetID, quantity: 1)]
+        ).isSatisfied(by: inventory, in: taxonomy))
+        #expect(taxonomy.validationErrors() == [
+            .nonpositiveFulfillmentMultiplier(
+                equipmentID: sourceID,
+                targetID: negativeTargetID,
+                quantityPerUnit: -1
+            ),
+            .nonpositiveFulfillmentMultiplier(
+                equipmentID: sourceID,
+                targetID: zeroTargetID,
+                quantityPerUnit: 0
+            )
+        ])
+    }
+
+    @Test func duplicateEquipmentIDsProduceADeterministicValidationError() {
+        let duplicateID = ExerciseEquipmentID(rawValue: "duplicate")
+        let taxonomy = EquipmentTaxonomy(schemaVersion: 1, equipment: [
+            equipment("duplicate"),
+            EquipmentDefinition(
+                id: duplicateID,
+                displayName: "Second duplicate",
+                category: ExerciseEquipmentCategory(rawValue: "test"),
+                lifecycle: EquipmentLifecycle(status: .active)
+            )
+        ])
+
+        #expect(taxonomy.validationErrors() == [
+            .duplicateEquipmentID(equipmentID: duplicateID)
+        ])
+    }
+
+    @Test func duplicateFulfillmentTargetsAreInvalidAndDoNotCreateAvailability() {
+        let sourceID = ExerciseEquipmentID(rawValue: "source")
+        let targetID = ExerciseEquipmentID(rawValue: "target")
+        let taxonomy = EquipmentTaxonomy(schemaVersion: 1, equipment: [
+            EquipmentDefinition(
+                id: sourceID,
+                displayName: "Source",
+                category: ExerciseEquipmentCategory(rawValue: "test"),
+                fulfills: [
+                    EquipmentFulfillment(id: targetID, quantityPerUnit: 1),
+                    EquipmentFulfillment(id: targetID, quantityPerUnit: 2)
+                ],
+                lifecycle: EquipmentLifecycle(status: .active)
+            ),
+            equipment("target")
+        ])
+        let requirements = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: targetID, quantity: 1)]
+        )
+
+        #expect(!requirements.isSatisfied(
+            by: EquipmentInventory(quantities: [sourceID: 1]),
+            in: taxonomy
+        ))
+        #expect(taxonomy.validationErrors() == [
+            .duplicateFulfillmentTarget(equipmentID: sourceID, targetID: targetID)
+        ])
+    }
+
     private func loadInitialTaxonomy() throws -> EquipmentTaxonomy {
         let testDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let resourceURL = testDirectory
@@ -186,7 +316,7 @@ struct ExerciseCatalogEquipmentTests {
         EquipmentDefinition(
             id: ExerciseEquipmentID(rawValue: id),
             displayName: id,
-            category: EquipmentCategory(rawValue: "test"),
+            category: ExerciseEquipmentCategory(rawValue: "test"),
             lifecycle: EquipmentLifecycle(status: .active)
         )
     }

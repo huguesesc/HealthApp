@@ -28,6 +28,12 @@ struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
     }
 
     func isSatisfied(by inventory: EquipmentInventory, in taxonomy: EquipmentTaxonomy) -> Bool {
+        guard required.allSatisfy({ clause in clause.quantity > 0 }),
+              alternatives.allSatisfy({ alternative in
+                  alternative.allSatisfy { clause in clause.quantity > 0 }
+              }) else {
+            return false
+        }
         if isSatisfied(required, by: inventory, in: taxonomy) {
             return true
         }
@@ -39,6 +45,9 @@ struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
         by inventory: EquipmentInventory,
         in taxonomy: EquipmentTaxonomy
     ) -> Bool {
+        guard group.allSatisfy({ $0.quantity > 0 }) else {
+            return false
+        }
         if group.count == 1, group[0].id.rawValue == "none" {
             return true
         }
@@ -79,10 +88,12 @@ struct EquipmentInventory: Hashable, Sendable {
                 total += stockedQuantity
                 return
             }
-            let quantityPerUnit = stockedDefinition.fulfills
-                .filter { $0.id == requiredID }
-                .reduce(0) { $0 + $1.quantityPerUnit }
-            total += stockedQuantity * quantityPerUnit
+            let fulfillments = stockedDefinition.fulfills.filter { $0.id == requiredID }
+            guard fulfillments.count == 1, let fulfillment = fulfillments.first,
+                  fulfillment.quantityPerUnit > 0 else {
+                return
+            }
+            total += stockedQuantity * fulfillment.quantityPerUnit
         }
     }
 }

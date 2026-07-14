@@ -102,7 +102,7 @@ struct ExerciseEquipmentID: Codable, Hashable, Sendable {
     }
 }
 
-struct EquipmentCategory: Codable, Hashable, Sendable {
+struct ExerciseEquipmentCategory: Codable, Hashable, Sendable {
     let rawValue: String
 
     init(rawValue: String) {
@@ -133,7 +133,7 @@ struct EquipmentDefinition: Codable, Hashable, Sendable {
     let id: ExerciseEquipmentID
     let displayName: String
     let aliases: [String]
-    let category: EquipmentCategory
+    let category: ExerciseEquipmentCategory
     let parentID: ExerciseEquipmentID?
     let fulfills: [EquipmentFulfillment]
     let lifecycle: EquipmentLifecycle
@@ -142,7 +142,7 @@ struct EquipmentDefinition: Codable, Hashable, Sendable {
         id: ExerciseEquipmentID,
         displayName: String,
         aliases: [String] = [],
-        category: EquipmentCategory,
+        category: ExerciseEquipmentCategory,
         parentID: ExerciseEquipmentID? = nil,
         fulfills: [EquipmentFulfillment] = [],
         lifecycle: EquipmentLifecycle
@@ -171,7 +171,7 @@ struct EquipmentDefinition: Codable, Hashable, Sendable {
         id = try container.decode(ExerciseEquipmentID.self, forKey: .id)
         displayName = try container.decode(String.self, forKey: .displayName)
         aliases = try container.decodeIfPresent([String].self, forKey: .aliases) ?? []
-        category = try container.decode(EquipmentCategory.self, forKey: .category)
+        category = try container.decode(ExerciseEquipmentCategory.self, forKey: .category)
         parentID = try container.decodeIfPresent(ExerciseEquipmentID.self, forKey: .parentID)
         fulfills = try container.decodeIfPresent([EquipmentFulfillment].self, forKey: .fulfills) ?? []
         lifecycle = try container.decode(EquipmentLifecycle.self, forKey: .lifecycle)
@@ -201,6 +201,8 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
         let orderedDefinitions = equipment.sorted { $0.id.rawValue < $1.id.rawValue }
         var errors: [EquipmentTaxonomyValidationError] = []
 
+        errors.append(contentsOf: duplicateEquipmentIDErrors())
+
         for definition in orderedDefinitions {
             guard let parentID = definition.parentID, definitionsByID[parentID] == nil else {
                 continue
@@ -221,10 +223,32 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
             }
         }
 
+        for definition in orderedDefinitions {
+            for fulfillment in definition.fulfills.sorted(by: fulfillmentOrder) where fulfillment.quantityPerUnit <= 0 {
+                errors.append(
+                    .nonpositiveFulfillmentMultiplier(
+                        equipmentID: definition.id,
+                        targetID: fulfillment.id,
+                        quantityPerUnit: fulfillment.quantityPerUnit
+                    )
+                )
+            }
+            errors.append(contentsOf: duplicateFulfillmentTargetErrors(in: definition))
+        }
+
         if let requirements {
+            errors.append(contentsOf: nonpositiveRequirementQuantityErrors(in: requirements))
             errors.append(contentsOf: noneCombinationErrors(in: requirements))
         }
         return errors
+    }
+
+    private func duplicateEquipmentIDErrors() -> [EquipmentTaxonomyValidationError] {
+        Dictionary(grouping: equipment, by: \.id)
+            .filter { $0.value.count > 1 }
+            .map(\.key)
+            .sorted { $0.rawValue < $1.rawValue }
+            .map { .duplicateEquipmentID(equipmentID: $0) }
     }
 
     private func parentCycleErrors(
@@ -275,7 +299,9 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
             (.alternative(index: $0.offset), $0.element)
         })
 
-        return groups.compactMap { group, clauses in
+        return groups.compactMap { entry in
+            let group = entry.0
+            let clauses = entry.1
             guard clauses.count > 1, clauses.contains(where: { $0.id.rawValue == "none" }) else {
                 return nil
             }
@@ -284,6 +310,47 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
                 clauseIDs: clauses.map(\.id).sorted { $0.rawValue < $1.rawValue }
             )
         }
+    }
+
+    private func nonpositiveRequirementQuantityErrors(
+        in requirements: ExerciseEquipmentRequirements
+    ) -> [EquipmentTaxonomyValidationError] {
+        var groups: [(ExerciseEquipmentRequirementGroup, [ExerciseEquipmentClause])] = [
+            (.required, requirements.required)
+        ]
+        groups.append(contentsOf: requirements.alternatives.enumerated().map {
+            (.alternative(index: $0.offset), $0.element)
+        })
+
+        return groups.flatMap { entry in
+            let group = entry.0
+            let clauses = entry.1
+            clauses.compactMap { clause in
+                guard clause.quantity <= 0 else {
+                    return nil
+                }
+                return .nonpositiveRequirementQuantity(
+                    group: group,
+                    equipmentID: clause.id,
+                    quantity: clause.quantity
+                )
+            }
+        }
+    }
+
+    private func duplicateFulfillmentTargetErrors(
+        in definition: EquipmentDefinition
+    ) -> [EquipmentTaxonomyValidationError] {
+        Dictionary(grouping: definition.fulfills, by: \.id)
+            .filter { $0.value.count > 1 }
+            .map(\.key)
+            .sorted { $0.rawValue < $1.rawValue }
+            .map {
+                .duplicateFulfillmentTarget(
+                    equipmentID: definition.id,
+                    targetID: $0
+                )
+            }
     }
 
     private func fulfillmentOrder(
@@ -303,9 +370,21 @@ enum ExerciseEquipmentRequirementGroup: Hashable, Sendable {
 }
 
 enum EquipmentTaxonomyValidationError: Error, Hashable, Sendable {
+    case duplicateEquipmentID(equipmentID: ExerciseEquipmentID)
     case unknownParent(equipmentID: ExerciseEquipmentID, parentID: ExerciseEquipmentID)
     case parentCycle(ids: [ExerciseEquipmentID])
     case unknownFulfillmentTarget(equipmentID: ExerciseEquipmentID, targetID: ExerciseEquipmentID)
+    case nonpositiveFulfillmentMultiplier(
+        equipmentID: ExerciseEquipmentID,
+        targetID: ExerciseEquipmentID,
+        quantityPerUnit: Int
+    )
+    case duplicateFulfillmentTarget(equipmentID: ExerciseEquipmentID, targetID: ExerciseEquipmentID)
+    case nonpositiveRequirementQuantity(
+        group: ExerciseEquipmentRequirementGroup,
+        equipmentID: ExerciseEquipmentID,
+        quantity: Int
+    )
     case noneCombinedWithOtherClauses(
         group: ExerciseEquipmentRequirementGroup,
         clauseIDs: [ExerciseEquipmentID]
