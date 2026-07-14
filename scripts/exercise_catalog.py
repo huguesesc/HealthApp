@@ -23,6 +23,7 @@ from PIL import Image, UnidentifiedImageError
 CATALOG_SCHEMA_VERSION = 1
 AUTHORING_DIRECTORY = Path("Health Assistantv2/ExerciseCatalog/Resources/Authoring")
 GENERATED_DIRECTORY = Path("Health Assistantv2/ExerciseCatalog/Resources/Generated")
+GENERATED_ASSET_DIRECTORY = Path("Health Assistantv2/Assets.xcassets/ExerciseMedia")
 INTAKE_DIRECTORY = Path("exercise-assets-intake")
 IMPORT_MAPPING_FILENAME = "media-import-map.json"
 EXERCISE_ID_PATTERN = re.compile(
@@ -117,6 +118,7 @@ def validate_catalogue(
     root: Path | str,
     strict: bool = False,
     source_pack: Path | str | None = None,
+    include_generated: bool = True,
 ) -> ValidationReport:
     """Validate authoring JSON and any present intake/generated resources without writing."""
     del strict  # Strictness affects the command exit code; checks are always exhaustive.
@@ -134,7 +136,7 @@ def validate_catalogue(
 
     equipment_ids = validate_equipment(equipment, equipment_path, root_path, report)
     capability_ids = validate_environments(environments, environments_path, root_path, report)
-    media_keys = validate_catalog(
+    media_roles = validate_catalog(
         catalog,
         catalog_path,
         root_path,
@@ -142,17 +144,19 @@ def validate_catalogue(
         capability_ids,
         report,
     )
+    approved_rows: dict[str, dict[str, Any]] = {}
     if import_map_path.exists():
-        validate_import_map(
+        approved_rows = validate_import_map(
             load_json(import_map_path, root_path, report),
             import_map_path,
             root_path,
-            media_keys,
+            media_roles,
             Path(source_pack).resolve() if source_pack is not None else None,
             report,
         )
-    validate_generated_media(root_path, media_keys, report)
-    validate_intake_assets(root_path, media_keys, report)
+    if include_generated:
+        validate_generated_media(root_path, media_roles, approved_rows, report)
+    validate_intake_assets(root_path, set(media_roles), report)
     report.finalise()
     return report
 
@@ -220,6 +224,69 @@ def validate_equipment(
                 "Replace the value with an equipment object.",
             )
             continue
+        display_name = entry.get("displayName")
+        if not isinstance(display_name, str) or not display_name.strip():
+            report.add_error(
+                "E_EQUIPMENT_DISPLAY_NAME",
+                file,
+                f"{pointer}/displayName",
+                display_name,
+                "equipment displayName must be a nonblank string",
+                "Provide the user-facing equipment name required by the Swift schema.",
+            )
+        category = entry.get("category")
+        if not is_token(category):
+            report.add_error(
+                "E_EQUIPMENT_CATEGORY",
+                file,
+                f"{pointer}/category",
+                category,
+                "equipment category must be a lowercase token",
+                "Provide the equipment category required by the Swift schema.",
+            )
+        aliases = entry.get("aliases", [])
+        if not isinstance(aliases, list):
+            report.add_error(
+                "E_EQUIPMENT_ALIAS_LIST",
+                file,
+                f"{pointer}/aliases",
+                aliases,
+                "equipment aliases must be an array when present",
+                "Use an array of nonblank aliases or omit aliases.",
+            )
+        else:
+            for alias_index, alias in enumerate(aliases):
+                if not isinstance(alias, str) or not alias.strip():
+                    report.add_error(
+                        "E_EQUIPMENT_ALIAS",
+                        file,
+                        f"{pointer}/aliases/{alias_index}",
+                        alias,
+                        "equipment aliases must be nonblank strings",
+                        "Remove the invalid alias or provide a nonblank string.",
+                    )
+        fulfillments = entry.get("fulfills", [])
+        if not isinstance(fulfillments, list):
+            report.add_error(
+                "E_EQUIPMENT_FULFILLMENT_LIST",
+                file,
+                f"{pointer}/fulfills",
+                fulfillments,
+                "equipment fulfills must be an array when present",
+                "Use an array of fulfillment objects or omit fulfills.",
+            )
+        lifecycle = entry.get("lifecycle")
+        lifecycle_status = lifecycle.get("status") if isinstance(lifecycle, dict) else None
+        if not isinstance(lifecycle_status, str) or lifecycle_status not in LIFECYCLE_STATUSES:
+            status = lifecycle.get("status") if isinstance(lifecycle, dict) else lifecycle
+            report.add_error(
+                "E_EQUIPMENT_LIFECYCLE",
+                file,
+                f"{pointer}/lifecycle/status",
+                status,
+                "equipment lifecycle status must be active, deprecated, or disabled",
+                "Provide the lifecycle object required by the Swift schema.",
+            )
         equipment_id = entry.get("id")
         if not is_token(equipment_id):
             report.add_error(
@@ -252,7 +319,9 @@ def validate_equipment(
         pointer = f"/equipment/{index}"
         equipment_id = entry["id"]
         parent_id = entry.get("parentID")
-        if parent_id is not None and parent_id not in ids:
+        if parent_id is not None and (
+            not isinstance(parent_id, str) or parent_id not in ids
+        ):
             report.add_error(
                 "E_EQUIPMENT_PARENT_UNKNOWN",
                 file,
@@ -264,7 +333,10 @@ def validate_equipment(
         elif isinstance(parent_id, str):
             parent_edges[equipment_id] = parent_id
         fulfillment_targets: set[str] = set()
-        for fulfillment_index, fulfillment in enumerate(entry.get("fulfills", [])):
+        fulfillments = entry.get("fulfills", [])
+        if not isinstance(fulfillments, list):
+            fulfillments = []
+        for fulfillment_index, fulfillment in enumerate(fulfillments):
             fulfillment_pointer = f"{pointer}/fulfills/{fulfillment_index}"
             if not isinstance(fulfillment, dict):
                 report.add_error(
@@ -289,7 +361,7 @@ def validate_equipment(
                 )
             if isinstance(target, str):
                 fulfillment_targets.add(target)
-            if target not in ids:
+            if not isinstance(target, str) or target not in ids:
                 report.add_error(
                     "E_EQUIPMENT_FULFILLMENT_UNKNOWN",
                     file,
@@ -355,6 +427,49 @@ def validate_environments(
                 "Replace the value with an environment object.",
             )
             continue
+        display_name = entry.get("displayName")
+        if not isinstance(display_name, str) or not display_name.strip():
+            report.add_error(
+                "E_ENVIRONMENT_DISPLAY_NAME",
+                file,
+                f"{pointer}/displayName",
+                display_name,
+                "environment displayName must be a nonblank string",
+                "Provide the user-facing environment name required by the Swift schema.",
+            )
+        ranking_tags = entry.get("rankingTags")
+        if not isinstance(ranking_tags, list):
+            report.add_error(
+                "E_ENVIRONMENT_RANKING_TAG_LIST",
+                file,
+                f"{pointer}/rankingTags",
+                ranking_tags,
+                "environment rankingTags must be an array",
+                "Provide the ranking-tag array required by the Swift schema.",
+            )
+        else:
+            for tag_index, tag in enumerate(ranking_tags):
+                if not is_token(tag):
+                    report.add_error(
+                        "E_ENVIRONMENT_RANKING_TAG",
+                        file,
+                        f"{pointer}/rankingTags/{tag_index}",
+                        tag,
+                        "environment ranking tags must be lowercase tokens",
+                        "Use a lowercase ranking tag with optional underscores.",
+                    )
+        lifecycle = entry.get("lifecycle")
+        lifecycle_status = lifecycle.get("status") if isinstance(lifecycle, dict) else None
+        if not isinstance(lifecycle_status, str) or lifecycle_status not in LIFECYCLE_STATUSES:
+            status = lifecycle.get("status") if isinstance(lifecycle, dict) else lifecycle
+            report.add_error(
+                "E_ENVIRONMENT_LIFECYCLE",
+                file,
+                f"{pointer}/lifecycle/status",
+                status,
+                "environment lifecycle status must be active, deprecated, or disabled",
+                "Provide the lifecycle object required by the Swift schema.",
+            )
         environment_id = entry.get("id")
         if not is_token(environment_id):
             report.add_error(
@@ -411,10 +526,10 @@ def validate_catalog(
     equipment_ids: set[str],
     capability_ids: set[str],
     report: ValidationReport,
-) -> set[str]:
+) -> dict[str, str]:
     file = relative_path(root, path)
     if not isinstance(data, dict):
-        return set()
+        return {}
     validate_schema_version(
         data.get("catalogSchemaVersion"),
         file,
@@ -432,7 +547,7 @@ def validate_catalog(
             "exercises must be an array",
             "Provide an array of exercise records.",
         )
-        return set()
+        return {}
 
     report.exercise_count = len(exercises)
     exercise_ids: set[str] = set()
@@ -479,6 +594,7 @@ def validate_catalog(
     normalized_claims: dict[str, set[str]] = defaultdict(set)
     legacy_claims: dict[str, set[str]] = defaultdict(set)
     media_claims: dict[str, list[str]] = defaultdict(list)
+    media_roles: dict[str, str] = {}
     replacement_edges: dict[str, str] = {}
 
     for index, exercise in enumerate(exercises):
@@ -503,23 +619,26 @@ def validate_catalog(
             capability_ids,
             report,
         )
-        validate_media(
-            exercise.get("media"),
-            exercise_id,
-            file,
-            f"{pointer}/media",
-            media_claims,
-            report,
-        )
+        if "media" in exercise:
+            validate_media(
+                exercise.get("media"),
+                exercise_id,
+                file,
+                f"{pointer}/media",
+                media_claims,
+                media_roles,
+                report,
+            )
 
-        for claim in [exercise.get("displayName")] + list(exercise.get("aliases", [])):
+        aliases = exercise.get("aliases", [])
+        if not isinstance(aliases, list):
+            aliases = []
+        for claim in [exercise.get("displayName")] + aliases:
             normalized = normalized_reference(claim)
             if normalized:
                 normalized_claims[normalized].add(exercise_id)
 
         legacy_ids = exercise.get("legacyIDs", [])
-        if legacy_ids is None:
-            legacy_ids = []
         if not isinstance(legacy_ids, list):
             report.add_error(
                 "E_LEGACY_ID_LIST",
@@ -556,7 +675,7 @@ def validate_catalog(
         lifecycle = exercise.get("lifecycle")
         if isinstance(lifecycle, dict):
             replacement = lifecycle.get("replacementExerciseID")
-            if replacement is not None:
+            if is_exercise_id(replacement):
                 replacement_edges[exercise_id] = replacement
 
     for normalized, owners in sorted(normalized_claims.items()):
@@ -591,7 +710,7 @@ def validate_catalog(
             )
 
     validate_replacements(replacement_edges, exercise_by_id, file, report)
-    return set(media_claims)
+    return media_roles
 
 
 def validate_exercise_fields(
@@ -600,12 +719,17 @@ def validate_exercise_fields(
     pointer: str,
     report: ValidationReport,
 ) -> None:
-    if exercise.get("schemaVersion") != 1:
+    schema_version = exercise.get("schemaVersion")
+    if (
+        not isinstance(schema_version, int)
+        or isinstance(schema_version, bool)
+        or schema_version != CATALOG_SCHEMA_VERSION
+    ):
         report.add_error(
             "E_EXERCISE_SCHEMA_VERSION",
             file,
             f"{pointer}/schemaVersion",
-            exercise.get("schemaVersion"),
+            schema_version,
             "exercise schemaVersion must be 1",
             "Use schemaVersion 1 until a documented migration is added.",
         )
@@ -644,8 +768,6 @@ def validate_exercise_fields(
                 )
 
     aliases = exercise.get("aliases", [])
-    if aliases is None:
-        aliases = []
     if not isinstance(aliases, list):
         report.add_error(
             "E_ALIAS_LIST",
@@ -667,8 +789,32 @@ def validate_exercise_fields(
                     "Remove the blank alias or provide a distinct name.",
                 )
 
+    if "guidance" in exercise:
+        guidance = exercise.get("guidance")
+        if not isinstance(guidance, list):
+            report.add_error(
+                "E_GUIDANCE_LIST",
+                file,
+                f"{pointer}/guidance",
+                guidance,
+                "guidance must be an array when present",
+                "Use an array of nonblank guidance strings or omit guidance.",
+            )
+        else:
+            for guidance_index, item in enumerate(guidance):
+                if not isinstance(item, str) or not item.strip():
+                    report.add_error(
+                        "E_GUIDANCE_BLANK",
+                        file,
+                        f"{pointer}/guidance/{guidance_index}",
+                        item,
+                        "guidance entries must be nonblank strings",
+                        "Remove the invalid guidance entry or provide written guidance.",
+                    )
+
     lifecycle = exercise.get("lifecycle")
-    if not isinstance(lifecycle, dict) or lifecycle.get("status") not in LIFECYCLE_STATUSES:
+    lifecycle_status = lifecycle.get("status") if isinstance(lifecycle, dict) else None
+    if not isinstance(lifecycle_status, str) or lifecycle_status not in LIFECYCLE_STATUSES:
         status = lifecycle.get("status") if isinstance(lifecycle, dict) else lifecycle
         report.add_error(
             "E_LIFECYCLE_STATUS",
@@ -678,6 +824,17 @@ def validate_exercise_fields(
             "lifecycle status must be active, deprecated, or disabled",
             "Choose one controlled lifecycle status.",
         )
+    if isinstance(lifecycle, dict):
+        replacement = lifecycle.get("replacementExerciseID")
+        if replacement is not None and not is_exercise_id(replacement):
+            report.add_error(
+                "E_REPLACEMENT_ID",
+                file,
+                f"{pointer}/lifecycle/replacementExerciseID",
+                replacement,
+                "replacementExerciseID must use the stable lowercase dot-ID format",
+                "Correct the replacement ID or remove the replacement link.",
+            )
 
 
 def validate_equipment_requirements(
@@ -752,7 +909,7 @@ def validate_equipment_group(
             continue
         equipment_id = clause.get("id")
         quantity = clause.get("quantity")
-        if equipment_id not in equipment_ids:
+        if not isinstance(equipment_id, str) or equipment_id not in equipment_ids:
             report.add_error(
                 "E_EQUIPMENT_UNKNOWN",
                 file,
@@ -833,9 +990,10 @@ def validate_environment_requirements(
             "Use an array of known capability IDs.",
         )
         prohibited = []
+    valid_capabilities: dict[str, set[str]] = {"required": set(), "prohibited": set()}
     for key, values in (("required", required), ("prohibited", prohibited)):
         for index, capability in enumerate(values):
-            if capability not in capability_ids:
+            if not is_token(capability) or capability not in capability_ids:
                 report.add_error(
                     "E_CAPABILITY_UNKNOWN",
                     file,
@@ -844,7 +1002,12 @@ def validate_environment_requirements(
                     "capability IDs must exist in environments.json",
                     "Add the capability to an approved environment or correct the ID.",
                 )
-    for capability in sorted(set(required).intersection(prohibited)):
+                continue
+            valid_capabilities[key].add(capability)
+    contradictions = valid_capabilities["required"].intersection(
+        valid_capabilities["prohibited"]
+    )
+    for capability in sorted(contradictions):
         report.add_error(
             "E_CAPABILITY_CONTRADICTION",
             file,
@@ -861,9 +1024,18 @@ def validate_media(
     file: str,
     pointer: str,
     media_claims: dict[str, list[str]],
+    media_roles: dict[str, str],
     report: ValidationReport,
 ) -> None:
     if media is None:
+        report.add_error(
+            "E_MEDIA_LIST",
+            file,
+            pointer,
+            media,
+            "media must be an array when present",
+            "Use an array of media records or omit media entirely.",
+        )
         return
     if not isinstance(media, list):
         report.add_error(
@@ -925,7 +1097,7 @@ def validate_media(
                 )
             local_keys.add(key)
             media_claims[key].append(item_pointer)
-        if role not in MEDIA_ROLES:
+        if not isinstance(role, str) or role not in MEDIA_ROLES:
             report.add_error(
                 "E_MEDIA_ROLE",
                 file,
@@ -934,6 +1106,12 @@ def validate_media(
                 "media roles must use the controlled media role vocabulary",
                 "Use thumbnail, setup, start, mid, end, alternate, mistake, correct, or composite.",
             )
+        elif (
+            isinstance(key, str)
+            and MEDIA_KEY_PATTERN.fullmatch(key) is not None
+            and key.startswith(f"{exercise_id}__")
+        ):
+            media_roles.setdefault(key, role)
         if not isinstance(description, str) or not description.strip():
             report.add_error(
                 "E_MEDIA_ACCESSIBILITY",
@@ -1042,7 +1220,7 @@ def validate_replacements(
             )
             continue
         lifecycle = exercise_by_id[replacement_id].get("lifecycle", {})
-        if lifecycle.get("status") == "disabled":
+        if isinstance(lifecycle, dict) and lifecycle.get("status") == "disabled":
             report.add_error(
                 "E_REPLACEMENT_DISABLED",
                 file,
@@ -1086,13 +1264,21 @@ def validate_import_map(
     data: Any,
     path: Path,
     root: Path,
-    media_keys: set[str],
+    media_roles: dict[str, str],
     source_pack: Path | None,
     report: ValidationReport,
-) -> None:
+) -> dict[str, dict[str, Any]]:
     file = relative_path(root, path)
     if not isinstance(data, dict):
-        return
+        report.add_error(
+            "E_IMPORT_MAP_OBJECT",
+            file,
+            "",
+            data,
+            "media-import-map.json must contain a top-level object",
+            "Replace the top-level value with the documented import-map object.",
+        )
+        return {}
     validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
     images = data.get("images")
     if not isinstance(images, list):
@@ -1104,7 +1290,7 @@ def validate_import_map(
             "media-import-map.json must contain an images array",
             "Provide one explicit image-mapping object for every workout source image.",
         )
-        return
+        return {}
 
     source_pack_metadata = data.get("sourcePack")
     mapped_directory: str | None = None
@@ -1118,6 +1304,22 @@ def validate_import_map(
             "Record the source-pack mappedDirectory and mappedImageCount.",
         )
     else:
+        directory_name = source_pack_metadata.get("directoryName")
+        if (
+            not isinstance(directory_name, str)
+            or not directory_name.strip()
+            or "/" in directory_name
+            or "\\" in directory_name
+            or directory_name in {".", ".."}
+        ):
+            report.add_error(
+                "E_IMPORT_SOURCE_PACK_NAME",
+                file,
+                "/sourcePack/directoryName",
+                directory_name,
+                "directoryName must be a nonblank source-pack directory name",
+                "Record the source pack's directory name without path separators.",
+            )
         candidate_directory = source_pack_metadata.get("mappedDirectory")
         if not safe_source_relative_path(candidate_directory):
             report.add_error(
@@ -1130,19 +1332,53 @@ def validate_import_map(
             )
         else:
             mapped_directory = candidate_directory
-        if source_pack_metadata.get("mappedImageCount") != len(images):
+        verified_file_count = source_pack_metadata.get("verifiedFileCount")
+        if not nonnegative_integer(verified_file_count):
+            report.add_error(
+                "E_IMPORT_SOURCE_FILE_COUNT",
+                file,
+                "/sourcePack/verifiedFileCount",
+                verified_file_count,
+                "verifiedFileCount must be a nonnegative integer",
+                "Record the verified source-pack file count as an integer.",
+            )
+        mapped_image_count = source_pack_metadata.get("mappedImageCount")
+        if not nonnegative_integer(mapped_image_count):
+            report.add_error(
+                "E_IMPORT_SOURCE_COUNT_TYPE",
+                file,
+                "/sourcePack/mappedImageCount",
+                mapped_image_count,
+                "mappedImageCount must be a nonnegative integer",
+                "Record the number of explicit image rows as an integer.",
+            )
+        elif mapped_image_count != len(images):
             report.add_error(
                 "E_IMPORT_SOURCE_COUNT",
                 file,
                 "/sourcePack/mappedImageCount",
-                source_pack_metadata.get("mappedImageCount"),
+                mapped_image_count,
                 "mappedImageCount must equal the number of explicit image rows",
                 "Update the count after adding or removing an image decision.",
+            )
+        source_pack_checksum = source_pack_metadata.get("verifiedZipSHA256")
+        if (
+            not isinstance(source_pack_checksum, str)
+            or SHA256_PATTERN.fullmatch(source_pack_checksum) is None
+        ):
+            report.add_error(
+                "E_IMPORT_SOURCE_PACK_CHECKSUM",
+                file,
+                "/sourcePack/verifiedZipSHA256",
+                source_pack_checksum,
+                "verifiedZipSHA256 must be a lowercase 64-character SHA-256 digest",
+                "Record the verified source ZIP checksum without opening or changing it.",
             )
 
     claimed_sources: dict[str, str] = {}
     claimed_keys: dict[str, str] = {}
     approved_media_keys: set[str] = set()
+    approved_rows: dict[str, dict[str, Any]] = {}
     for index, image in enumerate(images):
         pointer = f"/images/{index}"
         if not isinstance(image, dict):
@@ -1163,8 +1399,9 @@ def validate_import_map(
         media_key = image.get("canonicalMediaKey")
         filename = image.get("canonicalFileName")
         role = image.get("role")
+        approval_reference = image.get("approvalReference")
 
-        if status not in IMPORT_STATUSES:
+        if not isinstance(status, str) or status not in IMPORT_STATUSES:
             report.add_error(
                 "E_IMPORT_MAP_STATUS",
                 file,
@@ -1173,6 +1410,20 @@ def validate_import_map(
                 "status must be an explicit supported import decision",
                 "Use approved_for_import, approved_pending_catalogue_entry, "
                 "unreviewed, or quarantined.",
+            )
+        if isinstance(status, str) and status in {
+            "approved_for_import",
+            "approved_pending_catalogue_entry",
+        } and (
+            not isinstance(approval_reference, str) or not approval_reference.strip()
+        ):
+            report.add_error(
+                "E_IMPORT_APPROVAL_REFERENCE",
+                file,
+                f"{pointer}/approvalReference",
+                approval_reference,
+                "approved import decisions require a nonblank approvalReference",
+                "Record the accountable approval decision before importing this row.",
             )
         if not safe_source_relative_path(source_path):
             report.add_error(
@@ -1193,6 +1444,15 @@ def validate_import_map(
                 source_path,
                 "sourcePath must be inside the declared mappedDirectory",
                 "Map only source images from the declared exercise-media directory.",
+            )
+        if safe_source_relative_path(source_path) and Path(source_path).suffix.lower() != ".png":
+            report.add_error(
+                "E_IMPORT_SOURCE_EXTENSION",
+                file,
+                f"{pointer}/sourcePath",
+                source_path,
+                "mapped exercise-media sources must use a .png extension",
+                "Point the row at the reviewed PNG source file.",
             )
         if (
             not isinstance(source_checksum, str)
@@ -1251,7 +1511,7 @@ def validate_import_map(
                 "canonicalFileName must equal canonicalMediaKey plus .png",
                 "Rename the generated filename to match the canonical media key.",
             )
-        if role not in MEDIA_ROLES:
+        if not isinstance(role, str) or role not in MEDIA_ROLES:
             report.add_error(
                 "E_IMPORT_ROLE",
                 file,
@@ -1260,6 +1520,17 @@ def validate_import_map(
                 "role must use the controlled media role vocabulary",
                 "Use a supported role such as composite or setup.",
             )
+        elif isinstance(media_key, str) and media_key in media_roles:
+            manifest_role = media_roles[media_key]
+            if role != manifest_role:
+                report.add_error(
+                    "E_IMPORT_ROLE_MANIFEST_MISMATCH",
+                    file,
+                    f"{pointer}/role",
+                    role,
+                    "import-map role must match the manifest media role",
+                    f"Use role {manifest_role!r} for {media_key}.",
+                )
 
         if isinstance(source_path, str):
             previous_pointer = claimed_sources.get(source_path)
@@ -1289,7 +1560,9 @@ def validate_import_map(
             else:
                 claimed_keys[media_key] = pointer
 
-        if status == "approved_for_import" and media_key not in media_keys:
+        if status == "approved_for_import" and (
+            not isinstance(media_key, str) or media_key not in media_roles
+        ):
             report.add_error(
                 "E_IMPORT_MAP_KEY_UNKNOWN",
                 file,
@@ -1301,6 +1574,7 @@ def validate_import_map(
             )
         if status == "approved_for_import" and isinstance(media_key, str):
             approved_media_keys.add(media_key)
+            approved_rows.setdefault(media_key, image)
 
         if source_pack is not None and safe_source_relative_path(source_path):
             source_file = (source_pack / source_path).resolve()
@@ -1322,8 +1596,22 @@ def validate_import_map(
                     "every mapped source image must exist in the supplied source pack",
                     "Restore the approved source image or correct sourcePath.",
                 )
-            elif isinstance(source_checksum, str) and SHA256_PATTERN.fullmatch(source_checksum):
-                if sha256(source_file) != source_checksum:
+            else:
+                validate_png_readable(
+                    source_file,
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "E_IMPORT_SOURCE_PNG",
+                    "mapped source files must contain readable PNG image data",
+                    "Replace the source with the reviewed PNG export.",
+                    report,
+                )
+                if (
+                    isinstance(source_checksum, str)
+                    and SHA256_PATTERN.fullmatch(source_checksum)
+                    and sha256(source_file) != source_checksum
+                ):
                     report.add_error(
                         "E_IMPORT_SOURCE_CHECKSUM",
                         file,
@@ -1361,7 +1649,7 @@ def validate_import_map(
                     "Add an approved, pending, unreviewed, or quarantined image row.",
                 )
 
-    for unmapped_media_key in sorted(media_keys - approved_media_keys):
+    for unmapped_media_key in sorted(set(media_roles) - approved_media_keys):
         report.add_error(
             "E_IMPORT_MAP_MANIFEST_MEDIA_UNMAPPED",
             file,
@@ -1370,16 +1658,53 @@ def validate_import_map(
             "every current manifest media key requires an approved import row",
             "Add an approved_for_import row with a reviewed source checksum.",
         )
+    return approved_rows
 
 
-def validate_generated_media(root: Path, media_keys: set[str], report: ValidationReport) -> None:
+def validate_generated_media(
+    root: Path,
+    media_roles: dict[str, str],
+    approved_rows: dict[str, dict[str, Any]],
+    report: ValidationReport,
+) -> None:
     index_path = root / GENERATED_DIRECTORY / "media-index.json"
-    if not index_path.exists():
+    namespace = root / GENERATED_ASSET_DIRECTORY
+    generated_required = bool(approved_rows)
+    if not namespace.is_dir() and (generated_required or index_path.exists()):
+        report.add_error(
+            "E_MEDIA_NAMESPACE_MISSING",
+            relative_path(root, namespace),
+            "",
+            namespace.name,
+            "approved generated media requires the ExerciseMedia asset namespace",
+            "Run import --apply to regenerate the complete ExerciseMedia namespace.",
+        )
+    if not index_path.is_file():
+        if generated_required:
+            report.add_error(
+                "E_MEDIA_INDEX_FILE_MISSING",
+                relative_path(root, index_path),
+                "",
+                index_path.name,
+                "approved generated media requires media-index.json",
+                "Run import --apply to regenerate the media index.",
+            )
         return
+
+    file = relative_path(root, index_path)
     data = load_json(index_path, root, report)
     if not isinstance(data, dict):
+        if data is not None:
+            report.add_error(
+                "E_MEDIA_INDEX_OBJECT",
+                file,
+                "",
+                data,
+                "generated media index must contain a top-level object",
+                "Regenerate media-index.json with the importer.",
+            )
         return
-    file = relative_path(root, index_path)
+    validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
     entries = data.get("media")
     if not isinstance(entries, list):
         report.add_error(
@@ -1391,7 +1716,36 @@ def validate_generated_media(root: Path, media_keys: set[str], report: Validatio
             "Regenerate media-index.json with the importer.",
         )
         return
+
+    if namespace.is_dir():
+        validate_generated_namespace_contents(namespace, root, report)
+        actual_assets = {
+            child.name[: -len(".imageset")]
+            for child in namespace.iterdir()
+            if child.is_dir() and child.name.endswith(".imageset")
+        }
+        expected_assets = set(media_roles)
+        for asset_name in sorted(expected_assets - actual_assets):
+            report.add_error(
+                "E_MEDIA_IMAGESET_MISSING",
+                relative_path(root, namespace),
+                "",
+                asset_name,
+                "every manifest media key requires one generated imageset",
+                "Run import --apply to regenerate the missing imageset.",
+            )
+        for asset_name in sorted(actual_assets - expected_assets):
+            report.add_error(
+                "E_MEDIA_IMAGESET_EXTRA",
+                relative_path(root, namespace),
+                "",
+                asset_name,
+                "generated imagesets must have an exact manifest-key match",
+                "Run import --apply to remove the extra imageset.",
+            )
+
     indexed_keys: set[str] = set()
+    indexed_assets: set[str] = set()
     for index, entry in enumerate(entries):
         pointer = f"/media/{index}"
         if not isinstance(entry, dict):
@@ -1406,19 +1760,152 @@ def validate_generated_media(root: Path, media_keys: set[str], report: Validatio
             continue
         key = entry.get("key")
         asset_name = entry.get("assetName")
-        if not isinstance(key, str) or not isinstance(asset_name, str):
+        filename = entry.get("filename")
+        role = entry.get("role")
+        source_path = entry.get("sourcePath")
+        source_checksum = entry.get("sourceSHA256")
+        if not all(
+            isinstance(value, str)
+            for value in (key, asset_name, filename, role, source_path, source_checksum)
+        ):
             report.add_error(
                 "E_MEDIA_INDEX_FIELDS",
                 file,
                 pointer,
                 entry,
-                "media index entries need string key and assetName fields",
+                "media index entries require string key, asset, file, role, and source fields",
                 "Regenerate the media index with complete mapping fields.",
             )
             continue
+        key_is_canonical = MEDIA_KEY_PATTERN.fullmatch(key) is not None
+        if not key_is_canonical:
+            report.add_error(
+                "E_MEDIA_INDEX_KEY",
+                file,
+                f"{pointer}/key",
+                key,
+                "generated media keys must use the canonical media-key format",
+                "Regenerate the media index from the approved import map.",
+            )
+        if key in indexed_keys:
+            report.add_error(
+                "E_MEDIA_INDEX_KEY_DUPLICATE",
+                file,
+                f"{pointer}/key",
+                key,
+                "generated media index keys must be unique",
+                "Regenerate the media index from unique approved map rows.",
+            )
         indexed_keys.add(key)
-        image_set = root / "Health Assistantv2" / "Assets.xcassets" / "ExerciseMedia"
-        image_set = image_set / f"{asset_name}.imageset"
+        if asset_name in indexed_assets:
+            report.add_error(
+                "E_MEDIA_INDEX_ASSET_DUPLICATE",
+                file,
+                f"{pointer}/assetName",
+                asset_name,
+                "generated asset names must be unique",
+                "Regenerate the media index from unique approved map rows.",
+            )
+        indexed_assets.add(asset_name)
+        if asset_name != key:
+            report.add_error(
+                "E_MEDIA_INDEX_ASSET_NAME",
+                file,
+                f"{pointer}/assetName",
+                asset_name,
+                "assetName must equal the canonical media key",
+                f"Use assetName {key!r}.",
+            )
+        filename_is_canonical = valid_asset_name(filename) and filename == f"{key}.png"
+        if not filename_is_canonical:
+            report.add_error(
+                "E_MEDIA_INDEX_FILENAME",
+                file,
+                f"{pointer}/filename",
+                filename,
+                "generated filename must equal the canonical media key plus .png",
+                f"Use filename {key}.png.",
+            )
+        if role not in MEDIA_ROLES:
+            report.add_error(
+                "E_MEDIA_INDEX_ROLE",
+                file,
+                f"{pointer}/role",
+                role,
+                "generated media role must use the controlled role vocabulary",
+                "Regenerate the media index from the approved import map.",
+            )
+        manifest_role = media_roles.get(key)
+        if manifest_role is not None and role != manifest_role:
+            report.add_error(
+                "E_MEDIA_INDEX_ROLE_MISMATCH",
+                file,
+                f"{pointer}/role",
+                role,
+                "generated role must match the manifest and approved import map",
+                f"Use role {manifest_role!r} for {key}.",
+            )
+        if not safe_source_relative_path(source_path):
+            report.add_error(
+                "E_MEDIA_INDEX_SOURCE_PATH",
+                file,
+                f"{pointer}/sourcePath",
+                source_path,
+                "generated sourcePath must be a safe source-pack-relative path",
+                "Regenerate the media index from the approved import map.",
+            )
+        if SHA256_PATTERN.fullmatch(source_checksum) is None:
+            report.add_error(
+                "E_MEDIA_INDEX_CHECKSUM_FORMAT",
+                file,
+                f"{pointer}/sourceSHA256",
+                source_checksum,
+                "generated sourceSHA256 must be a lowercase SHA-256 digest",
+                "Regenerate the media index from the approved import map.",
+            )
+
+        approved_row = approved_rows.get(key)
+        if approved_row is not None:
+            if role != approved_row.get("role"):
+                report.add_error(
+                    "E_MEDIA_INDEX_ROLE_MISMATCH",
+                    file,
+                    f"{pointer}/role",
+                    role,
+                    "generated role must match the approved import-map row",
+                    "Regenerate generated media from the current approved map.",
+                )
+            if source_path != approved_row.get("sourcePath"):
+                report.add_error(
+                    "E_MEDIA_INDEX_SOURCE_MISMATCH",
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "generated sourcePath must match the approved import-map row",
+                    "Regenerate generated media from the current approved map.",
+                )
+            if source_checksum != approved_row.get("sourceSHA256"):
+                report.add_error(
+                    "E_MEDIA_INDEX_CHECKSUM_MISMATCH",
+                    file,
+                    f"{pointer}/sourceSHA256",
+                    source_checksum,
+                    "generated checksum provenance must match the approved import-map row",
+                    "Regenerate generated media from the current approved map.",
+                )
+            if filename != approved_row.get("canonicalFileName"):
+                report.add_error(
+                    "E_MEDIA_INDEX_FILENAME_MISMATCH",
+                    file,
+                    f"{pointer}/filename",
+                    filename,
+                    "generated filename must match the approved import-map row",
+                    "Regenerate generated media from the current approved map.",
+                )
+
+        if not namespace.is_dir() or not key_is_canonical or asset_name != key:
+            continue
+        image_set = namespace / f"{asset_name}.imageset"
         if not image_set.is_dir():
             report.add_error(
                 "E_MEDIA_ASSET_MISSING",
@@ -1426,9 +1913,44 @@ def validate_generated_media(root: Path, media_keys: set[str], report: Validatio
                 pointer,
                 asset_name,
                 "media index entries must resolve to generated imagesets",
-                "Run the approved importer or correct assetName.",
+                "Run import --apply to regenerate the imageset.",
             )
-    for key in sorted(media_keys - indexed_keys):
+            continue
+        if not filename_is_canonical:
+            continue
+        validate_generated_imageset_contents(image_set, filename, root, report)
+        png_path = image_set / filename
+        if not png_path.is_file():
+            report.add_error(
+                "E_MEDIA_PNG_MISSING",
+                relative_path(root, image_set),
+                "",
+                filename,
+                "Contents.json and the media index must reference an existing PNG",
+                "Run import --apply to restore the canonical PNG.",
+            )
+            continue
+        validate_png_readable(
+            png_path,
+            file,
+            f"{pointer}/filename",
+            filename,
+            "E_MEDIA_PNG_INVALID",
+            "generated media files must contain readable PNG image data",
+            "Run import --apply from the reviewed source pack.",
+            report,
+        )
+        if SHA256_PATTERN.fullmatch(source_checksum) and sha256(png_path) != source_checksum:
+            report.add_error(
+                "E_MEDIA_PNG_CHECKSUM",
+                file,
+                f"{pointer}/sourceSHA256",
+                source_checksum,
+                "generated PNG bytes must match their approved source checksum",
+                "Run import --apply from the unchanged reviewed source pack.",
+            )
+
+    for key in sorted(set(media_roles) - indexed_keys):
         report.add_error(
             "E_MEDIA_INDEX_MISSING",
             file,
@@ -1437,7 +1959,7 @@ def validate_generated_media(root: Path, media_keys: set[str], report: Validatio
             "every manifest media key must exist in the generated media index",
             "Run the importer after approving an import-map entry.",
         )
-    for key in sorted(indexed_keys - media_keys):
+    for key in sorted(indexed_keys - set(media_roles)):
         report.add_error(
             "E_MEDIA_INDEX_ORPHAN",
             file,
@@ -1445,6 +1967,86 @@ def validate_generated_media(root: Path, media_keys: set[str], report: Validatio
             key,
             "generated media keys must be referenced by the manifest",
             "Remove the orphan via the importer or add an approved manifest reference.",
+        )
+
+
+def validate_generated_namespace_contents(
+    namespace: Path,
+    root: Path,
+    report: ValidationReport,
+) -> None:
+    contents_path = namespace / "Contents.json"
+    if not contents_path.is_file():
+        report.add_error(
+            "E_MEDIA_NAMESPACE_CONTENTS_MISSING",
+            relative_path(root, namespace),
+            "",
+            contents_path.name,
+            "the generated ExerciseMedia namespace requires Contents.json",
+            "Run import --apply to regenerate the asset namespace metadata.",
+        )
+        return
+    data = load_json(contents_path, root, report)
+    expected = {"author": "xcode", "version": 1}
+    if not isinstance(data, dict) or data.get("info") != expected:
+        report.add_error(
+            "E_MEDIA_NAMESPACE_CONTENTS",
+            relative_path(root, contents_path),
+            "",
+            data,
+            "ExerciseMedia Contents.json must contain canonical Xcode metadata",
+            "Run import --apply to regenerate the asset namespace metadata.",
+        )
+
+
+def validate_generated_imageset_contents(
+    image_set: Path,
+    expected_filename: str,
+    root: Path,
+    report: ValidationReport,
+) -> None:
+    contents_path = image_set / "Contents.json"
+    if not contents_path.is_file():
+        report.add_error(
+            "E_MEDIA_CONTENTS_MISSING",
+            relative_path(root, image_set),
+            "",
+            contents_path.name,
+            "every generated imageset requires Contents.json",
+            "Run import --apply to regenerate the imageset metadata.",
+        )
+        return
+    data = load_json(contents_path, root, report)
+    if not isinstance(data, dict):
+        if data is not None:
+            report.add_error(
+                "E_MEDIA_CONTENTS_OBJECT",
+                relative_path(root, contents_path),
+                "",
+                data,
+                "imageset Contents.json must contain a top-level object",
+                "Run import --apply to regenerate the imageset metadata.",
+            )
+        return
+    images = data.get("images")
+    expected_images = [{"filename": expected_filename, "idiom": "universal"}]
+    if images != expected_images:
+        report.add_error(
+            "E_MEDIA_CONTENTS_IMAGES",
+            relative_path(root, contents_path),
+            "/images",
+            images,
+            "imageset Contents.json must reference only the canonical universal PNG",
+            "Run import --apply to regenerate the imageset metadata.",
+        )
+    if data.get("info") != {"author": "xcode", "version": 1}:
+        report.add_error(
+            "E_MEDIA_CONTENTS_INFO",
+            relative_path(root, contents_path),
+            "/info",
+            data.get("info"),
+            "imageset Contents.json must contain canonical Xcode metadata",
+            "Run import --apply to regenerate the imageset metadata.",
         )
 
 
@@ -1516,24 +2118,62 @@ def validate_intake_assets(root: Path, media_keys: set[str], report: ValidationR
             )
 
 
-def validate_png(path: Path, root: Path, report: ValidationReport) -> None:
-    file = relative_path(root, path)
+def validate_png_readable(
+    path: Path,
+    file: str,
+    pointer: str,
+    value: Any,
+    code: str,
+    rule: str,
+    fix: str,
+    report: ValidationReport,
+) -> tuple[int, int, str] | None:
     try:
         with Image.open(path) as image:
+            image_format = image.format
             image.verify()
         with Image.open(path) as image:
             width, height = image.size
             mode = image.mode
-    except (OSError, UnidentifiedImageError) as error:
+            image.load()
+    except (OSError, SyntaxError, ValueError, UnidentifiedImageError):
         report.add_error(
-            "E_PNG_INVALID",
+            code,
             file,
-            "",
-            str(error),
-            "intake files with a .png extension must be valid PNG images",
-            "Replace the corrupted file with a valid PNG source.",
+            pointer,
+            value,
+            rule,
+            fix,
         )
+        return None
+    if image_format != "PNG" or width <= 0 or height <= 0 or not mode:
+        report.add_error(
+            code,
+            file,
+            pointer,
+            value,
+            rule,
+            fix,
+        )
+        return None
+    return width, height, mode
+
+
+def validate_png(path: Path, root: Path, report: ValidationReport) -> None:
+    file = relative_path(root, path)
+    metadata = validate_png_readable(
+        path,
+        file,
+        "",
+        path.name,
+        "E_PNG_INVALID",
+        "intake files with a .png extension must be valid PNG images",
+        "Replace the corrupted file with a valid PNG source.",
+        report,
+    )
+    if metadata is None:
         return
+    width, height, mode = metadata
     if width != height or width != 1254:
         report.add_warning(
             "W_PNG_DIMENSIONS",
@@ -1561,7 +2201,11 @@ def validate_schema_version(
     report: ValidationReport,
     key_name: str = "schemaVersion",
 ) -> None:
-    if value != CATALOG_SCHEMA_VERSION:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value != CATALOG_SCHEMA_VERSION
+    ):
         report.add_error(
             "E_SCHEMA_VERSION",
             file,
@@ -1625,6 +2269,10 @@ def positive_integer(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
+def nonnegative_integer(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
 def valid_asset_name(name: Any) -> bool:
     if not isinstance(name, str) or not name.endswith(".png") or name != name.lower():
         return False
@@ -1671,7 +2319,12 @@ def load_validated_import_map(
         print(f"ERROR E_IMPORT_MAP_MISSING {relative_path(root_path, import_map_path)}")
         return None
 
-    report = validate_catalogue(root_path, strict=True, source_pack=source_pack)
+    report = validate_catalogue(
+        root_path,
+        strict=True,
+        source_pack=source_pack,
+        include_generated=False,
+    )
     if report.errors or report.warnings:
         print_report(report)
         return None
@@ -1746,6 +2399,15 @@ def run_import_apply(root: Path | str, source_pack: Path | str) -> int:
     finally:
         if staging_root.exists():
             shutil.rmtree(staging_root)
+
+    post_apply_report = validate_catalogue(
+        root_path,
+        strict=True,
+        source_pack=source_pack_path,
+    )
+    if post_apply_report.errors or post_apply_report.warnings:
+        print_report(post_apply_report)
+        return 1
 
     print(
         "exercise-catalog import applied: "

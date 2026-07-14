@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -170,8 +171,11 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         import_map = {
             "schemaVersion": 1,
             "sourcePack": {
+                "directoryName": "source-pack",
                 "mappedDirectory": "workout_avatar",
+                "verifiedFileCount": 1,
                 "mappedImageCount": 1,
+                "verifiedZipSHA256": "a" * 64,
             },
             "images": [
                 {
@@ -182,6 +186,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
                     "canonicalMediaKey": "bodyweight.squat__composite",
                     "canonicalFileName": "bodyweight.squat__composite.png",
                     "role": "composite",
+                    "approvalReference": "TEST-APPROVAL",
                 }
             ],
         }
@@ -191,6 +196,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             self.root,
             strict=True,
             source_pack=self.source_pack,
+            include_generated=False,
         )
 
         self.assertEqual(valid_report.errors, [])
@@ -206,6 +212,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             self.root,
             strict=True,
             source_pack=self.source_pack,
+            include_generated=False,
         )
 
         self.assertIn("E_IMPORT_MAP_KEY_UNKNOWN", self.error_codes(invalid_report))
@@ -238,8 +245,11 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             {
                 "schemaVersion": 1,
                 "sourcePack": {
+                    "directoryName": "source-pack",
                     "mappedDirectory": "workout_avatar",
+                    "verifiedFileCount": 2,
                     "mappedImageCount": 2,
+                    "verifiedZipSHA256": "a" * 64,
                 },
                 "images": [
                     {
@@ -250,6 +260,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
                         "canonicalMediaKey": "bodyweight.squat__composite",
                         "canonicalFileName": "bodyweight.squat__composite.png",
                         "role": "composite",
+                        "approvalReference": "TEST-APPROVAL",
                     },
                     {
                         "status": "unreviewed",
@@ -306,8 +317,11 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             {
                 "schemaVersion": 1,
                 "sourcePack": {
+                    "directoryName": "source-pack",
                     "mappedDirectory": "workout_avatar",
+                    "verifiedFileCount": 2,
                     "mappedImageCount": 2,
+                    "verifiedZipSHA256": "a" * 64,
                 },
                 "images": [
                     {
@@ -318,6 +332,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
                         "canonicalMediaKey": "bodyweight.squat__composite",
                         "canonicalFileName": "bodyweight.squat__composite.png",
                         "role": "composite",
+                        "approvalReference": "TEST-APPROVAL",
                     },
                     {
                         "status": "unreviewed",
@@ -396,6 +411,318 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertEqual(second_exit_code, 0)
         self.assertEqual(index_path.read_bytes(), first_index)
 
+    def test_boolean_schema_versions_are_rejected(self):
+        catalogue = self.catalog_fixture()
+        catalogue["catalogSchemaVersion"] = True
+        catalogue["exercises"][0]["schemaVersion"] = True
+        equipment = self.equipment_fixture()
+        equipment["schemaVersion"] = True
+        environments = self.environment_fixture()
+        environments["schemaVersion"] = True
+        self.write_json("catalog.json", catalogue)
+        self.write_json("equipment.json", equipment)
+        self.write_json("environments.json", environments)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        schema_pointers = {
+            diagnostic.pointer
+            for diagnostic in report.errors
+            if diagnostic.code in {"E_SCHEMA_VERSION", "E_EXERCISE_SCHEMA_VERSION"}
+        }
+        self.assertEqual(
+            schema_pointers,
+            {
+                "/catalogSchemaVersion",
+                "/schemaVersion",
+                "/exercises/0/schemaVersion",
+            },
+        )
+
+    def test_required_taxonomy_fields_and_null_arrays_fail_without_crashing(self):
+        equipment = self.equipment_fixture()
+        entry = equipment["equipment"][0]
+        del entry["displayName"]
+        entry["category"] = 7
+        entry["aliases"] = None
+        entry["fulfills"] = None
+        entry["lifecycle"] = None
+        environments = self.environment_fixture()
+        environment = environments["environments"][0]
+        del environment["displayName"]
+        environment["defaultCapabilities"] = None
+        environment["rankingTags"] = None
+        environment["lifecycle"] = None
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["aliases"] = None
+        catalogue["exercises"][0]["legacyIDs"] = None
+        self.write_json("equipment.json", equipment)
+        self.write_json("environments.json", environments)
+        self.write_json("catalog.json", catalogue)
+
+        try:
+            report = exercise_catalog.validate_catalogue(self.root, strict=True)
+        except Exception as error:  # Regression guard: malformed JSON must be diagnostic-only.
+            self.fail(f"validator crashed with {type(error).__name__}: {error}")
+
+        self.assertTrue(
+            {
+                "E_EQUIPMENT_DISPLAY_NAME",
+                "E_EQUIPMENT_CATEGORY",
+                "E_EQUIPMENT_ALIAS_LIST",
+                "E_EQUIPMENT_FULFILLMENT_LIST",
+                "E_EQUIPMENT_LIFECYCLE",
+                "E_ENVIRONMENT_DISPLAY_NAME",
+                "E_CAPABILITY_LIST",
+                "E_ENVIRONMENT_RANKING_TAG_LIST",
+                "E_ENVIRONMENT_LIFECYCLE",
+                "E_ALIAS_LIST",
+                "E_LEGACY_ID_LIST",
+            }.issubset(self.error_codes(report))
+        )
+
+    def test_non_object_import_map_reports_a_diagnostic(self):
+        self.write_json("media-import-map.json", [])
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertIn("E_IMPORT_MAP_OBJECT", self.error_codes(report))
+
+    def test_import_map_metadata_and_approval_reference_are_validated(self):
+        source, row = self.configure_approved_media()
+        del source
+        row["approvalReference"] = " "
+        self.write_import_map(
+            [row],
+            {
+                "directoryName": 7,
+                "mappedDirectory": "workout_avatar",
+                "verifiedFileCount": "1",
+                "mappedImageCount": True,
+                "verifiedZipSHA256": "not-a-checksum",
+            },
+        )
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertTrue(
+            {
+                "E_IMPORT_SOURCE_PACK_NAME",
+                "E_IMPORT_SOURCE_FILE_COUNT",
+                "E_IMPORT_SOURCE_COUNT_TYPE",
+                "E_IMPORT_SOURCE_PACK_CHECKSUM",
+                "E_IMPORT_APPROVAL_REFERENCE",
+            }.issubset(self.error_codes(report))
+        )
+
+    def test_non_png_sources_are_rejected_before_dry_run_and_apply(self):
+        catalogue = self.catalog_fixture()
+        first = catalogue["exercises"][0]
+        first["media"] = [self.media_fixture("bodyweight.squat")]
+        second = self.exercise_fixture("bodyweight.lunge", "Forward lunge")
+        second["media"] = [self.media_fixture("bodyweight.lunge")]
+        catalogue["exercises"].append(second)
+        self.write_json("catalog.json", catalogue)
+        wrong_extension = self.source_pack / "workout_avatar" / "bodyweight_squat.jpg"
+        wrong_extension.parent.mkdir(parents=True)
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(
+            wrong_extension,
+            format="PNG",
+        )
+        invalid_png = self.source_pack / "workout_avatar" / "bodyweight_lunge.png"
+        invalid_png.write_bytes(b"not an image")
+        rows = [
+            self.approved_row(wrong_extension, "bodyweight.squat"),
+            self.approved_row(invalid_png, "bodyweight.lunge"),
+        ]
+        self.write_import_map(rows)
+
+        dry_output = io.StringIO()
+        with contextlib.redirect_stdout(dry_output):
+            dry_exit = exercise_catalog.main([
+                "import",
+                "--dry-run",
+                "--root",
+                str(self.root),
+                "--source-pack",
+                str(self.source_pack),
+            ])
+        apply_output = io.StringIO()
+        with contextlib.redirect_stdout(apply_output):
+            apply_exit = exercise_catalog.main([
+                "import",
+                "--apply",
+                "--root",
+                str(self.root),
+                "--source-pack",
+                str(self.source_pack),
+            ])
+
+        self.assertEqual(dry_exit, 1)
+        self.assertEqual(apply_exit, 1)
+        combined_output = dry_output.getvalue() + apply_output.getvalue()
+        self.assertIn("E_IMPORT_SOURCE_EXTENSION", combined_output)
+        self.assertIn("E_IMPORT_SOURCE_PNG", combined_output)
+
+    def test_manifest_and_import_map_roles_must_match(self):
+        source, row = self.configure_approved_media()
+        del source
+        row["role"] = "setup"
+        self.write_import_map([row])
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_IMPORT_ROLE_MANIFEST_MISMATCH", self.error_codes(report))
+
+    def test_approved_map_requires_generated_index_and_namespace(self):
+        self.configure_approved_media()
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_MEDIA_INDEX_FILE_MISSING", self.error_codes(report))
+        self.assertIn("E_MEDIA_NAMESPACE_MISSING", self.error_codes(report))
+
+    def test_generated_index_and_imageset_structure_are_fail_closed(self):
+        source, row = self.configure_approved_media()
+        del source
+        namespace = self.generated_namespace()
+        image_set = namespace / f"{row['canonicalMediaKey']}.imageset"
+        image_set.mkdir(parents=True)
+        self.write_json_path(
+            namespace / "Contents.json",
+            {"info": {"author": "xcode", "version": 1}},
+        )
+        entry = self.generated_index_entry(row)
+        duplicate = dict(entry)
+        duplicate["role"] = "setup"
+        duplicate["sourcePath"] = "workout_avatar/other.png"
+        duplicate["sourceSHA256"] = "b" * 64
+        self.write_json_path(
+            self.generated_index_path(),
+            {"schemaVersion": True, "media": [entry, duplicate]},
+        )
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertTrue(
+            {
+                "E_SCHEMA_VERSION",
+                "E_MEDIA_INDEX_KEY_DUPLICATE",
+                "E_MEDIA_INDEX_ASSET_DUPLICATE",
+                "E_MEDIA_INDEX_ROLE_MISMATCH",
+                "E_MEDIA_INDEX_SOURCE_MISMATCH",
+                "E_MEDIA_INDEX_CHECKSUM_MISMATCH",
+                "E_MEDIA_CONTENTS_MISSING",
+                "E_MEDIA_PNG_MISSING",
+            }.issubset(self.error_codes(report))
+        )
+
+    def test_generated_png_checksum_must_match_approved_source(self):
+        source, row = self.configure_approved_media()
+        del source
+        namespace = self.generated_namespace()
+        image_set = namespace / f"{row['canonicalMediaKey']}.imageset"
+        image_set.mkdir(parents=True)
+        self.write_json_path(
+            namespace / "Contents.json",
+            {"info": {"author": "xcode", "version": 1}},
+        )
+        self.write_json_path(
+            image_set / "Contents.json",
+            {
+                "images": [
+                    {"filename": row["canonicalFileName"], "idiom": "universal"}
+                ],
+                "info": {"author": "xcode", "version": 1},
+            },
+        )
+        Image.new("RGBA", (16, 16), (90, 80, 70, 255)).save(
+            image_set / row["canonicalFileName"]
+        )
+        self.write_json_path(
+            self.generated_index_path(),
+            {"schemaVersion": 1, "media": [self.generated_index_entry(row)]},
+        )
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_MEDIA_PNG_CHECKSUM", self.error_codes(report))
+
+    def test_incremental_import_replaces_a_stale_prior_index(self):
+        first_source, first_row = self.configure_approved_media()
+        del first_source
+        with contextlib.redirect_stdout(io.StringIO()):
+            first_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+        self.assertEqual(first_exit, 0)
+
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [self.media_fixture("bodyweight.squat")]
+        second = self.exercise_fixture("bodyweight.lunge", "Forward lunge")
+        second["media"] = [self.media_fixture("bodyweight.lunge")]
+        catalogue["exercises"].append(second)
+        self.write_json("catalog.json", catalogue)
+        second_source = self.create_source_png("bodyweight_lunge.png", (50, 60, 70, 255))
+        second_row = self.approved_row(second_source, "bodyweight.lunge")
+        self.write_import_map([first_row, second_row])
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            second_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+
+        self.assertEqual(second_exit, 0)
+        index = json.loads(self.generated_index_path().read_text(encoding="utf-8"))
+        self.assertEqual(
+            [entry["key"] for entry in index["media"]],
+            ["bodyweight.lunge__composite", "bodyweight.squat__composite"],
+        )
+
+    def test_apply_repairs_a_missing_imageset(self):
+        source, row = self.configure_approved_media()
+        del source
+        with contextlib.redirect_stdout(io.StringIO()):
+            first_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+        self.assertEqual(first_exit, 0)
+        image_set = self.generated_namespace() / f"{row['canonicalMediaKey']}.imageset"
+        shutil.rmtree(image_set)
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            repair_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+
+        self.assertEqual(repair_exit, 0)
+        self.assertTrue((image_set / row["canonicalFileName"]).is_file())
+
+    def test_checked_in_catalogue_remains_strict_green(self):
+        root = exercise_catalog.repository_root()
+        source_pack = root.parent / "HealthAssistant_image_Pack"
+
+        report = exercise_catalog.validate_catalogue(
+            root,
+            strict=True,
+            source_pack=source_pack,
+        )
+
+        self.assertEqual(report.errors, [])
+        self.assertEqual(report.warnings, [])
+
     def test_cli_returns_one_for_errors_and_zero_for_clean_catalogue(self):
         invalid_catalogue = self.catalog_fixture()
         invalid_catalogue["exercises"][0]["instructions"] = [" "]
@@ -418,6 +745,81 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         path = self.authoring / name
         path.write_text(json.dumps(payload), encoding="utf-8")
 
+    def write_json_path(self, path, payload):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    def media_fixture(self, exercise_id, role="composite"):
+        return {
+            "key": f"{exercise_id}__{role}",
+            "role": role,
+            "accessibilityDescription": f"{exercise_id} {role}",
+        }
+
+    def create_source_png(self, filename, color=(20, 30, 40, 255)):
+        source = self.source_pack / "workout_avatar" / filename
+        source.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGBA", (16, 16), color).save(source)
+        return source
+
+    def approved_row(self, source, exercise_id, role="composite"):
+        media_key = f"{exercise_id}__{role}"
+        return {
+            "status": "approved_for_import",
+            "sourcePath": source.relative_to(self.source_pack).as_posix(),
+            "sourceSHA256": exercise_catalog.sha256(source),
+            "canonicalExerciseID": exercise_id,
+            "canonicalMediaKey": media_key,
+            "canonicalFileName": f"{media_key}.png",
+            "role": role,
+            "approvalReference": "TEST-APPROVAL",
+        }
+
+    def write_import_map(self, rows, source_pack_metadata=None):
+        metadata = source_pack_metadata or {
+            "directoryName": "source-pack",
+            "mappedDirectory": "workout_avatar",
+            "verifiedFileCount": len(rows),
+            "mappedImageCount": len(rows),
+            "verifiedZipSHA256": "a" * 64,
+        }
+        self.write_json(
+            "media-import-map.json",
+            {"schemaVersion": 1, "sourcePack": metadata, "images": rows},
+        )
+
+    def configure_approved_media(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [self.media_fixture("bodyweight.squat")]
+        self.write_json("catalog.json", catalogue)
+        source = self.create_source_png("bodyweight_squat.png")
+        row = self.approved_row(source, "bodyweight.squat")
+        self.write_import_map([row])
+        return source, row
+
+    def generated_namespace(self):
+        return self.root / "Health Assistantv2" / "Assets.xcassets" / "ExerciseMedia"
+
+    def generated_index_path(self):
+        return (
+            self.root
+            / "Health Assistantv2"
+            / "ExerciseCatalog"
+            / "Resources"
+            / "Generated"
+            / "media-index.json"
+        )
+
+    def generated_index_entry(self, row):
+        return {
+            "assetName": row["canonicalMediaKey"],
+            "filename": row["canonicalFileName"],
+            "key": row["canonicalMediaKey"],
+            "role": row["role"],
+            "sourcePath": row["sourcePath"],
+            "sourceSHA256": row["sourceSHA256"],
+        }
+
     def find_diagnostic(self, report, code):
         for diagnostic in report.errors + report.warnings:
             if diagnostic.code == code:
@@ -437,8 +839,18 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         return {
             "schemaVersion": 1,
             "equipment": [
-                {"id": "none", "lifecycle": {"status": "active"}},
-                {"id": "dumbbell", "lifecycle": {"status": "active"}},
+                {
+                    "id": "none",
+                    "displayName": "No equipment",
+                    "category": "none",
+                    "lifecycle": {"status": "active"},
+                },
+                {
+                    "id": "dumbbell",
+                    "displayName": "Dumbbell",
+                    "category": "free_weight",
+                    "lifecycle": {"status": "active"},
+                },
             ],
         }
 
@@ -448,7 +860,9 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             "environments": [
                 {
                     "id": "home",
+                    "displayName": "Home",
                     "defaultCapabilities": ["floor_space", "jumping_allowed"],
+                    "rankingTags": ["home"],
                     "lifecycle": {"status": "active"},
                 }
             ],
