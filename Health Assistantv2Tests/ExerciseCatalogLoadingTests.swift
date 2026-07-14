@@ -164,6 +164,37 @@ struct ExerciseCatalogLoadingTests {
         #expect(loadCount == 1)
     }
 
+    @Test func repositorySharesAnInFlightLoadAcrossConcurrentCallers() async throws {
+        let dataProvider = BlockingCatalogDataProvider(
+            data: try manifestData(exercises: [
+                exercise(id: "bodyweight.squat", displayName: "Squat")
+            ])
+        )
+        let repository = ExerciseCatalogRepository(dataProvider: dataProvider)
+
+        let firstCaller = Task { await repository.loadState() }
+        await dataProvider.waitUntilFirstLoadIsBlocked()
+
+        let concurrentCallers = (0..<20).map { _ in
+            Task { await repository.loadState() }
+        }
+        for _ in concurrentCallers {
+            await Task.yield()
+        }
+
+        let loadCountWhileBlocked = await dataProvider.loadCount()
+        #expect(loadCountWhileBlocked == 1)
+
+        await dataProvider.releaseFirstLoad()
+        _ = await firstCaller.value
+        for caller in concurrentCallers {
+            _ = await caller.value
+        }
+
+        let finalLoadCount = await dataProvider.loadCount()
+        #expect(finalLoadCount == 1)
+    }
+
     @Test func fakeRepositoryCanSatisfyTheInjectedRepositoryProtocol() async {
         let definition = exercise(id: "bodyweight.squat", displayName: "Squat")
         let fake: any ExerciseCatalogRepositoryProviding = FakeCatalogRepository(
@@ -241,6 +272,47 @@ private actor CountingCatalogDataProvider: ExerciseCatalogDataProvider {
     }
 
     func loadCount() async -> Int {
+        numberOfLoads
+    }
+}
+
+private actor BlockingCatalogDataProvider: ExerciseCatalogDataProvider {
+    private let data: Data?
+    private var numberOfLoads = 0
+    private var firstLoadRelease: CheckedContinuation<Void, Never>?
+    private var firstLoadStarted: CheckedContinuation<Void, Never>?
+
+    init(data: Data?) {
+        self.data = data
+    }
+
+    func loadCatalogData() async throws -> Data? {
+        numberOfLoads += 1
+        if numberOfLoads == 1 {
+            await withCheckedContinuation { continuation in
+                firstLoadRelease = continuation
+                firstLoadStarted?.resume()
+                firstLoadStarted = nil
+            }
+        }
+        return data
+    }
+
+    func waitUntilFirstLoadIsBlocked() async {
+        guard firstLoadRelease == nil else {
+            return
+        }
+        await withCheckedContinuation { continuation in
+            firstLoadStarted = continuation
+        }
+    }
+
+    func releaseFirstLoad() {
+        firstLoadRelease?.resume()
+        firstLoadRelease = nil
+    }
+
+    func loadCount() -> Int {
         numberOfLoads
     }
 }

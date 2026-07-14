@@ -13,6 +13,7 @@ protocol ExerciseCatalogRepositoryProviding: Sendable {
 actor ExerciseCatalogRepository: ExerciseCatalogRepositoryProviding {
     private let loader: ExerciseCatalogLoader
     private var cachedLoadResult: Result<ExerciseCatalogIndex, ExerciseCatalogError>?
+    private var inFlightLoadTask: Task<Result<ExerciseCatalogIndex, ExerciseCatalogError>, Never>?
 
     init(dataProvider: any ExerciseCatalogDataProvider) {
         loader = ExerciseCatalogLoader(dataProvider: dataProvider)
@@ -41,8 +42,19 @@ actor ExerciseCatalogRepository: ExerciseCatalogRepositoryProviding {
             return cachedLoadResult
         }
 
-        let loadResult = await loader.load()
+        if let inFlightLoadTask {
+            return await inFlightLoadTask.value
+        }
+
+        let loader = loader
+        let loadTask = Task.detached {
+            await loader.load()
+        }
+        inFlightLoadTask = loadTask
+
+        let loadResult = await loadTask.value
         cachedLoadResult = loadResult
+        inFlightLoadTask = nil
         return loadResult
     }
 }
