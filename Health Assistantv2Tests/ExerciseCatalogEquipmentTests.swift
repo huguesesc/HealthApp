@@ -126,6 +126,54 @@ struct ExerciseCatalogEquipmentTests {
         ])
     }
 
+    @Test func malformedUnusedNoneAlternativeInvalidatesSatisfiedPrimary() {
+        let taxonomy = fixtureTaxonomy()
+        let requirements = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 1)],
+            alternatives: [[
+                ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "none"), quantity: 1),
+                ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "yoga_mat"), quantity: 1)
+            ]]
+        )
+
+        #expect(!requirements.isSatisfied(
+            by: EquipmentInventory(quantities: [ExerciseEquipmentID(rawValue: "dumbbell"): 1]),
+            in: taxonomy
+        ))
+        #expect(taxonomy.validationErrors(for: requirements) == [
+            .noneCombinedWithOtherClauses(
+                group: .alternative(index: 0),
+                clauseIDs: [ExerciseEquipmentID(rawValue: "none"), ExerciseEquipmentID(rawValue: "yoga_mat")]
+            )
+        ])
+    }
+
+    @Test func emptyAlternativeGroupIsInvalidWhenPrimaryIsUnmet() {
+        let taxonomy = fixtureTaxonomy()
+        let requirements = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 1)],
+            alternatives: [[]]
+        )
+
+        #expect(!requirements.isSatisfied(by: EquipmentInventory(quantities: [:]), in: taxonomy))
+        #expect(taxonomy.validationErrors(for: requirements) == [
+            .emptyRequirementGroup(group: .alternative(index: 0))
+        ])
+    }
+
+    @Test func emptyAlternativeGroupInvalidatesSatisfiedPrimary() {
+        let taxonomy = fixtureTaxonomy()
+        let requirements = ExerciseEquipmentRequirements(
+            required: [ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 1)],
+            alternatives: [[]]
+        )
+
+        #expect(!requirements.isSatisfied(
+            by: EquipmentInventory(quantities: [ExerciseEquipmentID(rawValue: "dumbbell"): 1]),
+            in: taxonomy
+        ))
+    }
+
     @Test func taxonomyValidationReportsUnknownParentsCyclesAndUnknownFulfillmentTargetsDeterministically() {
         let taxonomy = EquipmentTaxonomy(schemaVersion: 1, equipment: [
             EquipmentDefinition(

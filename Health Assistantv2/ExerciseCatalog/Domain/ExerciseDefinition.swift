@@ -28,10 +28,7 @@ struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
     }
 
     func isSatisfied(by inventory: EquipmentInventory, in taxonomy: EquipmentTaxonomy) -> Bool {
-        guard required.allSatisfy({ clause in clause.quantity > 0 }),
-              alternatives.allSatisfy({ alternative in
-                  alternative.allSatisfy { clause in clause.quantity > 0 }
-              }) else {
+        guard structuralValidationErrors().isEmpty else {
             return false
         }
         if isSatisfied(required, by: inventory, in: taxonomy) {
@@ -45,18 +42,54 @@ struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
         by inventory: EquipmentInventory,
         in taxonomy: EquipmentTaxonomy
     ) -> Bool {
-        guard group.allSatisfy({ $0.quantity > 0 }) else {
-            return false
-        }
         if group.count == 1, group[0].id.rawValue == "none" {
             return true
-        }
-        guard !group.contains(where: { $0.id.rawValue == "none" }) else {
-            return false
         }
         return group.allSatisfy {
             inventory.availableQuantity(of: $0.id, in: taxonomy) >= $0.quantity
         }
+    }
+
+    func structuralValidationErrors() -> [EquipmentTaxonomyValidationError] {
+        var errors: [EquipmentTaxonomyValidationError] = []
+
+        for entry in requirementGroups() {
+            let group = entry.0
+            let clauses = entry.1
+            guard !clauses.isEmpty else {
+                errors.append(.emptyRequirementGroup(group: group))
+                continue
+            }
+
+            for clause in clauses where clause.quantity <= 0 {
+                errors.append(
+                    .nonpositiveRequirementQuantity(
+                        group: group,
+                        equipmentID: clause.id,
+                        quantity: clause.quantity
+                    )
+                )
+            }
+            if clauses.count > 1, clauses.contains(where: { $0.id.rawValue == "none" }) {
+                errors.append(
+                    .noneCombinedWithOtherClauses(
+                        group: group,
+                        clauseIDs: clauses.map(\.id).sorted { $0.rawValue < $1.rawValue }
+                    )
+                )
+            }
+        }
+        return errors
+    }
+
+    private func requirementGroups() -> [(ExerciseEquipmentRequirementGroup, [ExerciseEquipmentClause])] {
+        var groups: [(ExerciseEquipmentRequirementGroup, [ExerciseEquipmentClause])] = [
+            (.required, required)
+        ]
+        groups.append(contentsOf: alternatives.enumerated().map {
+            (.alternative(index: $0.offset), $0.element)
+        })
+        return groups
     }
 }
 

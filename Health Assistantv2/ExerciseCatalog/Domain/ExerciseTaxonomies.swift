@@ -237,8 +237,7 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
         }
 
         if let requirements {
-            errors.append(contentsOf: nonpositiveRequirementQuantityErrors(in: requirements))
-            errors.append(contentsOf: noneCombinationErrors(in: requirements))
+            errors.append(contentsOf: requirements.structuralValidationErrors())
         }
         return errors
     }
@@ -289,55 +288,6 @@ struct EquipmentTaxonomy: Codable, Hashable, Sendable {
         return Array(ids[firstIndex...]) + Array(ids[..<firstIndex])
     }
 
-    private func noneCombinationErrors(
-        in requirements: ExerciseEquipmentRequirements
-    ) -> [EquipmentTaxonomyValidationError] {
-        var groups: [(ExerciseEquipmentRequirementGroup, [ExerciseEquipmentClause])] = [
-            (.required, requirements.required)
-        ]
-        groups.append(contentsOf: requirements.alternatives.enumerated().map {
-            (.alternative(index: $0.offset), $0.element)
-        })
-
-        return groups.compactMap { entry in
-            let group = entry.0
-            let clauses = entry.1
-            guard clauses.count > 1, clauses.contains(where: { $0.id.rawValue == "none" }) else {
-                return nil
-            }
-            return .noneCombinedWithOtherClauses(
-                group: group,
-                clauseIDs: clauses.map(\.id).sorted { $0.rawValue < $1.rawValue }
-            )
-        }
-    }
-
-    private func nonpositiveRequirementQuantityErrors(
-        in requirements: ExerciseEquipmentRequirements
-    ) -> [EquipmentTaxonomyValidationError] {
-        var groups: [(ExerciseEquipmentRequirementGroup, [ExerciseEquipmentClause])] = [
-            (.required, requirements.required)
-        ]
-        groups.append(contentsOf: requirements.alternatives.enumerated().map {
-            (.alternative(index: $0.offset), $0.element)
-        })
-
-        return groups.flatMap { entry in
-            let group = entry.0
-            let clauses = entry.1
-            clauses.compactMap { clause in
-                guard clause.quantity <= 0 else {
-                    return nil
-                }
-                return .nonpositiveRequirementQuantity(
-                    group: group,
-                    equipmentID: clause.id,
-                    quantity: clause.quantity
-                )
-            }
-        }
-    }
-
     private func duplicateFulfillmentTargetErrors(
         in definition: EquipmentDefinition
     ) -> [EquipmentTaxonomyValidationError] {
@@ -385,6 +335,7 @@ enum EquipmentTaxonomyValidationError: Error, Hashable, Sendable {
         equipmentID: ExerciseEquipmentID,
         quantity: Int
     )
+    case emptyRequirementGroup(group: ExerciseEquipmentRequirementGroup)
     case noneCombinedWithOtherClauses(
         group: ExerciseEquipmentRequirementGroup,
         clauseIDs: [ExerciseEquipmentID]
