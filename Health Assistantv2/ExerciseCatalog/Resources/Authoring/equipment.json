@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "equipment": [
+    {"id":"none","displayName":"No equipment","category":"none","lifecycle":{"status":"active"}},
+    {"id":"yoga_mat","displayName":"Yoga mat","category":"support_surface","lifecycle":{"status":"active"}},
+    {"id":"stability_ball","displayName":"Stability ball","category":"balance","lifecycle":{"status":"active"}},
+    {"id":"mini_resistance_band","displayName":"Mini resistance band","category":"resistance_band","fulfills":[{"id":"resistance_band","quantityPerUnit":1}],"lifecycle":{"status":"active"}},
+    {"id":"long_resistance_band","displayName":"Long resistance band","category":"resistance_band","fulfills":[{"id":"resistance_band","quantityPerUnit":1}],"lifecycle":{"status":"active"}},
+    {"id":"resistance_band","displayName":"Resistance band","category":"resistance_band","lifecycle":{"status":"active"}},
+    {"id":"foam_balance_pad","displayName":"Foam balance pad","category":"balance","lifecycle":{"status":"active"}},
+    {"id":"wobble_board","displayName":"Wobble board","category":"balance","lifecycle":{"status":"active"}},
+    {"id":"balance_disc","displayName":"Balance disc","category":"balance","lifecycle":{"status":"active"}},
+    {"id":"bosu_trainer","displayName":"BOSU trainer","category":"balance","lifecycle":{"status":"active"}},
+    {"id":"slant_board","displayName":"Slant board","category":"support_surface","lifecycle":{"status":"active"}},
+    {"id":"dumbbell","displayName":"Dumbbell","category":"free_weight","lifecycle":{"status":"active"}},
+    {"id":"pair_of_dumbbells","displayName":"Pair of dumbbells","aliases":["dumbbell pair"],"category":"free_weight","fulfills":[{"id":"dumbbell","quantityPerUnit":2}],"lifecycle":{"status":"active"}},
+    {"id":"kettlebell","displayName":"Kettlebell","category":"free_weight","lifecycle":{"status":"active"}},
+    {"id":"barbell","displayName":"Barbell","category":"free_weight","lifecycle":{"status":"active"}},
+    {"id":"weight_plate","displayName":"Weight plate","category":"free_weight","lifecycle":{"status":"active"}},
+    {"id":"squat_rack","displayName":"Squat rack","category":"rack","lifecycle":{"status":"active"}},
+    {"id":"bench","displayName":"Bench","category":"support_surface","lifecycle":{"status":"active"}},
+    {"id":"step","displayName":"Step","category":"support_surface","lifecycle":{"status":"active"}},
+    {"id":"cable_station","displayName":"Cable station","category":"cable_machine","lifecycle":{"status":"active"}},
+    {"id":"leg_press_machine","displayName":"Leg press machine","category":"strength_machine","lifecycle":{"status":"active"}},
+    {"id":"lat_pulldown_machine","displayName":"Lat pulldown machine","category":"strength_machine","lifecycle":{"status":"active"}},
+    {"id":"leg_extension_machine","displayName":"Leg extension machine","category":"strength_machine","lifecycle":{"status":"active"}},
+    {"id":"lying_leg_curl_machine","displayName":"Lying leg curl machine","category":"strength_machine","lifecycle":{"status":"active"}},
+    {"id":"seated_calf_raise_machine","displayName":"Seated calf raise machine","category":"strength_machine","lifecycle":{"status":"active"}},
+    {"id":"rowing_machine","displayName":"Rowing machine","category":"cardio_machine","lifecycle":{"status":"active"}},
+    {"id":"stationary_bike","displayName":"Stationary bike","category":"cardio_machine","lifecycle":{"status":"active"}},
+    {"id":"treadmill","displayName":"Treadmill","category":"cardio_machine","lifecycle":{"status":"active"}}
+  ]
+}
