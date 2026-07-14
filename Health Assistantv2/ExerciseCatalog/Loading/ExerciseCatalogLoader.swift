@@ -1,0 +1,132 @@
+import Foundation
+
+struct ExerciseCatalogManifest: Codable, Hashable, Sendable {
+    let catalogSchemaVersion: Int
+    let exercises: [ExerciseDefinition]
+}
+
+protocol ExerciseCatalogDataProvider: Sendable {
+    func loadCatalogData() async throws -> Data?
+}
+
+struct ExerciseCatalogLoader: Sendable {
+    private let dataProvider: any ExerciseCatalogDataProvider
+
+    init(dataProvider: any ExerciseCatalogDataProvider) {
+        self.dataProvider = dataProvider
+    }
+
+    func load() async -> Result<ExerciseCatalogIndex, ExerciseCatalogError> {
+        do {
+            guard let data = try await dataProvider.loadCatalogData() else {
+                return .failure(.resourceNotFound(name: "catalog.json"))
+            }
+
+            let manifest = try JSONDecoder().decode(ExerciseCatalogManifest.self, from: data)
+            guard manifest.catalogSchemaVersion == 1 else {
+                return .failure(.unsupportedSchemaVersion(manifest.catalogSchemaVersion))
+            }
+            return .success(try ExerciseCatalogIndex(manifest: manifest))
+        } catch let error as ExerciseCatalogError {
+            return .failure(error)
+        } catch {
+            return .failure(
+                .decodingFailed(description: "Unable to decode exercise catalogue manifest.")
+            )
+        }
+    }
+}
+
+struct ExerciseCatalogIndex: Sendable {
+    let manifest: ExerciseCatalogManifest
+
+    private let exercisesByStableID: [ExerciseID: ExerciseDefinition]
+    private let exercisesByLegacyID: [ExerciseID: ExerciseDefinition]
+    private let exercisesByNormalizedReference: [String: ExerciseDefinition]
+
+    init(manifest: ExerciseCatalogManifest) throws {
+        self.manifest = manifest
+
+        let stableIDClaims = Dictionary(grouping: manifest.exercises, by: \.id)
+        let duplicateStableIDs = stableIDClaims
+            .filter { $0.value.count > 1 }
+            .map(\.key)
+            .sorted { $0.rawValue < $1.rawValue }
+
+        var legacyIDIndex: [ExerciseID: ExerciseDefinition] = [:]
+        var duplicateLegacyIDs: Set<ExerciseID> = []
+        for exercise in manifest.exercises {
+            for legacyID in exercise.legacyIDs ?? [] {
+                if legacyIDIndex[legacyID] == nil {
+                    legacyIDIndex[legacyID] = exercise
+                } else {
+                    duplicateLegacyIDs.insert(legacyID)
+                }
+            }
+        }
+
+        var normalizedReferenceIndex: [String: ExerciseDefinition] = [:]
+        var ambiguousNormalizedReferences: Set<String> = []
+        for exercise in manifest.exercises {
+            let normalizedReferences = Set(
+                ([exercise.displayName] + (exercise.aliases ?? []))
+                    .compactMap(Self.normalizedReference)
+            )
+            for normalizedReference in normalizedReferences {
+                guard let existing = normalizedReferenceIndex[normalizedReference] else {
+                    normalizedReferenceIndex[normalizedReference] = exercise
+                    continue
+                }
+                if existing.id != exercise.id {
+                    ambiguousNormalizedReferences.insert(normalizedReference)
+                }
+            }
+        }
+
+        let validationMessages = duplicateStableIDs.map {
+            "Duplicate stable ID: \($0.rawValue)."
+        } + duplicateLegacyIDs.sorted { $0.rawValue < $1.rawValue }.map {
+            "Duplicate legacy ID: \($0.rawValue)."
+        } + ambiguousNormalizedReferences.sorted().map {
+            "Ambiguous normalized reference: \($0)."
+        }
+        guard validationMessages.isEmpty else {
+            throw ExerciseCatalogError.validationFailed(messages: validationMessages)
+        }
+
+        exercisesByStableID = Dictionary(
+            manifest.exercises.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        exercisesByLegacyID = legacyIDIndex
+        exercisesByNormalizedReference = normalizedReferenceIndex
+    }
+
+    func resolve(reference: String) -> ExerciseDefinition? {
+        if let stableID = ExerciseID(rawValue: reference),
+           let exercise = exercisesByStableID[stableID] {
+            return exercise
+        }
+        if let legacyID = ExerciseID(rawValue: reference),
+           let exercise = exercisesByLegacyID[legacyID] {
+            return exercise
+        }
+        guard let normalizedReference = Self.normalizedReference(reference) else {
+            return nil
+        }
+        return exercisesByNormalizedReference[normalizedReference]
+    }
+
+    private static func normalizedReference(_ reference: String) -> String? {
+        let locale = Locale(identifier: "en_US_POSIX")
+        let folded = reference
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
+            .lowercased(with: locale)
+        let normalized = folded.unicodeScalars.reduce(into: "") { result, scalar in
+            if CharacterSet.alphanumerics.contains(scalar) {
+                result.unicodeScalars.append(scalar)
+            }
+        }
+        return normalized.isEmpty ? nil : normalized
+    }
+}
