@@ -14,7 +14,7 @@ struct ExerciseDefinition: Codable, Hashable, Sendable {
 
     let aliases: [String]?
     let guidance: [String]?
-    let environmentRequirements: [ExerciseEnvironmentRequirement]?
+    let environmentRequirements: ExerciseEnvironmentRequirements?
 }
 
 struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
@@ -25,4 +25,9 @@ struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
 struct ExerciseEquipmentClause: Codable, Hashable, Sendable {
     let id: ExerciseEquipmentID
     let quantity: Int
+}
+
+struct ExerciseEnvironmentRequirements: Codable, Hashable, Sendable {
+    let required: [ExerciseEnvironmentRequirement]
+    let prohibited: [ExerciseEnvironmentRequirement]
 }

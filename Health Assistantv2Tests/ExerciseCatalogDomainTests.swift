@@ -25,6 +25,10 @@ struct ExerciseCatalogDomainTests {
           },
           "trackingMode": "sets-reps",
           "instructions": [],
+          "environmentRequirements": {
+            "required": ["machine_access"],
+            "prohibited": ["jumping_allowed"]
+          },
           "lifecycle": {
             "status": "active"
           }
@@ -47,6 +51,13 @@ struct ExerciseCatalogDomainTests {
             ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 2)
         ]])
         #expect(definition.instructions.isEmpty)
+        let environmentRequirements = try #require(definition.environmentRequirements)
+        #expect(environmentRequirements.required == [
+            ExerciseEnvironmentRequirement(rawValue: "machine_access")
+        ])
+        #expect(environmentRequirements.prohibited == [
+            ExerciseEnvironmentRequirement(rawValue: "jumping_allowed")
+        ])
         #expect(definition.lifecycle.status.rawValue == "active")
         #expect(definition.lifecycle.replacementExerciseID == nil)
     }
