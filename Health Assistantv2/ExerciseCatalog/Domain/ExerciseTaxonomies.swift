@@ -388,3 +388,60 @@ struct ExerciseEnvironmentRequirement: Codable, Hashable, Sendable {
         try container.encode(rawValue)
     }
 }
+
+struct ExerciseEnvironmentID: Codable, Hashable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        rawValue = try container.decode(String.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+struct ExerciseEnvironmentCapabilityID: Codable, Hashable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        rawValue = try container.decode(String.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+struct ExerciseEnvironmentLifecycle: Codable, Hashable, Sendable {
+    let status: ExerciseLifecycleStatus
+}
+
+struct ExerciseEnvironmentDefinition: Codable, Hashable, Sendable {
+    let id: ExerciseEnvironmentID
+    let displayName: String
+    let defaultCapabilities: [ExerciseEnvironmentCapabilityID]
+    let rankingTags: [String]
+    let lifecycle: ExerciseEnvironmentLifecycle
+}
+
+struct ExerciseEnvironmentTaxonomy: Codable, Hashable, Sendable {
+    let schemaVersion: Int
+    let environments: [ExerciseEnvironmentDefinition]
+
+    func definition(for id: ExerciseEnvironmentID) -> ExerciseEnvironmentDefinition? {
+        environments.first { $0.id == id }
+    }
+}
