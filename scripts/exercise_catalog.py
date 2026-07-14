@@ -12,6 +12,7 @@ import shutil
 import sys
 import unicodedata
 import uuid
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1702,7 +1703,7 @@ def validate_import_map(
                     "Restore the approved source image or correct sourcePath.",
                 )
             else:
-                validate_png_readable(
+                png_details = validate_png_readable(
                     source_file,
                     file,
                     f"{pointer}/sourcePath",
@@ -1713,19 +1714,33 @@ def validate_import_map(
                     report,
                 )
                 if (
-                    isinstance(source_checksum, str)
+                    png_details is not None
+                    and isinstance(source_checksum, str)
                     and SHA256_PATTERN.fullmatch(source_checksum)
-                    and sha256(source_file) != source_checksum
                 ):
-                    report.add_error(
-                        "E_IMPORT_SOURCE_CHECKSUM",
-                        file,
-                        f"{pointer}/sourceSHA256",
-                        source_checksum,
-                        "the source image checksum must match the approved mapping record",
-                        "Stop the import and record the exact checksum of the reviewed "
-                        "source file.",
-                    )
+                    try:
+                        actual_checksum = sha256(source_file)
+                    except OSError:
+                        report.add_error(
+                            "E_IMPORT_SOURCE_CHECKSUM_READ",
+                            file,
+                            f"{pointer}/sourcePath",
+                            source_path,
+                            "source PNG bytes must remain readable for checksum verification",
+                            "Restore stable read access to the reviewed source PNG.",
+                        )
+                    else:
+                        if actual_checksum != source_checksum:
+                            report.add_error(
+                                "E_IMPORT_SOURCE_CHECKSUM",
+                                file,
+                                f"{pointer}/sourceSHA256",
+                                source_checksum,
+                                "the source image checksum must match the approved mapping "
+                                "record",
+                                "Stop the import and record the exact checksum of the reviewed "
+                                "source file.",
+                            )
 
     if source_pack is not None and mapped_directory is not None:
         mapped_root = (source_pack / mapped_directory).resolve()
@@ -1774,8 +1789,11 @@ def validate_generated_media(
 ) -> None:
     index_path = root / GENERATED_DIRECTORY / "media-index.json"
     namespace = root / GENERATED_ASSET_DIRECTORY
-    generated_required = bool(approved_rows)
-    if not namespace.is_dir() and (generated_required or index_path.exists()):
+    partial_generated = bool(media_roles) and (
+        path_entry_exists(namespace) or path_entry_exists(index_path)
+    )
+    generated_required = bool(approved_rows) or partial_generated
+    if not namespace.is_dir() and (generated_required or path_entry_exists(index_path)):
         report.add_error(
             "E_MEDIA_NAMESPACE_MISSING",
             relative_path(root, namespace),
@@ -2044,7 +2062,7 @@ def validate_generated_media(
                 "Run import --apply to restore the canonical PNG.",
             )
             continue
-        validate_png_readable(
+        png_details = validate_png_readable(
             png_path,
             file,
             f"{pointer}/filename",
@@ -2054,15 +2072,28 @@ def validate_generated_media(
             "Run import --apply from the reviewed source pack.",
             report,
         )
-        if SHA256_PATTERN.fullmatch(source_checksum) and sha256(png_path) != source_checksum:
-            report.add_error(
-                "E_MEDIA_PNG_CHECKSUM",
-                file,
-                f"{pointer}/sourceSHA256",
-                source_checksum,
-                "generated PNG bytes must match their approved source checksum",
-                "Run import --apply from the unchanged reviewed source pack.",
-            )
+        if png_details is not None and SHA256_PATTERN.fullmatch(source_checksum):
+            try:
+                actual_checksum = sha256(png_path)
+            except OSError:
+                report.add_error(
+                    "E_MEDIA_PNG_CHECKSUM_READ",
+                    file,
+                    f"{pointer}/filename",
+                    filename,
+                    "generated PNG bytes must remain readable for checksum verification",
+                    "Run import --apply to restore a stably readable generated PNG.",
+                )
+            else:
+                if actual_checksum != source_checksum:
+                    report.add_error(
+                        "E_MEDIA_PNG_CHECKSUM",
+                        file,
+                        f"{pointer}/sourceSHA256",
+                        source_checksum,
+                        "generated PNG bytes must match their approved source checksum",
+                        "Run import --apply from the unchanged reviewed source pack.",
+                    )
 
     for key in sorted(set(media_roles) - indexed_keys):
         report.add_error(
@@ -2243,13 +2274,15 @@ def validate_png_readable(
     report: ValidationReport,
 ) -> tuple[int, int, str] | None:
     try:
-        with Image.open(path) as image:
-            image_format = image.format
-            image.verify()
-        with Image.open(path) as image:
-            width, height = image.size
-            mode = image.mode
-            image.load()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(path) as image:
+                image_format = image.format
+                image.verify()
+            with Image.open(path) as image:
+                width, height = image.size
+                mode = image.mode
+                image.load()
     except (
         OSError,
         SyntaxError,
@@ -2616,6 +2649,21 @@ def verify_staged_import(
             raise ValueError(f"staged Contents.json mismatch for {image['canonicalMediaKey']}")
 
 
+def path_entry_exists(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def remove_path_entry(path: Path) -> None:
+    if not path_entry_exists(path):
+        return
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
 def replace_generated_import(root: Path, staging_assets: Path, staging_index: Path) -> None:
     assets_parent = root / "Health Assistantv2" / "Assets.xcassets"
     generated_parent = root / GENERATED_DIRECTORY
@@ -2631,10 +2679,10 @@ def replace_generated_import(root: Path, staging_assets: Path, staging_index: Pa
     assets_installed = False
     index_installed = False
     try:
-        if target_assets.exists():
+        if path_entry_exists(target_assets):
             os.replace(target_assets, assets_backup)
             assets_backed_up = True
-        if target_index.exists():
+        if path_entry_exists(target_index):
             os.replace(target_index, index_backup)
             index_backed_up = True
         os.replace(staging_assets, target_assets)
@@ -2642,20 +2690,20 @@ def replace_generated_import(root: Path, staging_assets: Path, staging_index: Pa
         os.replace(staging_index, target_index)
         index_installed = True
     except OSError:
-        if assets_installed and target_assets.exists():
-            shutil.rmtree(target_assets)
-        if index_installed and target_index.exists():
-            target_index.unlink()
-        if assets_backed_up and assets_backup.exists():
+        if assets_installed:
+            remove_path_entry(target_assets)
+        if index_installed:
+            remove_path_entry(target_index)
+        if assets_backed_up and path_entry_exists(assets_backup):
             os.replace(assets_backup, target_assets)
-        if index_backed_up and index_backup.exists():
+        if index_backed_up and path_entry_exists(index_backup):
             os.replace(index_backup, target_index)
         raise
     else:
-        if assets_backed_up and assets_backup.exists():
-            shutil.rmtree(assets_backup)
-        if index_backed_up and index_backup.exists():
-            index_backup.unlink()
+        if assets_backed_up:
+            remove_path_entry(assets_backup)
+        if index_backed_up:
+            remove_path_entry(index_backup)
 
 
 def write_json_file(path: Path, value: Any) -> None:

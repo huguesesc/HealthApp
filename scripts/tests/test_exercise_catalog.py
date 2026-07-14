@@ -4,7 +4,9 @@ import json
 import shutil
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
+from unittest import mock
 
 from PIL import Image
 
@@ -425,17 +427,34 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
 
         report = exercise_catalog.validate_catalogue(self.root, strict=True)
 
-        schema_pointers = {
-            diagnostic.pointer
+        schema_diagnostics = {
+            (diagnostic.file, diagnostic.pointer, diagnostic.code)
             for diagnostic in report.errors
             if diagnostic.code in {"E_SCHEMA_VERSION", "E_EXERCISE_SCHEMA_VERSION"}
         }
         self.assertEqual(
-            schema_pointers,
+            schema_diagnostics,
             {
-                "/catalogSchemaVersion",
-                "/schemaVersion",
-                "/exercises/0/schemaVersion",
+                (
+                    "Health Assistantv2/ExerciseCatalog/Resources/Authoring/catalog.json",
+                    "/catalogSchemaVersion",
+                    "E_SCHEMA_VERSION",
+                ),
+                (
+                    "Health Assistantv2/ExerciseCatalog/Resources/Authoring/catalog.json",
+                    "/exercises/0/schemaVersion",
+                    "E_EXERCISE_SCHEMA_VERSION",
+                ),
+                (
+                    "Health Assistantv2/ExerciseCatalog/Resources/Authoring/equipment.json",
+                    "/schemaVersion",
+                    "E_SCHEMA_VERSION",
+                ),
+                (
+                    "Health Assistantv2/ExerciseCatalog/Resources/Authoring/environments.json",
+                    "/schemaVersion",
+                    "E_SCHEMA_VERSION",
+                ),
             },
         )
 
@@ -572,6 +591,116 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             Image.MAX_IMAGE_PIXELS = original_limit
 
         self.assertIn("E_IMPORT_SOURCE_PNG", self.error_codes(report))
+
+    def test_decompression_bomb_warning_is_reported_as_source_png_error(self):
+        self.configure_approved_media()
+        original_limit = Image.MAX_IMAGE_PIXELS
+        try:
+            Image.MAX_IMAGE_PIXELS = 200
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                report = exercise_catalog.validate_catalogue(
+                    self.root,
+                    strict=True,
+                    source_pack=self.source_pack,
+                )
+        finally:
+            Image.MAX_IMAGE_PIXELS = original_limit
+
+        self.assertIn("E_IMPORT_SOURCE_PNG", self.error_codes(report))
+
+    def test_source_checksum_read_failure_is_diagnostic_only(self):
+        self.configure_approved_media()
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            side_effect=OSError("simulated source checksum read failure"),
+        ):
+            try:
+                report = exercise_catalog.validate_catalogue(
+                    self.root,
+                    strict=True,
+                    source_pack=self.source_pack,
+                    include_generated=False,
+                )
+            except OSError as error:
+                self.fail(f"validator leaked source checksum OSError: {error}")
+
+        self.assertIn("E_IMPORT_SOURCE_CHECKSUM_READ", self.error_codes(report))
+
+    def test_generated_checksum_read_failure_is_diagnostic_only(self):
+        source, row = self.configure_approved_media()
+        del source
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+        self.assertEqual(apply_exit, 0)
+        report = exercise_catalog.ValidationReport()
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            side_effect=OSError("simulated generated checksum read failure"),
+        ):
+            try:
+                exercise_catalog.validate_generated_media(
+                    self.root,
+                    {row["canonicalMediaKey"]: row["role"]},
+                    {row["canonicalMediaKey"]: row},
+                    report,
+                )
+            except OSError as error:
+                self.fail(f"validator leaked generated checksum OSError: {error}")
+
+        self.assertIn("E_MEDIA_PNG_CHECKSUM_READ", self.error_codes(report))
+
+    def test_unreadable_source_png_is_not_hashed(self):
+        source, row = self.configure_approved_media()
+        source.write_bytes(b"not a png")
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            return_value=row["sourceSHA256"],
+        ) as checksum:
+            report = exercise_catalog.validate_catalogue(
+                self.root,
+                strict=True,
+                source_pack=self.source_pack,
+                include_generated=False,
+            )
+
+        self.assertIn("E_IMPORT_SOURCE_PNG", self.error_codes(report))
+        checksum.assert_not_called()
+
+    def test_unreadable_generated_png_is_not_hashed(self):
+        source, row = self.configure_approved_media()
+        del source
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+        self.assertEqual(apply_exit, 0)
+        png_path = (
+            self.generated_namespace()
+            / f"{row['canonicalMediaKey']}.imageset"
+            / row["canonicalFileName"]
+        )
+        png_path.write_bytes(b"not a png")
+        report = exercise_catalog.ValidationReport()
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            return_value=row["sourceSHA256"],
+        ) as checksum:
+            exercise_catalog.validate_generated_media(
+                self.root,
+                {row["canonicalMediaKey"]: row["role"]},
+                {row["canonicalMediaKey"]: row},
+                report,
+            )
+
+        self.assertIn("E_MEDIA_PNG_INVALID", self.error_codes(report))
+        checksum.assert_not_called()
 
     def test_manifest_media_key_suffix_must_match_role(self):
         catalogue = self.catalog_fixture()
@@ -756,6 +885,19 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertIn("E_MEDIA_INDEX_FILE_MISSING", self.error_codes(report))
         self.assertIn("E_MEDIA_NAMESPACE_MISSING", self.error_codes(report))
 
+    def test_partial_generated_namespace_requires_media_index(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [self.media_fixture("bodyweight.squat")]
+        self.write_json("catalog.json", catalogue)
+        self.write_json_path(
+            self.generated_namespace() / "Contents.json",
+            {"info": {"author": "xcode", "version": 1}},
+        )
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertIn("E_MEDIA_INDEX_FILE_MISSING", self.error_codes(report))
+
     def test_generated_index_and_imageset_structure_are_fail_closed(self):
         source, row = self.configure_approved_media()
         del source
@@ -871,6 +1013,67 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
 
         self.assertEqual(repair_exit, 0)
         self.assertTrue((image_set / row["canonicalFileName"]).is_file())
+
+    def test_replacement_is_transactional_for_malformed_output_types(self):
+        self.configure_approved_media()
+        namespace = self.generated_namespace()
+        index_path = self.generated_index_path()
+        namespace.parent.mkdir(parents=True, exist_ok=True)
+        namespace.write_bytes(b"stale asset namespace file")
+        index_path.mkdir(parents=True)
+        (index_path / "stale.txt").write_text("stale index directory", encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+
+        self.assertEqual(apply_exit, 0)
+        self.assertTrue(namespace.is_dir())
+        self.assertTrue(index_path.is_file())
+        self.assertEqual(list(namespace.parent.glob(".ExerciseMedia.backup-*")), [])
+        self.assertEqual(list(index_path.parent.glob(".media-index.backup-*")), [])
+
+        shutil.rmtree(namespace)
+        index_path.unlink()
+        namespace.write_bytes(b"original asset namespace file")
+        index_path.mkdir()
+        (index_path / "marker.txt").write_text("original index directory", encoding="utf-8")
+        staging_root = self.root / "replacement-staging"
+        staging_assets = staging_root / "ExerciseMedia"
+        staging_assets.mkdir(parents=True)
+        (staging_assets / "new.txt").write_text("new assets", encoding="utf-8")
+        staging_index = staging_root / "media-index.json"
+        staging_index.write_text("{}", encoding="utf-8")
+        real_replace = exercise_catalog.os.replace
+        replace_count = 0
+
+        def fail_index_install(source_path, destination_path):
+            nonlocal replace_count
+            replace_count += 1
+            if replace_count == 4:
+                raise OSError("simulated index install failure")
+            return real_replace(source_path, destination_path)
+
+        with mock.patch.object(
+            exercise_catalog.os,
+            "replace",
+            side_effect=fail_index_install,
+        ):
+            with self.assertRaisesRegex(OSError, "simulated index install failure"):
+                exercise_catalog.replace_generated_import(
+                    self.root,
+                    staging_assets,
+                    staging_index,
+                )
+
+        self.assertTrue(namespace.is_file())
+        self.assertEqual(namespace.read_bytes(), b"original asset namespace file")
+        self.assertTrue(index_path.is_dir())
+        self.assertEqual(
+            (index_path / "marker.txt").read_text(encoding="utf-8"),
+            "original index directory",
+        )
+        self.assertEqual(list(namespace.parent.glob(".ExerciseMedia.backup-*")), [])
+        self.assertEqual(list(index_path.parent.glob(".media-index.backup-*")), [])
 
     def test_checked_in_catalogue_remains_strict_green(self):
         root = exercise_catalog.repository_root()
