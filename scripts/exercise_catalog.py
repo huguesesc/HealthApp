@@ -2237,20 +2237,32 @@ def validate_intake_assets(root: Path, media_keys: set[str], report: ValidationR
                 "Convert the asset to a single .png file.",
             )
             continue
-        validate_png(path, root, report)
-        checksum = sha256(path)
-        prior = content_hashes.get(checksum)
-        if prior is not None:
-            report.add_error(
-                "E_ASSET_DUPLICATE_CONTENT",
-                file,
-                "",
-                f"{prior.name}, {name}",
-                "exact duplicate image content cannot occupy two intake names",
-                "Keep one approved source and map it explicitly.",
-            )
-        else:
-            content_hashes[checksum] = path
+        metadata = validate_png(path, root, report)
+        if metadata is not None:
+            try:
+                checksum = sha256(path)
+            except OSError:
+                report.add_error(
+                    "E_ASSET_CHECKSUM_READ",
+                    file,
+                    "",
+                    name,
+                    "intake PNG bytes must remain readable for checksum verification",
+                    "Restore stable read access to the intake PNG.",
+                )
+            else:
+                prior = content_hashes.get(checksum)
+                if prior is not None:
+                    report.add_error(
+                        "E_ASSET_DUPLICATE_CONTENT",
+                        file,
+                        "",
+                        f"{prior.name}, {name}",
+                        "exact duplicate image content cannot occupy two intake names",
+                        "Keep one approved source and map it explicitly.",
+                    )
+                else:
+                    content_hashes[checksum] = path
         stem = name[:-4] if name.lower().endswith(".png") else ""
         if stem and stem not in media_keys:
             report.add_error(
@@ -2313,7 +2325,11 @@ def validate_png_readable(
     return width, height, mode
 
 
-def validate_png(path: Path, root: Path, report: ValidationReport) -> None:
+def validate_png(
+    path: Path,
+    root: Path,
+    report: ValidationReport,
+) -> tuple[int, int, str] | None:
     file = relative_path(root, path)
     metadata = validate_png_readable(
         path,
@@ -2346,6 +2362,7 @@ def validate_png(path: Path, root: Path, report: ValidationReport) -> None:
             "instructional PNGs normally preserve transparency",
             "Confirm the opaque background is intentional or obtain an alpha export.",
         )
+    return metadata
 
 
 def validate_schema_version(

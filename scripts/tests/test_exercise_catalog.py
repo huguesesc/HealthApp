@@ -157,6 +157,40 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertIn("E_ASSET_NAME", self.error_codes(report))
         self.assertIn("E_ASSET_DUPLICATE_CONTENT", self.error_codes(report))
 
+    def test_unreadable_intake_png_is_not_hashed(self):
+        intake = self.root / "exercise-assets-intake"
+        intake.mkdir()
+        asset = intake / "bodyweight.squat__composite.png"
+        asset.write_bytes(b"not a png")
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            return_value="a" * 64,
+        ) as checksum:
+            report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertIn("E_PNG_INVALID", self.error_codes(report))
+        checksum.assert_not_called()
+
+    def test_intake_checksum_read_failure_is_diagnostic_only(self):
+        intake = self.root / "exercise-assets-intake"
+        intake.mkdir()
+        asset = intake / "bodyweight.squat__composite.png"
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(asset)
+
+        with mock.patch.object(
+            exercise_catalog,
+            "sha256",
+            side_effect=OSError("simulated intake checksum read failure"),
+        ):
+            try:
+                report = exercise_catalog.validate_catalogue(self.root, strict=True)
+            except OSError as error:
+                self.fail(f"validator leaked intake checksum OSError: {error}")
+
+        self.assertIn("E_ASSET_CHECKSUM_READ", self.error_codes(report))
+
     def test_import_map_enforces_manifest_key_and_source_checksum(self):
         catalogue = self.catalog_fixture()
         catalogue["exercises"][0]["media"] = [
