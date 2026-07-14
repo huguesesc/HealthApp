@@ -230,6 +230,7 @@ struct ExerciseCatalogEligibilityTests {
             trackingMode: ExerciseTrackingMode(rawValue: "test"),
             instructions: [],
             lifecycle: ExerciseLifecycle(status: .active, replacementExerciseID: nil),
+            media: nil,
             aliases: nil,
             legacyIDs: nil,
             guidance: nil,

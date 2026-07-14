@@ -51,6 +51,7 @@ struct ExerciseCatalogDomainTests {
             ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 2)
         ]])
         #expect(definition.instructions.isEmpty)
+        #expect(definition.media == nil)
         let environmentRequirements = try #require(definition.environmentRequirements)
         #expect(environmentRequirements.required == [
             ExerciseEnvironmentRequirement(rawValue: "machine_access")

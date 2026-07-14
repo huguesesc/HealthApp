@@ -11,6 +11,7 @@ struct ExerciseDefinition: Codable, Hashable, Sendable {
     let trackingMode: ExerciseTrackingMode
     let instructions: [String]
     let lifecycle: ExerciseLifecycle
+    let media: [ExerciseMediaDefinition]?
 
     let aliases: [String]?
     let legacyIDs: [ExerciseID]?
