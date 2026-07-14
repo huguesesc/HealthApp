@@ -90,6 +90,49 @@ struct ExerciseCatalogManifestFixtureTests {
         }
     }
 
+    @Test func catalogFixtureRecordsAuditedSurfaceAndMovementCapabilities() throws {
+        let fixture = try loadCatalogFixture()
+        let requiredCapabilitiesByID = Dictionary(uniqueKeysWithValues: fixture.exercises.map {
+            exercise in
+            (
+                exercise.id.rawValue,
+                Set(exercise.environmentRequirements?.required.map(\.rawValue) ?? [])
+            )
+        })
+        let floorSpaceExerciseIDs: Set<String> = [
+            "bodyweight.dead_bug",
+            "bodyweight.push_up",
+            "bodyweight.glute_bridge",
+            "bodyweight.bird_dog",
+            "bodyweight.side_plank",
+            "bodyweight.mountain_climber"
+        ]
+        let standingExerciseIDsWithoutAdditionalCapabilities: Set<String> = [
+            "bodyweight.forward_lunge",
+            "band.lateral_squat"
+        ]
+        let lateralSquat = try #require(fixture.exercises.first {
+            $0.id.rawValue == "band.lateral_squat"
+        })
+        let lateralStepInstruction = "Step laterally into a squat, then bring the trailing foot in "
+            + "and repeat on the other side."
+
+        for exerciseID in floorSpaceExerciseIDs {
+            #expect(requiredCapabilitiesByID[exerciseID] == Set<String>(["floor_space"]))
+        }
+        #expect(
+            requiredCapabilitiesByID["bodyweight.jumping_jack"]
+                == Set<String>(["jumping_allowed"])
+        )
+        for exerciseID in standingExerciseIDsWithoutAdditionalCapabilities {
+            #expect(requiredCapabilitiesByID[exerciseID] == Set<String>())
+        }
+        #expect(lateralSquat.instructions == [
+            "Place a mini resistance band above the knees and stand with feet hip-width apart.",
+            lateralStepInstruction
+        ])
+    }
+
     @Test func catalogFixtureIncludesOnlyExactSafeLegacyMotionAliases() throws {
         let fixture = try loadCatalogFixture()
         let vectorMotionIDs: Set<String> = [

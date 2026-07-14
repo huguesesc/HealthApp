@@ -31,6 +31,7 @@
       "movementPattern": "anti_extension",
       "exerciseType": "repetition",
       "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
       "trackingMode": "reps",
       "instructions": [
         "Lie on your back with hips and knees bent.",
@@ -53,6 +54,7 @@
       "movementPattern": "horizontal_push",
       "exerciseType": "repetition",
       "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
       "trackingMode": "reps",
       "instructions": [
         "Start in a high plank with hands beneath the shoulders.",
@@ -75,6 +77,7 @@
       "movementPattern": "hip_extension",
       "exerciseType": "repetition",
       "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
       "trackingMode": "reps",
       "instructions": [
         "Lie on your back with knees bent and feet on the floor.",
@@ -97,6 +100,7 @@
       "movementPattern": "anti_rotation",
       "exerciseType": "repetition",
       "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
       "trackingMode": "reps",
       "instructions": [
         "Start on hands and knees with the spine long.",
@@ -163,6 +167,7 @@
       "movementPattern": "anti_lateral_flexion",
       "exerciseType": "isometric",
       "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
       "trackingMode": "duration",
       "instructions": [
         "Lie on your side with the forearm beneath the shoulder.",
@@ -468,7 +473,7 @@
       "trackingMode": "reps",
       "instructions": [
         "Place a mini resistance band above the knees and stand with feet hip-width apart.",
-        "Lower into a squat and stand back up while maintaining band tension."
+        "Step laterally into a squat, then bring the trailing foot in and repeat on the other side."
       ],
       "media": [
         {
