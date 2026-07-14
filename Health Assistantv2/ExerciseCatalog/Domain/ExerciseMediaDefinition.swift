@@ -34,9 +34,12 @@ enum ExerciseMediaSequenceNamespace: Hashable, Sendable {
 
 enum ExerciseMediaValidationError: Error, Hashable, Sendable {
     case blankKey(key: String)
+    case keyContainsLeadingOrTrailingWhitespace(key: String)
     case duplicateKey(key: String)
     case blankAccessibilityDescription(key: String)
     case missingPairedRole(role: ExerciseMediaRole)
+    case missingEndpointSequence(role: ExerciseMediaRole)
+    case invalidEndpointOrder(startSequence: Int, endSequence: Int)
     case nonPositiveSequence(key: String, sequence: Int)
     case duplicateSequence(namespace: ExerciseMediaSequenceNamespace, sequence: Int)
     case nonContiguousSequence(
@@ -54,6 +57,9 @@ extension Array where Element == ExerciseMediaDefinition {
             let normalizedKey = item.key.trimmingCharacters(in: .whitespacesAndNewlines)
             if normalizedKey.isEmpty {
                 errors.append(.blankKey(key: item.key))
+            }
+            if normalizedKey != item.key {
+                errors.append(.keyContainsLeadingOrTrailingWhitespace(key: item.key))
             }
             let trimmedDescription = item.accessibilityDescription.trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -76,8 +82,41 @@ extension Array where Element == ExerciseMediaDefinition {
         if containsStart != containsEnd {
             errors.append(.missingPairedRole(role: containsStart ? .end : .start))
         }
+        errors.append(contentsOf: endpointSequenceErrors())
 
         errors.append(contentsOf: sequenceValidationErrors())
+        return errors
+    }
+
+    private func endpointSequenceErrors() -> [ExerciseMediaValidationError] {
+        let starts = filter { $0.role == .start }
+        let ends = filter { $0.role == .end }
+        guard !starts.isEmpty, !ends.isEmpty else {
+            return []
+        }
+
+        var errors: [ExerciseMediaValidationError] = []
+        if starts.contains(where: { $0.sequence == nil }) {
+            errors.append(.missingEndpointSequence(role: .start))
+        }
+        if ends.contains(where: { $0.sequence == nil }) {
+            errors.append(.missingEndpointSequence(role: .end))
+        }
+
+        let startSequences = starts.compactMap(\.sequence)
+        let endSequences = ends.compactMap(\.sequence)
+        guard startSequences.count == starts.count,
+              endSequences.count == ends.count,
+              startSequences.allSatisfy({ $0 > 0 }),
+              endSequences.allSatisfy({ $0 > 0 }),
+              let latestStart = startSequences.max(),
+              let earliestEnd = endSequences.min(),
+              latestStart >= earliestEnd else {
+            return errors
+        }
+        errors.append(
+            .invalidEndpointOrder(startSequence: latestStart, endSequence: earliestEnd)
+        )
         return errors
     }
 
