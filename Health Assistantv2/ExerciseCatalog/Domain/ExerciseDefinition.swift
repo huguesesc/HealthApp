@@ -13,6 +13,7 @@ struct ExerciseDefinition: Codable, Hashable, Sendable {
     let lifecycle: ExerciseLifecycle
 
     let aliases: [String]?
+    let legacyIDs: [ExerciseID]?
     let guidance: [String]?
     let environmentRequirements: ExerciseEnvironmentRequirements?
 }
