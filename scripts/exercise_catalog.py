@@ -1658,6 +1658,52 @@ def json_pointer_from_line(path: Path, line_number: int) -> str:
     return ""
 
 
+def run_import_dry_run(root: Path | str, source_pack: Path | str) -> int:
+    root_path = Path(root).resolve()
+    import_map_path = root_path / AUTHORING_DIRECTORY / IMPORT_MAPPING_FILENAME
+    if not import_map_path.is_file():
+        print(f"ERROR E_IMPORT_MAP_MISSING {relative_path(root_path, import_map_path)}")
+        return 1
+
+    report = validate_catalogue(root_path, strict=True, source_pack=source_pack)
+    if report.errors or report.warnings:
+        print_report(report)
+        return 1
+
+    import_map = json.loads(import_map_path.read_text(encoding="utf-8"))
+    images = import_map["images"]
+    mapped_rows = sorted(
+        images,
+        key=lambda image: image["canonicalMediaKey"],
+    )
+    status_counts = {
+        status: sum(image["status"] == status for image in images)
+        for status in sorted(IMPORT_STATUSES)
+    }
+    print(
+        "exercise-catalog import dry run: "
+        f"approved={status_counts['approved_for_import']} "
+        f"pending={status_counts['approved_pending_catalogue_entry']} "
+        f"unreviewed={status_counts['unreviewed']} "
+        f"quarantined={status_counts['quarantined']}"
+    )
+    for image in mapped_rows:
+        destination = (
+            root_path
+            / "Health Assistantv2"
+            / "Assets.xcassets"
+            / "ExerciseMedia"
+            / f"{image['canonicalMediaKey']}.imageset"
+            / image["canonicalFileName"]
+        )
+        action = "COPY" if image["status"] == "approved_for_import" else "REJECT"
+        print(
+            f"DRY-RUN {action} status={image['status']} "
+            f"{image['sourcePath']} -> {relative_path(root_path, destination)}"
+        )
+    return 0
+
+
 def print_report(report: ValidationReport) -> None:
     print(
         "exercise-catalog validation: "
@@ -1680,12 +1726,23 @@ def build_parser() -> argparse.ArgumentParser:
             help="Optional source-pack root used to verify mapped source checksums.",
         )
         command.add_argument("--strict", action="store_true")
+    importer = subcommands.add_parser("import")
+    importer.add_argument("--root", type=Path, default=repository_root())
+    importer.add_argument("--source-pack", type=Path, required=True)
+    importer.add_argument(
+        "--dry-run",
+        action="store_true",
+        required=True,
+        help="Print the deterministic approved-copy plan without writing files.",
+    )
     return parser
 
 
 def main(arguments: Iterable[str] | None = None) -> int:
     parser = build_parser()
     parsed = parser.parse_args(list(arguments) if arguments is not None else None)
+    if parsed.command == "import":
+        return run_import_dry_run(parsed.root, parsed.source_pack)
     report = validate_catalogue(
         parsed.root,
         strict=parsed.strict,

@@ -217,6 +217,74 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             self.error_codes(invalid_report),
         )
 
+    def test_import_dry_run_lists_only_approved_rows_without_writing(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source_directory = self.source_pack / "workout_avatar"
+        source_directory.mkdir(parents=True)
+        approved_source = source_directory / "bodyweight_squat.png"
+        unreviewed_source = source_directory / "bodyweight_lunge.png"
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(approved_source)
+        Image.new("RGBA", (16, 16), (40, 30, 20, 255)).save(unreviewed_source)
+        self.write_json(
+            "media-import-map.json",
+            {
+                "schemaVersion": 1,
+                "sourcePack": {
+                    "mappedDirectory": "workout_avatar",
+                    "mappedImageCount": 2,
+                },
+                "images": [
+                    {
+                        "status": "approved_for_import",
+                        "sourcePath": "workout_avatar/bodyweight_squat.png",
+                        "sourceSHA256": exercise_catalog.sha256(approved_source),
+                        "canonicalExerciseID": "bodyweight.squat",
+                        "canonicalMediaKey": "bodyweight.squat__composite",
+                        "canonicalFileName": "bodyweight.squat__composite.png",
+                        "role": "composite",
+                    },
+                    {
+                        "status": "unreviewed",
+                        "sourcePath": "workout_avatar/bodyweight_lunge.png",
+                        "sourceSHA256": exercise_catalog.sha256(unreviewed_source),
+                        "canonicalExerciseID": "bodyweight.lunge",
+                        "canonicalMediaKey": "bodyweight.lunge__composite",
+                        "canonicalFileName": "bodyweight.lunge__composite.png",
+                        "role": "composite",
+                    },
+                ],
+            },
+        )
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = exercise_catalog.main([
+                "import",
+                "--dry-run",
+                "--root",
+                str(self.root),
+                "--source-pack",
+                str(self.source_pack),
+            ])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("approved=1", output.getvalue())
+        self.assertIn("unreviewed=1", output.getvalue())
+        self.assertIn("bodyweight.squat__composite.png", output.getvalue())
+        self.assertIn("REJECT status=unreviewed", output.getvalue())
+        self.assertIn("bodyweight.lunge__composite.png", output.getvalue())
+        self.assertFalse(
+            (self.root / "Health Assistantv2" / "Assets.xcassets" / "ExerciseMedia").exists()
+        )
+
     def test_cli_returns_one_for_errors_and_zero_for_clean_catalogue(self):
         invalid_catalogue = self.catalog_fixture()
         invalid_catalogue["exercises"][0]["instructions"] = [" "]
