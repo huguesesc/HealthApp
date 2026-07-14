@@ -55,8 +55,12 @@ struct ExerciseCatalogIndex: Sendable {
 
         var legacyIDIndex: [ExerciseID: ExerciseDefinition] = [:]
         var duplicateLegacyIDs: Set<ExerciseID> = []
+        var legacyIDsCollidingWithStableIDs: Set<ExerciseID> = []
         for exercise in manifest.exercises {
             for legacyID in exercise.legacyIDs ?? [] {
+                if stableIDClaims[legacyID] != nil {
+                    legacyIDsCollidingWithStableIDs.insert(legacyID)
+                }
                 if legacyIDIndex[legacyID] == nil {
                     legacyIDIndex[legacyID] = exercise
                 } else {
@@ -87,6 +91,8 @@ struct ExerciseCatalogIndex: Sendable {
             "Duplicate stable ID: \($0.rawValue)."
         } + duplicateLegacyIDs.sorted { $0.rawValue < $1.rawValue }.map {
             "Duplicate legacy ID: \($0.rawValue)."
+        } + legacyIDsCollidingWithStableIDs.sorted { $0.rawValue < $1.rawValue }.map {
+            "Legacy ID collides with stable ID: \($0.rawValue)."
         } + ambiguousNormalizedReferences.sorted().map {
             "Ambiguous normalized reference: \($0)."
         }

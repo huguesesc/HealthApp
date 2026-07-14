@@ -95,6 +95,27 @@ struct ExerciseCatalogLoadingTests {
         }
     }
 
+    @Test func legacyIDCollidingWithAStableIDProducesValidationFailure() async throws {
+        let stableRecord = exercise(id: "bodyweight.squat", displayName: "Squat")
+        let legacyRecord = exercise(
+            id: "bodyweight.lunge",
+            displayName: "Lunge",
+            legacyIDs: ["bodyweight.squat"]
+        )
+        let repository = ExerciseCatalogRepository(
+            dataProvider: StaticCatalogDataProvider(
+                data: try manifestData(exercises: [stableRecord, legacyRecord])
+            )
+        )
+
+        switch await repository.loadState() {
+        case .unavailable(.validationFailed(let messages)):
+            #expect(messages == ["Legacy ID collides with stable ID: bodyweight.squat."])
+        default:
+            #expect(Bool(false))
+        }
+    }
+
     @Test func collidingNormalizedDisplayNamesAndAliasesMakeTheCatalogueUnavailable() async throws {
         let first = exercise(
             id: "bodyweight.squat",
