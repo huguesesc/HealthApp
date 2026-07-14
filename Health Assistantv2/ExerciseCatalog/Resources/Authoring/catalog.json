@@ -1,0 +1,483 @@
+{
+  "catalogSchemaVersion": 1,
+  "exercises": [
+    {
+      "id": "bodyweight.squat",
+      "schemaVersion": 1,
+      "displayName": "Bodyweight squat",
+      "category": "strength",
+      "movementPattern": "squat",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand with feet under the hips and lower into a squat.",
+        "Press through the feet to return to standing."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.squat__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a bodyweight squat"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.dead_bug",
+      "schemaVersion": 1,
+      "displayName": "Dead bug",
+      "category": "strength",
+      "movementPattern": "anti_extension",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Lie on your back with hips and knees bent.",
+        "Extend the opposite arm and leg, then return to the start."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.dead_bug__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a dead bug"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.push_up",
+      "schemaVersion": 1,
+      "displayName": "Push-up",
+      "category": "strength",
+      "movementPattern": "horizontal_push",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Start in a high plank with hands beneath the shoulders.",
+        "Lower the chest toward the floor and press back up."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.push_up__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a push-up"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.glute_bridge",
+      "schemaVersion": 1,
+      "displayName": "Glute bridge",
+      "category": "strength",
+      "movementPattern": "hip_extension",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Lie on your back with knees bent and feet on the floor.",
+        "Lift the hips, then lower them back to the floor."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.glute_bridge__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a glute bridge"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.bird_dog",
+      "schemaVersion": 1,
+      "displayName": "Bird dog",
+      "category": "strength",
+      "movementPattern": "anti_rotation",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Start on hands and knees with the spine long.",
+        "Extend the opposite arm and leg, then return to the start."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.bird_dog__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a bird dog"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.forward_lunge",
+      "schemaVersion": 1,
+      "displayName": "Forward lunge",
+      "category": "strength",
+      "movementPattern": "lunge",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Step forward and bend both knees to lower.",
+        "Press through the front foot to return to standing."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.forward_lunge__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a forward lunge"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.calf_raise",
+      "schemaVersion": 1,
+      "displayName": "Calf raise",
+      "category": "strength",
+      "movementPattern": "plantar_flexion",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand with feet parallel and weight evenly distributed.",
+        "Raise the heels, then lower them back to the floor."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.calf_raise__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a calf raise"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.side_plank",
+      "schemaVersion": 1,
+      "displayName": "Side plank",
+      "category": "strength",
+      "movementPattern": "anti_lateral_flexion",
+      "exerciseType": "isometric",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "trackingMode": "duration",
+      "instructions": [
+        "Lie on your side with the forearm beneath the shoulder.",
+        "Lift the hips and hold a straight line from head to feet."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.side_plank__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a side plank"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.mountain_climber",
+      "schemaVersion": 1,
+      "displayName": "Mountain climber",
+      "category": "conditioning",
+      "movementPattern": "knee_drive",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["floor_space"]},
+      "trackingMode": "reps",
+      "instructions": [
+        "Start in a high plank with hands beneath the shoulders.",
+        "Draw one knee toward the chest, then alternate sides."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.mountain_climber__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a mountain climber"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "bodyweight.jumping_jack",
+      "schemaVersion": 1,
+      "displayName": "Jumping jack",
+      "category": "conditioning",
+      "movementPattern": "jump",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "none", "quantity": 1}], "alternatives": []},
+      "environmentRequirements": {"required": ["jumping_allowed"]},
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand with arms by the sides and feet together.",
+        "Jump the feet apart while raising the arms, then return to the start."
+      ],
+      "media": [
+        {
+          "key": "bodyweight.jumping_jack__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a jumping jack"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "dumbbell.goblet_squat",
+      "schemaVersion": 1,
+      "displayName": "Goblet squat",
+      "category": "strength",
+      "movementPattern": "squat",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [{"id": "dumbbell", "quantity": 1}],
+        "alternatives": [
+          [{"id": "kettlebell", "quantity": 1}],
+          [{"id": "weight_plate", "quantity": 1}]
+        ]
+      },
+      "trackingMode": "reps",
+      "instructions": [
+        "Hold one weight close to the chest.",
+        "Sit down between the hips while keeping the feet grounded."
+      ],
+      "aliases": ["goblet_squat"],
+      "media": [
+        {
+          "key": "dumbbell.goblet_squat__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a goblet squat"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "dumbbell.bent_over_row",
+      "schemaVersion": 1,
+      "displayName": "Bent-over row",
+      "category": "strength",
+      "movementPattern": "horizontal_pull",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "dumbbell", "quantity": 2}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Hinge forward with a dumbbell in each hand and arms extended.",
+        "Pull the dumbbells toward the ribs, then lower them with control."
+      ],
+      "aliases": ["bent_over_row"],
+      "media": [
+        {
+          "key": "dumbbell.bent_over_row__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a bent-over row"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "dumbbell.biceps_curl",
+      "schemaVersion": 1,
+      "displayName": "Dumbbell biceps curl",
+      "category": "strength",
+      "movementPattern": "elbow_flexion",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "dumbbell", "quantity": 2}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand holding a dumbbell in each hand with arms by the sides.",
+        "Bend the elbows to raise the dumbbells, then lower them."
+      ],
+      "media": [
+        {
+          "key": "dumbbell.biceps_curl__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a dumbbell biceps curl"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "dumbbell.overhead_press",
+      "schemaVersion": 1,
+      "displayName": "Dumbbell overhead press",
+      "category": "strength",
+      "movementPattern": "vertical_push",
+      "exerciseType": "repetition",
+      "equipment": {"required": [{"id": "dumbbell", "quantity": 2}], "alternatives": []},
+      "trackingMode": "reps",
+      "instructions": [
+        "Hold dumbbells at shoulder height with palms facing forward.",
+        "Press both dumbbells overhead, then return them to shoulder height."
+      ],
+      "aliases": ["overhead_press"],
+      "media": [
+        {
+          "key": "dumbbell.overhead_press__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a dumbbell overhead press"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "barbell.deadlift",
+      "schemaVersion": 1,
+      "displayName": "Barbell deadlift",
+      "category": "strength",
+      "movementPattern": "hip_hinge",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [
+          {"id": "barbell", "quantity": 1},
+          {"id": "weight_plate", "quantity": 2}
+        ],
+        "alternatives": []
+      },
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand with the barbell over the middle of the feet and hinge to grip it.",
+        "Extend the hips and knees to stand, then return the barbell to the floor."
+      ],
+      "media": [
+        {
+          "key": "barbell.deadlift__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a barbell deadlift"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "barbell.romanian_deadlift",
+      "schemaVersion": 1,
+      "displayName": "Barbell Romanian deadlift",
+      "category": "strength",
+      "movementPattern": "hip_hinge",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [
+          {"id": "barbell", "quantity": 1},
+          {"id": "weight_plate", "quantity": 2}
+        ],
+        "alternatives": []
+      },
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand holding the barbell in front of the thighs.",
+        "Hinge at the hips to lower the barbell, then extend the hips to stand."
+      ],
+      "media": [
+        {
+          "key": "barbell.romanian_deadlift__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a barbell Romanian deadlift"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "machine.leg_press",
+      "schemaVersion": 1,
+      "displayName": "Leg press",
+      "category": "strength",
+      "movementPattern": "squat",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [{"id": "leg_press_machine", "quantity": 1}],
+        "alternatives": []
+      },
+      "environmentRequirements": {"required": ["machine_access"]},
+      "trackingMode": "reps",
+      "instructions": [
+        "Set the seat for a seated starting position with both feet on the platform.",
+        "Press the platform away, then return it to the starting position."
+      ],
+      "media": [
+        {
+          "key": "machine.leg_press__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a seated leg press"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "machine.lat_pulldown",
+      "schemaVersion": 1,
+      "displayName": "Lat pulldown",
+      "category": "strength",
+      "movementPattern": "vertical_pull",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [{"id": "lat_pulldown_machine", "quantity": 1}],
+        "alternatives": []
+      },
+      "environmentRequirements": {"required": ["machine_access"]},
+      "trackingMode": "reps",
+      "instructions": [
+        "Sit facing the machine and hold the bar with arms extended overhead.",
+        "Draw the bar toward the upper chest, then return it overhead."
+      ],
+      "media": [
+        {
+          "key": "machine.lat_pulldown__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a lat pulldown"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "cable.triceps_pushdown",
+      "schemaVersion": 1,
+      "displayName": "Cable triceps pushdown",
+      "category": "strength",
+      "movementPattern": "elbow_extension",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [{"id": "cable_station", "quantity": 1}],
+        "alternatives": []
+      },
+      "environmentRequirements": {"required": ["machine_access"]},
+      "trackingMode": "reps",
+      "instructions": [
+        "Stand facing the cable station with elbows close to the sides.",
+        "Extend the elbows to press the attachment down, then return to the start."
+      ],
+      "media": [
+        {
+          "key": "cable.triceps_pushdown__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a cable triceps pushdown"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "band.lateral_squat",
+      "schemaVersion": 1,
+      "displayName": "Band lateral squat",
+      "category": "strength",
+      "movementPattern": "squat",
+      "exerciseType": "repetition",
+      "equipment": {
+        "required": [{"id": "mini_resistance_band", "quantity": 1}],
+        "alternatives": []
+      },
+      "trackingMode": "reps",
+      "instructions": [
+        "Place a mini resistance band above the knees and stand with feet hip-width apart.",
+        "Lower into a squat and stand back up while maintaining band tension."
+      ],
+      "media": [
+        {
+          "key": "band.lateral_squat__composite",
+          "role": "composite",
+          "accessibilityDescription": "Two phases of a band lateral squat"
+        }
+      ],
+      "lifecycle": {"status": "active"}
+    }
+  ]
+}
