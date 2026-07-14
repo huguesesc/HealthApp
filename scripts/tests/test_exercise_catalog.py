@@ -17,6 +17,7 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.authoring = (
             self.root / "Health Assistantv2" / "ExerciseCatalog" / "Resources" / "Authoring"
         )
+        self.source_pack = self.root / "source-pack"
         self.authoring.mkdir(parents=True)
         self.write_json("equipment.json", self.equipment_fixture())
         self.write_json("environments.json", self.environment_fixture())
@@ -152,6 +153,69 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
 
         self.assertIn("E_ASSET_NAME", self.error_codes(report))
         self.assertIn("E_ASSET_DUPLICATE_CONTENT", self.error_codes(report))
+
+    def test_import_map_enforces_manifest_key_and_source_checksum(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source = self.source_pack / "workout_avatar" / "bodyweight_squat.png"
+        source.parent.mkdir(parents=True)
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(source)
+        import_map = {
+            "schemaVersion": 1,
+            "sourcePack": {
+                "mappedDirectory": "workout_avatar",
+                "mappedImageCount": 1,
+            },
+            "images": [
+                {
+                    "status": "approved_for_import",
+                    "sourcePath": "workout_avatar/bodyweight_squat.png",
+                    "sourceSHA256": exercise_catalog.sha256(source),
+                    "canonicalExerciseID": "bodyweight.squat",
+                    "canonicalMediaKey": "bodyweight.squat__composite",
+                    "canonicalFileName": "bodyweight.squat__composite.png",
+                    "role": "composite",
+                }
+            ],
+        }
+        self.write_json("media-import-map.json", import_map)
+
+        valid_report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertEqual(valid_report.errors, [])
+        Image.new("RGBA", (16, 16), (40, 30, 20, 255)).save(
+            source.parent / "unmapped.png"
+        )
+        import_map["images"][0]["canonicalMediaKey"] = "bodyweight.unknown__composite"
+        import_map["images"][0]["canonicalFileName"] = 7
+        import_map["images"][0]["sourceSHA256"] = "0" * 64
+        self.write_json("media-import-map.json", import_map)
+
+        invalid_report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_IMPORT_MAP_KEY_UNKNOWN", self.error_codes(invalid_report))
+        self.assertIn("E_IMPORT_FILENAME", self.error_codes(invalid_report))
+        self.assertIn("E_IMPORT_SOURCE_CHECKSUM", self.error_codes(invalid_report))
+        self.assertIn("E_IMPORT_SOURCE_UNMAPPED", self.error_codes(invalid_report))
+        self.assertIn(
+            "E_IMPORT_MAP_MANIFEST_MEDIA_UNMAPPED",
+            self.error_codes(invalid_report),
+        )
 
     def test_cli_returns_one_for_errors_and_zero_for_clean_catalogue(self):
         invalid_catalogue = self.catalog_fixture()

@@ -21,6 +21,7 @@ CATALOG_SCHEMA_VERSION = 1
 AUTHORING_DIRECTORY = Path("Health Assistantv2/ExerciseCatalog/Resources/Authoring")
 GENERATED_DIRECTORY = Path("Health Assistantv2/ExerciseCatalog/Resources/Generated")
 INTAKE_DIRECTORY = Path("exercise-assets-intake")
+IMPORT_MAPPING_FILENAME = "media-import-map.json"
 EXERCISE_ID_PATTERN = re.compile(
     r"^[a-z0-9]+(?:_[a-z0-9]+)*\.[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$"
 )
@@ -41,6 +42,13 @@ MEDIA_ROLES = {
     "composite",
 }
 LIFECYCLE_STATUSES = {"active", "deprecated", "disabled"}
+IMPORT_STATUSES = {
+    "approved_for_import",
+    "approved_pending_catalogue_entry",
+    "unreviewed",
+    "quarantined",
+}
+SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
 
 @dataclass(frozen=True)
@@ -102,7 +110,11 @@ def repository_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def validate_catalogue(root: Path | str, strict: bool = False) -> ValidationReport:
+def validate_catalogue(
+    root: Path | str,
+    strict: bool = False,
+    source_pack: Path | str | None = None,
+) -> ValidationReport:
     """Validate authoring JSON and any present intake/generated resources without writing."""
     del strict  # Strictness affects the command exit code; checks are always exhaustive.
     root_path = Path(root).resolve()
@@ -111,6 +123,7 @@ def validate_catalogue(root: Path | str, strict: bool = False) -> ValidationRepo
     catalog_path = authoring / "catalog.json"
     equipment_path = authoring / "equipment.json"
     environments_path = authoring / "environments.json"
+    import_map_path = authoring / IMPORT_MAPPING_FILENAME
 
     catalog = load_json(catalog_path, root_path, report)
     equipment = load_json(equipment_path, root_path, report)
@@ -126,6 +139,15 @@ def validate_catalogue(root: Path | str, strict: bool = False) -> ValidationRepo
         capability_ids,
         report,
     )
+    if import_map_path.exists():
+        validate_import_map(
+            load_json(import_map_path, root_path, report),
+            import_map_path,
+            root_path,
+            media_keys,
+            Path(source_pack).resolve() if source_pack is not None else None,
+            report,
+        )
     validate_generated_media(root_path, media_keys, report)
     validate_intake_assets(root_path, media_keys, report)
     report.finalise()
@@ -1057,6 +1079,296 @@ def validate_replacements(
         )
 
 
+def validate_import_map(
+    data: Any,
+    path: Path,
+    root: Path,
+    media_keys: set[str],
+    source_pack: Path | None,
+    report: ValidationReport,
+) -> None:
+    file = relative_path(root, path)
+    if not isinstance(data, dict):
+        return
+    validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
+    images = data.get("images")
+    if not isinstance(images, list):
+        report.add_error(
+            "E_IMPORT_MAP_LIST",
+            file,
+            "/images",
+            images,
+            "media-import-map.json must contain an images array",
+            "Provide one explicit image-mapping object for every workout source image.",
+        )
+        return
+
+    source_pack_metadata = data.get("sourcePack")
+    mapped_directory: str | None = None
+    if not isinstance(source_pack_metadata, dict):
+        report.add_error(
+            "E_IMPORT_SOURCE_PACK_METADATA",
+            file,
+            "/sourcePack",
+            source_pack_metadata,
+            "media-import-map.json must declare sourcePack metadata",
+            "Record the source-pack mappedDirectory and mappedImageCount.",
+        )
+    else:
+        candidate_directory = source_pack_metadata.get("mappedDirectory")
+        if not safe_source_relative_path(candidate_directory):
+            report.add_error(
+                "E_IMPORT_SOURCE_DIRECTORY",
+                file,
+                "/sourcePack/mappedDirectory",
+                candidate_directory,
+                "mappedDirectory must be a safe path relative to the source pack",
+                "Use a directory such as workout_avatar.",
+            )
+        else:
+            mapped_directory = candidate_directory
+        if source_pack_metadata.get("mappedImageCount") != len(images):
+            report.add_error(
+                "E_IMPORT_SOURCE_COUNT",
+                file,
+                "/sourcePack/mappedImageCount",
+                source_pack_metadata.get("mappedImageCount"),
+                "mappedImageCount must equal the number of explicit image rows",
+                "Update the count after adding or removing an image decision.",
+            )
+
+    claimed_sources: dict[str, str] = {}
+    claimed_keys: dict[str, str] = {}
+    approved_media_keys: set[str] = set()
+    for index, image in enumerate(images):
+        pointer = f"/images/{index}"
+        if not isinstance(image, dict):
+            report.add_error(
+                "E_IMPORT_MAP_RECORD",
+                file,
+                pointer,
+                image,
+                "import-map entries must be objects",
+                "Replace the value with a complete image-mapping object.",
+            )
+            continue
+
+        status = image.get("status")
+        source_path = image.get("sourcePath")
+        source_checksum = image.get("sourceSHA256")
+        exercise_id = image.get("canonicalExerciseID")
+        media_key = image.get("canonicalMediaKey")
+        filename = image.get("canonicalFileName")
+        role = image.get("role")
+
+        if status not in IMPORT_STATUSES:
+            report.add_error(
+                "E_IMPORT_MAP_STATUS",
+                file,
+                f"{pointer}/status",
+                status,
+                "status must be an explicit supported import decision",
+                "Use approved_for_import, approved_pending_catalogue_entry, "
+                "unreviewed, or quarantined.",
+            )
+        if not safe_source_relative_path(source_path):
+            report.add_error(
+                "E_IMPORT_SOURCE_PATH",
+                file,
+                f"{pointer}/sourcePath",
+                source_path,
+                "sourcePath must be a nonempty safe POSIX path relative to the source pack",
+                "Use a path such as workout_avatar/bodyweight_squat.png.",
+            )
+        elif mapped_directory is not None and not source_path.startswith(
+            f"{mapped_directory}/"
+        ):
+            report.add_error(
+                "E_IMPORT_SOURCE_SCOPE",
+                file,
+                f"{pointer}/sourcePath",
+                source_path,
+                "sourcePath must be inside the declared mappedDirectory",
+                "Map only source images from the declared exercise-media directory.",
+            )
+        if (
+            not isinstance(source_checksum, str)
+            or SHA256_PATTERN.fullmatch(source_checksum) is None
+        ):
+            report.add_error(
+                "E_IMPORT_SOURCE_CHECKSUM_FORMAT",
+                file,
+                f"{pointer}/sourceSHA256",
+                source_checksum,
+                "sourceSHA256 must be a lowercase 64-character SHA-256 digest",
+                "Record the exact lowercase SHA-256 of the approved source file.",
+            )
+        if not is_exercise_id(exercise_id):
+            report.add_error(
+                "E_IMPORT_EXERCISE_ID",
+                file,
+                f"{pointer}/canonicalExerciseID",
+                exercise_id,
+                "canonicalExerciseID must use the stable exercise ID format",
+                "Use the canonical stable ID proposed for this image.",
+            )
+        if not isinstance(media_key, str) or MEDIA_KEY_PATTERN.fullmatch(media_key) is None:
+            report.add_error(
+                "E_IMPORT_MEDIA_KEY_FORMAT",
+                file,
+                f"{pointer}/canonicalMediaKey",
+                media_key,
+                "canonicalMediaKey must use the canonical media-key format",
+                "Use a key such as bodyweight.squat__composite.",
+            )
+        elif isinstance(exercise_id, str) and not media_key.startswith(f"{exercise_id}__"):
+            report.add_error(
+                "E_IMPORT_MEDIA_KEY_EXERCISE_MISMATCH",
+                file,
+                f"{pointer}/canonicalMediaKey",
+                media_key,
+                "canonicalMediaKey must begin with canonicalExerciseID followed by __",
+                "Correct canonicalExerciseID or canonicalMediaKey so they describe one exercise.",
+            )
+        if not valid_asset_name(filename):
+            report.add_error(
+                "E_IMPORT_FILENAME",
+                file,
+                f"{pointer}/canonicalFileName",
+                filename,
+                "canonicalFileName must be a lowercase canonical PNG name",
+                "Use canonicalMediaKey followed by .png.",
+            )
+        elif isinstance(media_key, str) and filename != f"{media_key}.png":
+            report.add_error(
+                "E_IMPORT_FILENAME_KEY_MISMATCH",
+                file,
+                f"{pointer}/canonicalFileName",
+                filename,
+                "canonicalFileName must equal canonicalMediaKey plus .png",
+                "Rename the generated filename to match the canonical media key.",
+            )
+        if role not in MEDIA_ROLES:
+            report.add_error(
+                "E_IMPORT_ROLE",
+                file,
+                f"{pointer}/role",
+                role,
+                "role must use the controlled media role vocabulary",
+                "Use a supported role such as composite or setup.",
+            )
+
+        if isinstance(source_path, str):
+            previous_pointer = claimed_sources.get(source_path)
+            if previous_pointer is not None:
+                report.add_error(
+                    "E_IMPORT_SOURCE_DUPLICATE",
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "each source image must have exactly one explicit mapping decision",
+                    f"Merge this decision with {previous_pointer} or choose a distinct "
+                    "source image.",
+                )
+            else:
+                claimed_sources[source_path] = pointer
+        if isinstance(media_key, str):
+            previous_pointer = claimed_keys.get(media_key)
+            if previous_pointer is not None:
+                report.add_error(
+                    "E_IMPORT_MEDIA_KEY_DUPLICATE",
+                    file,
+                    f"{pointer}/canonicalMediaKey",
+                    media_key,
+                    "one canonical media key cannot be claimed by multiple source images",
+                    f"Use a distinct media key or consolidate the row with {previous_pointer}.",
+                )
+            else:
+                claimed_keys[media_key] = pointer
+
+        if status == "approved_for_import" and media_key not in media_keys:
+            report.add_error(
+                "E_IMPORT_MAP_KEY_UNKNOWN",
+                file,
+                f"{pointer}/canonicalMediaKey",
+                media_key,
+                "approved import rows must map to exactly one current manifest media key",
+                "Add the approved manifest media record first or defer this row "
+                "pending a catalogue entry.",
+            )
+        if status == "approved_for_import" and isinstance(media_key, str):
+            approved_media_keys.add(media_key)
+
+        if source_pack is not None and safe_source_relative_path(source_path):
+            source_file = (source_pack / source_path).resolve()
+            if not source_file.is_relative_to(source_pack):
+                report.add_error(
+                    "E_IMPORT_SOURCE_OUTSIDE_PACK",
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "sourcePath must resolve inside the supplied source pack",
+                    "Remove traversal segments and use the source-pack-relative path.",
+                )
+            elif not source_file.is_file():
+                report.add_error(
+                    "E_IMPORT_SOURCE_MISSING",
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "every mapped source image must exist in the supplied source pack",
+                    "Restore the approved source image or correct sourcePath.",
+                )
+            elif isinstance(source_checksum, str) and SHA256_PATTERN.fullmatch(source_checksum):
+                if sha256(source_file) != source_checksum:
+                    report.add_error(
+                        "E_IMPORT_SOURCE_CHECKSUM",
+                        file,
+                        f"{pointer}/sourceSHA256",
+                        source_checksum,
+                        "the source image checksum must match the approved mapping record",
+                        "Stop the import and record the exact checksum of the reviewed "
+                        "source file.",
+                    )
+
+    if source_pack is not None and mapped_directory is not None:
+        mapped_root = (source_pack / mapped_directory).resolve()
+        if not mapped_root.is_relative_to(source_pack) or not mapped_root.is_dir():
+            report.add_error(
+                "E_IMPORT_SOURCE_DIRECTORY_MISSING",
+                file,
+                "/sourcePack/mappedDirectory",
+                mapped_directory,
+                "mappedDirectory must exist inside the supplied source pack",
+                "Supply the reviewed source pack or correct mappedDirectory.",
+            )
+        else:
+            expected_sources = {
+                relative_path(source_pack, source_file)
+                for source_file in mapped_root.rglob("*")
+                if source_file.is_file() and source_file.suffix.lower() == ".png"
+            }
+            for unmapped_source in sorted(expected_sources - set(claimed_sources)):
+                report.add_error(
+                    "E_IMPORT_SOURCE_UNMAPPED",
+                    file,
+                    "/images",
+                    unmapped_source,
+                    "every source image in mappedDirectory requires an explicit mapping status",
+                    "Add an approved, pending, unreviewed, or quarantined image row.",
+                )
+
+    for unmapped_media_key in sorted(media_keys - approved_media_keys):
+        report.add_error(
+            "E_IMPORT_MAP_MANIFEST_MEDIA_UNMAPPED",
+            file,
+            "/images",
+            unmapped_media_key,
+            "every current manifest media key requires an approved import row",
+            "Add an approved_for_import row with a reviewed source checksum.",
+        )
+
+
 def validate_generated_media(root: Path, media_keys: set[str], report: ValidationReport) -> None:
     index_path = root / GENERATED_DIRECTORY / "media-index.json"
     if not index_path.exists():
@@ -1310,13 +1622,20 @@ def positive_integer(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
-def valid_asset_name(name: str) -> bool:
-    if not name.endswith(".png") or name != name.lower():
+def valid_asset_name(name: Any) -> bool:
+    if not isinstance(name, str) or not name.endswith(".png") or name != name.lower():
         return False
     if ".." in name or " " in name or "'" in name or "dumbell" in name:
         return False
     stem = name[:-4]
     return MEDIA_KEY_PATTERN.fullmatch(stem) is not None
+
+
+def safe_source_relative_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value or "\\" in value or value.startswith("/"):
+        return False
+    parts = value.split("/")
+    return all(part not in {"", ".", ".."} for part in parts)
 
 
 def sha256(path: Path) -> str:
@@ -1355,6 +1674,11 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("validate", "report"):
         command = subcommands.add_parser(name)
         command.add_argument("--root", type=Path, default=repository_root())
+        command.add_argument(
+            "--source-pack",
+            type=Path,
+            help="Optional source-pack root used to verify mapped source checksums.",
+        )
         command.add_argument("--strict", action="store_true")
     return parser
 
@@ -1362,7 +1686,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(arguments: Iterable[str] | None = None) -> int:
     parser = build_parser()
     parsed = parser.parse_args(list(arguments) if arguments is not None else None)
-    report = validate_catalogue(parsed.root, strict=parsed.strict)
+    report = validate_catalogue(
+        parsed.root,
+        strict=parsed.strict,
+        source_pack=parsed.source_pack,
+    )
     print_report(report)
     if report.errors or (parsed.strict and report.warnings):
         return 1
