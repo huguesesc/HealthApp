@@ -53,6 +53,24 @@ struct ExerciseCatalogLoadingTests {
         }
     }
 
+    @Test func incompatibleNewerManifestStructureStillReportsUnsupportedVersion() async {
+        let incompatibleVersionTwoManifest = Data(
+            """
+            {"catalogSchemaVersion":2,"exercises":[{"newVersionOnlyField":true}]}
+            """.utf8
+        )
+        let repository = ExerciseCatalogRepository(
+            dataProvider: StaticCatalogDataProvider(data: incompatibleVersionTwoManifest)
+        )
+
+        switch await repository.loadState() {
+        case .unavailable(.unsupportedSchemaVersion(let version)):
+            #expect(version == 2)
+        default:
+            #expect(Bool(false))
+        }
+    }
+
     @Test func duplicateStableIDProducesDeterministicValidationFailure() async throws {
         let first = exercise(id: "bodyweight.squat", displayName: "Squat")
         let duplicate = exercise(id: "bodyweight.squat", displayName: "Other squat")

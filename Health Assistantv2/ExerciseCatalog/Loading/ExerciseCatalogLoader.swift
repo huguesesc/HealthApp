@@ -5,6 +5,10 @@ struct ExerciseCatalogManifest: Codable, Hashable, Sendable {
     let exercises: [ExerciseDefinition]
 }
 
+private struct ExerciseCatalogVersionHeader: Decodable {
+    let catalogSchemaVersion: Int
+}
+
 protocol ExerciseCatalogDataProvider: Sendable {
     func loadCatalogData() async throws -> Data?
 }
@@ -22,10 +26,12 @@ struct ExerciseCatalogLoader: Sendable {
                 return .failure(.resourceNotFound(name: "catalog.json"))
             }
 
-            let manifest = try JSONDecoder().decode(ExerciseCatalogManifest.self, from: data)
-            guard manifest.catalogSchemaVersion == 1 else {
-                return .failure(.unsupportedSchemaVersion(manifest.catalogSchemaVersion))
+            let decoder = JSONDecoder()
+            let versionHeader = try decoder.decode(ExerciseCatalogVersionHeader.self, from: data)
+            guard versionHeader.catalogSchemaVersion == 1 else {
+                return .failure(.unsupportedSchemaVersion(versionHeader.catalogSchemaVersion))
             }
+            let manifest = try decoder.decode(ExerciseCatalogManifest.self, from: data)
             return .success(try ExerciseCatalogIndex(manifest: manifest))
         } catch let error as ExerciseCatalogError {
             return .failure(error)
