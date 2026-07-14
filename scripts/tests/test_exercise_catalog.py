@@ -285,6 +285,117 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             (self.root / "Health Assistantv2" / "Assets.xcassets" / "ExerciseMedia").exists()
         )
 
+    def test_import_apply_generates_only_approved_imagesets_and_media_index(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source_directory = self.source_pack / "workout_avatar"
+        source_directory.mkdir(parents=True)
+        approved_source = source_directory / "bodyweight_squat.png"
+        unreviewed_source = source_directory / "bodyweight_lunge.png"
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(approved_source)
+        Image.new("RGBA", (16, 16), (40, 30, 20, 255)).save(unreviewed_source)
+        self.write_json(
+            "media-import-map.json",
+            {
+                "schemaVersion": 1,
+                "sourcePack": {
+                    "mappedDirectory": "workout_avatar",
+                    "mappedImageCount": 2,
+                },
+                "images": [
+                    {
+                        "status": "approved_for_import",
+                        "sourcePath": "workout_avatar/bodyweight_squat.png",
+                        "sourceSHA256": exercise_catalog.sha256(approved_source),
+                        "canonicalExerciseID": "bodyweight.squat",
+                        "canonicalMediaKey": "bodyweight.squat__composite",
+                        "canonicalFileName": "bodyweight.squat__composite.png",
+                        "role": "composite",
+                    },
+                    {
+                        "status": "unreviewed",
+                        "sourcePath": "workout_avatar/bodyweight_lunge.png",
+                        "sourceSHA256": exercise_catalog.sha256(unreviewed_source),
+                        "canonicalExerciseID": "bodyweight.lunge",
+                        "canonicalMediaKey": "bodyweight.lunge__composite",
+                        "canonicalFileName": "bodyweight.lunge__composite.png",
+                        "role": "composite",
+                    },
+                ],
+            },
+        )
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = exercise_catalog.main([
+                "import",
+                "--apply",
+                "--root",
+                str(self.root),
+                "--source-pack",
+                str(self.source_pack),
+            ])
+
+        image_set = (
+            self.root
+            / "Health Assistantv2"
+            / "Assets.xcassets"
+            / "ExerciseMedia"
+            / "bodyweight.squat__composite.imageset"
+        )
+        index_path = (
+            self.root
+            / "Health Assistantv2"
+            / "ExerciseCatalog"
+            / "Resources"
+            / "Generated"
+            / "media-index.json"
+        )
+        self.assertEqual(exit_code, 0)
+        self.assertIn("import applied", output.getvalue())
+        self.assertEqual(
+            (image_set / "bodyweight.squat__composite.png").read_bytes(),
+            approved_source.read_bytes(),
+        )
+        self.assertFalse(
+            (
+                self.root
+                / "Health Assistantv2"
+                / "Assets.xcassets"
+                / "ExerciseMedia"
+                / "bodyweight.lunge__composite.imageset"
+            ).exists()
+        )
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        self.assertEqual(index["schemaVersion"], 1)
+        self.assertEqual(index["media"][0]["key"], "bodyweight.squat__composite")
+        post_apply_report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+        self.assertEqual(post_apply_report.errors, [])
+
+        first_index = index_path.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()):
+            second_exit_code = exercise_catalog.main([
+                "import",
+                "--apply",
+                "--root",
+                str(self.root),
+                "--source-pack",
+                str(self.source_pack),
+            ])
+        self.assertEqual(second_exit_code, 0)
+        self.assertEqual(index_path.read_bytes(), first_index)
+
     def test_cli_returns_one_for_errors_and_zero_for_clean_catalogue(self):
         invalid_catalogue = self.catalog_fixture()
         invalid_catalogue["exercises"][0]["instructions"] = [" "]

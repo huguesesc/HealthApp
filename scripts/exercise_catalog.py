@@ -6,9 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import shutil
 import sys
 import unicodedata
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1658,20 +1661,30 @@ def json_pointer_from_line(path: Path, line_number: int) -> str:
     return ""
 
 
-def run_import_dry_run(root: Path | str, source_pack: Path | str) -> int:
+def load_validated_import_map(
+    root: Path | str,
+    source_pack: Path | str,
+) -> tuple[Path, list[dict[str, Any]]] | None:
     root_path = Path(root).resolve()
     import_map_path = root_path / AUTHORING_DIRECTORY / IMPORT_MAPPING_FILENAME
     if not import_map_path.is_file():
         print(f"ERROR E_IMPORT_MAP_MISSING {relative_path(root_path, import_map_path)}")
-        return 1
+        return None
 
     report = validate_catalogue(root_path, strict=True, source_pack=source_pack)
     if report.errors or report.warnings:
         print_report(report)
-        return 1
+        return None
 
     import_map = json.loads(import_map_path.read_text(encoding="utf-8"))
-    images = import_map["images"]
+    return root_path, import_map["images"]
+
+
+def run_import_dry_run(root: Path | str, source_pack: Path | str) -> int:
+    import_map = load_validated_import_map(root, source_pack)
+    if import_map is None:
+        return 1
+    root_path, images = import_map
     mapped_rows = sorted(
         images,
         key=lambda image: image["canonicalMediaKey"],
@@ -1704,6 +1717,152 @@ def run_import_dry_run(root: Path | str, source_pack: Path | str) -> int:
     return 0
 
 
+def run_import_apply(root: Path | str, source_pack: Path | str) -> int:
+    import_map = load_validated_import_map(root, source_pack)
+    if import_map is None:
+        return 1
+    root_path, images = import_map
+    source_pack_path = Path(source_pack).resolve()
+    approved_rows = sorted(
+        (image for image in images if image["status"] == "approved_for_import"),
+        key=lambda image: image["canonicalMediaKey"],
+    )
+    pending_count = sum(
+        image["status"] == "approved_pending_catalogue_entry" for image in images
+    )
+    unreviewed_count = sum(image["status"] == "unreviewed" for image in images)
+    quarantined_count = sum(image["status"] == "quarantined" for image in images)
+    staging_root = root_path / f".exercise-catalog-import-{uuid.uuid4().hex}"
+    staging_root.mkdir()
+    staging_assets = staging_root / "ExerciseMedia"
+    staging_index = staging_root / "media-index.json"
+    try:
+        write_staged_import(approved_rows, source_pack_path, staging_assets, staging_index)
+        verify_staged_import(approved_rows, staging_assets, staging_index)
+        replace_generated_import(root_path, staging_assets, staging_index)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        print(f"ERROR E_IMPORT_APPLY {error}")
+        return 1
+    finally:
+        if staging_root.exists():
+            shutil.rmtree(staging_root)
+
+    print(
+        "exercise-catalog import applied: "
+        f"approved={len(approved_rows)} rejected_pending={pending_count} "
+        f"rejected_unreviewed={unreviewed_count} rejected_quarantined={quarantined_count}"
+    )
+    return 0
+
+
+def write_staged_import(
+    approved_rows: list[dict[str, Any]],
+    source_pack: Path,
+    staging_assets: Path,
+    staging_index: Path,
+) -> None:
+    staging_assets.mkdir(parents=True)
+    write_json_file(
+        staging_assets / "Contents.json",
+        {"info": {"author": "xcode", "version": 1}},
+    )
+    media_index: list[dict[str, str]] = []
+    for image in approved_rows:
+        image_set = staging_assets / f"{image['canonicalMediaKey']}.imageset"
+        image_set.mkdir()
+        destination = image_set / image["canonicalFileName"]
+        source = source_pack / image["sourcePath"]
+        shutil.copy2(source, destination)
+        write_json_file(
+            image_set / "Contents.json",
+            {
+                "images": [
+                    {"filename": image["canonicalFileName"], "idiom": "universal"}
+                ],
+                "info": {"author": "xcode", "version": 1},
+            },
+        )
+        media_index.append(
+            {
+                "assetName": image["canonicalMediaKey"],
+                "filename": image["canonicalFileName"],
+                "key": image["canonicalMediaKey"],
+                "role": image["role"],
+                "sourcePath": image["sourcePath"],
+                "sourceSHA256": image["sourceSHA256"],
+            }
+        )
+    write_json_file(staging_index, {"media": media_index, "schemaVersion": 1})
+
+
+def verify_staged_import(
+    approved_rows: list[dict[str, Any]],
+    staging_assets: Path,
+    staging_index: Path,
+) -> None:
+    staged_index = json.loads(staging_index.read_text(encoding="utf-8"))
+    expected_keys = [image["canonicalMediaKey"] for image in approved_rows]
+    indexed_keys = [entry["key"] for entry in staged_index["media"]]
+    if staged_index.get("schemaVersion") != 1 or indexed_keys != expected_keys:
+        raise ValueError("staged media index does not match the approved import rows")
+    for image in approved_rows:
+        image_set = staging_assets / f"{image['canonicalMediaKey']}.imageset"
+        destination = image_set / image["canonicalFileName"]
+        contents = json.loads((image_set / "Contents.json").read_text(encoding="utf-8"))
+        if sha256(destination) != image["sourceSHA256"]:
+            raise ValueError(f"staged checksum mismatch for {image['sourcePath']}")
+        if contents.get("images") != [
+            {"filename": image["canonicalFileName"], "idiom": "universal"}
+        ]:
+            raise ValueError(f"staged Contents.json mismatch for {image['canonicalMediaKey']}")
+
+
+def replace_generated_import(root: Path, staging_assets: Path, staging_index: Path) -> None:
+    assets_parent = root / "Health Assistantv2" / "Assets.xcassets"
+    generated_parent = root / GENERATED_DIRECTORY
+    target_assets = assets_parent / "ExerciseMedia"
+    target_index = generated_parent / "media-index.json"
+    assets_parent.mkdir(parents=True, exist_ok=True)
+    generated_parent.mkdir(parents=True, exist_ok=True)
+    token = uuid.uuid4().hex
+    assets_backup = assets_parent / f".ExerciseMedia.backup-{token}"
+    index_backup = generated_parent / f".media-index.backup-{token}.json"
+    assets_backed_up = False
+    index_backed_up = False
+    assets_installed = False
+    index_installed = False
+    try:
+        if target_assets.exists():
+            os.replace(target_assets, assets_backup)
+            assets_backed_up = True
+        if target_index.exists():
+            os.replace(target_index, index_backup)
+            index_backed_up = True
+        os.replace(staging_assets, target_assets)
+        assets_installed = True
+        os.replace(staging_index, target_index)
+        index_installed = True
+    except OSError:
+        if assets_installed and target_assets.exists():
+            shutil.rmtree(target_assets)
+        if index_installed and target_index.exists():
+            target_index.unlink()
+        if assets_backed_up and assets_backup.exists():
+            os.replace(assets_backup, target_assets)
+        if index_backed_up and index_backup.exists():
+            os.replace(index_backup, target_index)
+        raise
+    else:
+        if assets_backed_up and assets_backup.exists():
+            shutil.rmtree(assets_backup)
+        if index_backed_up and index_backup.exists():
+            index_backup.unlink()
+
+
+def write_json_file(path: Path, value: Any) -> None:
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def print_report(report: ValidationReport) -> None:
     print(
         "exercise-catalog validation: "
@@ -1729,11 +1888,16 @@ def build_parser() -> argparse.ArgumentParser:
     importer = subcommands.add_parser("import")
     importer.add_argument("--root", type=Path, default=repository_root())
     importer.add_argument("--source-pack", type=Path, required=True)
-    importer.add_argument(
+    import_mode = importer.add_mutually_exclusive_group(required=True)
+    import_mode.add_argument(
         "--dry-run",
         action="store_true",
-        required=True,
         help="Print the deterministic approved-copy plan without writing files.",
+    )
+    import_mode.add_argument(
+        "--apply",
+        action="store_true",
+        help="Generate only approved imagesets and the media index transactionally.",
     )
     return parser
 
@@ -1742,6 +1906,8 @@ def main(arguments: Iterable[str] | None = None) -> int:
     parser = build_parser()
     parsed = parser.parse_args(list(arguments) if arguments is not None else None)
     if parsed.command == "import":
+        if parsed.apply:
+            return run_import_apply(parsed.root, parsed.source_pack)
         return run_import_dry_run(parsed.root, parsed.source_pack)
     report = validate_catalogue(
         parsed.root,
