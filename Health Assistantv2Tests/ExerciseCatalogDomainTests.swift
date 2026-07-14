@@ -13,12 +13,21 @@ struct ExerciseCatalogDomainTests {
           "movementPattern": "squat",
           "exerciseType": "compound",
           "equipment": {
-            "required": [["barbell", "weight-plates"]],
-            "alternatives": [["dumbbells"]]
+            "required": [
+              { "id": "barbell", "quantity": 1 },
+              { "id": "weight-plates", "quantity": 2 }
+            ],
+            "alternatives": [
+              [
+                { "id": "dumbbell", "quantity": 2 }
+              ]
+            ]
           },
           "trackingMode": "sets-reps",
           "instructions": [],
-          "lifecycle": "active"
+          "lifecycle": {
+            "status": "active"
+          }
         }
         """
 
@@ -30,8 +39,16 @@ struct ExerciseCatalogDomainTests {
         #expect(definition.id.rawValue == "barbell-back-squat")
         #expect(definition.displayName == "Barbell Back Squat")
         #expect(definition.category.rawValue == "strength")
+        #expect(definition.equipment.required == [
+            ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "barbell"), quantity: 1),
+            ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "weight-plates"), quantity: 2)
+        ])
+        #expect(definition.equipment.alternatives == [[
+            ExerciseEquipmentClause(id: ExerciseEquipmentID(rawValue: "dumbbell"), quantity: 2)
+        ]])
         #expect(definition.instructions.isEmpty)
-        #expect(definition.lifecycle == .active)
+        #expect(definition.lifecycle.status.rawValue == "active")
+        #expect(definition.lifecycle.replacementExerciseID == nil)
     }
 
     @Test func categoryRawValueRoundTripsWithEquality() throws {

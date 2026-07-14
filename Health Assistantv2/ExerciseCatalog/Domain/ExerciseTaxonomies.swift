@@ -109,8 +109,11 @@ struct ExerciseTrackingMode: Codable, Hashable, Sendable {
 }
 
 struct ExerciseLifecycle: Codable, Hashable, Sendable {
-    static let active = ExerciseLifecycle(rawValue: "active")
+    let status: ExerciseLifecycleStatus
+    let replacementExerciseID: ExerciseID?
+}
 
+struct ExerciseLifecycleStatus: Codable, Hashable, Sendable {
     let rawValue: String
 
     init(rawValue: String) {

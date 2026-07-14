@@ -18,24 +18,11 @@ struct ExerciseDefinition: Codable, Hashable, Sendable {
 }
 
 struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {
-    let required: [ExerciseEquipmentRequirementGroup]
-    let alternatives: [ExerciseEquipmentRequirementGroup]
+    let required: [ExerciseEquipmentClause]
+    let alternatives: [[ExerciseEquipmentClause]]
 }
 
-struct ExerciseEquipmentRequirementGroup: Codable, Hashable, Sendable {
-    let equipmentIDs: [ExerciseEquipmentID]
-
-    init(equipmentIDs: [ExerciseEquipmentID]) {
-        self.equipmentIDs = equipmentIDs
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        equipmentIDs = try container.decode([ExerciseEquipmentID].self)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(equipmentIDs)
-    }
+struct ExerciseEquipmentClause: Codable, Hashable, Sendable {
+    let id: ExerciseEquipmentID
+    let quantity: Int
 }
