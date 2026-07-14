@@ -15,6 +15,9 @@ HealthAssistant.xcodeproj/
 .build/
 .swiftpm/
 
+# Python test/runtime cache files
+__pycache__/
+
 # macOS
 .DS_Store
 
