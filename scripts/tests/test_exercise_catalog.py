@@ -481,6 +481,168 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             }.issubset(self.error_codes(report))
         )
 
+    def test_authoring_files_require_top_level_objects(self):
+        self.write_json("equipment.json", [])
+        self.write_json("environments.json", "not an object")
+        self.write_json("catalog.json", None)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertTrue(
+            {
+                "E_EQUIPMENT_OBJECT",
+                "E_ENVIRONMENT_OBJECT",
+                "E_CATALOG_OBJECT",
+            }.issubset(self.error_codes(report))
+        )
+
+    def test_all_swift_required_taxonomy_fields_are_diagnosed(self):
+        equipment = self.equipment_fixture()
+        for field in ("id", "displayName", "category", "lifecycle"):
+            del equipment["equipment"][0][field]
+        environments = self.environment_fixture()
+        for field in (
+            "id",
+            "displayName",
+            "defaultCapabilities",
+            "rankingTags",
+            "lifecycle",
+        ):
+            del environments["environments"][0][field]
+        self.write_json("equipment.json", equipment)
+        self.write_json("environments.json", environments)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertTrue(
+            {
+                "E_EQUIPMENT_ID",
+                "E_EQUIPMENT_DISPLAY_NAME",
+                "E_EQUIPMENT_CATEGORY",
+                "E_EQUIPMENT_LIFECYCLE",
+                "E_ENVIRONMENT_ID",
+                "E_ENVIRONMENT_DISPLAY_NAME",
+                "E_CAPABILITY_LIST",
+                "E_ENVIRONMENT_RANKING_TAG_LIST",
+                "E_ENVIRONMENT_LIFECYCLE",
+            }.issubset(self.error_codes(report))
+        )
+
+    def test_control_characters_in_source_paths_are_diagnostic_only(self):
+        source, row = self.configure_approved_media()
+        del source
+        row["sourcePath"] = "workout_avatar/bad\x00.png"
+        self.write_import_map([row])
+
+        try:
+            report = exercise_catalog.validate_catalogue(
+                self.root,
+                strict=True,
+                source_pack=self.source_pack,
+            )
+        except Exception as error:  # Regression guard: paths must be diagnostic-only.
+            self.fail(f"validator crashed with {type(error).__name__}: {error}")
+
+        self.assertIn("E_IMPORT_SOURCE_PATH", self.error_codes(report))
+
+    def test_invalid_utf8_is_reported_without_crashing(self):
+        (self.authoring / "catalog.json").write_bytes(b"\xff")
+
+        try:
+            report = exercise_catalog.validate_catalogue(self.root, strict=True)
+        except Exception as error:  # Regression guard: decoding must be diagnostic-only.
+            self.fail(f"validator crashed with {type(error).__name__}: {error}")
+
+        self.assertIn("E_JSON_ENCODING", self.error_codes(report))
+
+    def test_decompression_bomb_is_reported_as_source_png_error(self):
+        self.configure_approved_media()
+        original_limit = Image.MAX_IMAGE_PIXELS
+        try:
+            Image.MAX_IMAGE_PIXELS = 1
+            try:
+                report = exercise_catalog.validate_catalogue(
+                    self.root,
+                    strict=True,
+                    source_pack=self.source_pack,
+                )
+            except Exception as error:  # Regression guard: Pillow failures are diagnostics.
+                self.fail(f"validator crashed with {type(error).__name__}: {error}")
+        finally:
+            Image.MAX_IMAGE_PIXELS = original_limit
+
+        self.assertIn("E_IMPORT_SOURCE_PNG", self.error_codes(report))
+
+    def test_manifest_media_key_suffix_must_match_role(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            self.media_fixture("bodyweight.squat", role="start")
+        ]
+        catalogue["exercises"][0]["media"][0]["role"] = "end"
+        self.write_json("catalog.json", catalogue)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertIn("E_MEDIA_KEY_ROLE_MISMATCH", self.error_codes(report))
+
+    def test_import_map_media_key_suffix_must_match_role(self):
+        source, row = self.configure_approved_media()
+        del source
+        row["role"] = "start"
+        self.write_import_map([row])
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_IMPORT_MEDIA_KEY_ROLE_MISMATCH", self.error_codes(report))
+
+    def test_generated_index_media_key_suffix_must_match_role(self):
+        source, row = self.configure_approved_media()
+        del source
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_exit = exercise_catalog.run_import_apply(self.root, self.source_pack)
+        self.assertEqual(apply_exit, 0)
+        index = json.loads(self.generated_index_path().read_text(encoding="utf-8"))
+        index["media"][0]["role"] = "start"
+        self.write_json_path(self.generated_index_path(), index)
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+        )
+
+        self.assertIn("E_MEDIA_INDEX_KEY_ROLE_MISMATCH", self.error_codes(report))
+
+    def test_strict_cli_requires_source_pack_for_approved_rows(self):
+        self.configure_approved_media()
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = exercise_catalog.main(
+                ["validate", "--strict", "--root", str(self.root)]
+            )
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("E_IMPORT_SOURCE_PACK_REQUIRED", output.getvalue())
+
+    def test_strict_manifest_media_requires_approval_or_generated_resources(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [self.media_fixture("bodyweight.squat")]
+        self.write_json("catalog.json", catalogue)
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = exercise_catalog.main(
+                ["validate", "--strict", "--root", str(self.root)]
+            )
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("E_MEDIA_APPROVAL_RESOURCES_MISSING", output.getvalue())
+
     def test_non_object_import_map_reports_a_diagnostic(self):
         self.write_json("media-import-map.json", [])
 

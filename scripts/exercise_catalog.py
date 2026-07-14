@@ -55,6 +55,14 @@ IMPORT_STATUSES = {
 SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
 
+class _JsonNullValue:
+    def __repr__(self) -> str:
+        return "null"
+
+
+JSON_NULL = _JsonNullValue()
+
+
 @dataclass(frozen=True)
 class Diagnostic:
     severity: str
@@ -119,9 +127,9 @@ def validate_catalogue(
     strict: bool = False,
     source_pack: Path | str | None = None,
     include_generated: bool = True,
+    require_source_pack: bool = False,
 ) -> ValidationReport:
     """Validate authoring JSON and any present intake/generated resources without writing."""
-    del strict  # Strictness affects the command exit code; checks are always exhaustive.
     root_path = Path(root).resolve()
     report = ValidationReport()
     authoring = root_path / AUTHORING_DIRECTORY
@@ -145,7 +153,7 @@ def validate_catalogue(
         report,
     )
     approved_rows: dict[str, dict[str, Any]] = {}
-    if import_map_path.exists():
+    if import_map_path.is_file():
         approved_rows = validate_import_map(
             load_json(import_map_path, root_path, report),
             import_map_path,
@@ -153,6 +161,32 @@ def validate_catalogue(
             media_roles,
             Path(source_pack).resolve() if source_pack is not None else None,
             report,
+        )
+    if require_source_pack and source_pack is None and approved_rows:
+        report.add_error(
+            "E_IMPORT_SOURCE_PACK_REQUIRED",
+            relative_path(root_path, import_map_path),
+            "/images",
+            len(approved_rows),
+            "strict CLI validation must verify every approved source PNG and checksum",
+            "Pass --source-pack with the reviewed source-pack directory.",
+        )
+    index_path = root_path / GENERATED_DIRECTORY / "media-index.json"
+    namespace = root_path / GENERATED_ASSET_DIRECTORY
+    if (
+        strict
+        and media_roles
+        and not import_map_path.is_file()
+        and not index_path.is_file()
+        and not namespace.is_dir()
+    ):
+        report.add_error(
+            "E_MEDIA_APPROVAL_RESOURCES_MISSING",
+            relative_path(root_path, import_map_path),
+            "",
+            len(media_roles),
+            "strict validation requires an approval map or generated resources for media",
+            "Add the approved import map, or restore outputs generated from that map.",
         )
     if include_generated:
         validate_generated_media(root_path, media_roles, approved_rows, report)
@@ -164,7 +198,8 @@ def validate_catalogue(
 def load_json(path: Path, root: Path, report: ValidationReport) -> Any | None:
     file = relative_path(root, path)
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return JSON_NULL if value is None else value
     except FileNotFoundError:
         report.add_error(
             "E_FILE_MISSING",
@@ -183,6 +218,15 @@ def load_json(path: Path, root: Path, report: ValidationReport) -> Any | None:
             "file must contain valid JSON",
             "Correct the JSON syntax near the reported location.",
         )
+    except UnicodeDecodeError:
+        report.add_error(
+            "E_JSON_ENCODING",
+            file,
+            "",
+            "utf-8",
+            "authoring JSON files must contain valid UTF-8 text",
+            "Re-encode the file as UTF-8 and remove invalid byte sequences.",
+        )
     return None
 
 
@@ -194,6 +238,15 @@ def validate_equipment(
 ) -> set[str]:
     file = relative_path(root, path)
     if not isinstance(data, dict):
+        if data is not None:
+            report.add_error(
+                "E_EQUIPMENT_OBJECT",
+                file,
+                "",
+                data,
+                "equipment.json must contain a top-level object",
+                "Replace the top-level value with the documented equipment object.",
+            )
         return set()
     validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
     entries = data.get("equipment")
@@ -399,6 +452,15 @@ def validate_environments(
 ) -> set[str]:
     file = relative_path(root, path)
     if not isinstance(data, dict):
+        if data is not None:
+            report.add_error(
+                "E_ENVIRONMENT_OBJECT",
+                file,
+                "",
+                data,
+                "environments.json must contain a top-level object",
+                "Replace the top-level value with the documented environments object.",
+            )
         return set()
     validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
     entries = data.get("environments")
@@ -492,7 +554,7 @@ def validate_environments(
         else:
             environment_ids.add(environment_id)
 
-        default_capabilities = entry.get("defaultCapabilities", [])
+        default_capabilities = entry.get("defaultCapabilities")
         if not isinstance(default_capabilities, list):
             report.add_error(
                 "E_CAPABILITY_LIST",
@@ -529,6 +591,15 @@ def validate_catalog(
 ) -> dict[str, str]:
     file = relative_path(root, path)
     if not isinstance(data, dict):
+        if data is not None:
+            report.add_error(
+                "E_CATALOG_OBJECT",
+                file,
+                "",
+                data,
+                "catalog.json must contain a top-level object",
+                "Replace the top-level value with the documented catalogue object.",
+            )
         return {}
     validate_schema_version(
         data.get("catalogSchemaVersion"),
@@ -1111,6 +1182,15 @@ def validate_media(
             and MEDIA_KEY_PATTERN.fullmatch(key) is not None
             and key.startswith(f"{exercise_id}__")
         ):
+            if not media_key_has_role(key, role):
+                report.add_error(
+                    "E_MEDIA_KEY_ROLE_MISMATCH",
+                    file,
+                    f"{item_pointer}/role",
+                    role,
+                    "the first media-key suffix must equal the declared media role",
+                    f"Use role {media_key_role(key)!r} or rename the media key.",
+                )
             media_roles.setdefault(key, role)
         if not isinstance(description, str) or not description.strip():
             report.add_error(
@@ -1520,17 +1600,31 @@ def validate_import_map(
                 "role must use the controlled media role vocabulary",
                 "Use a supported role such as composite or setup.",
             )
-        elif isinstance(media_key, str) and media_key in media_roles:
-            manifest_role = media_roles[media_key]
-            if role != manifest_role:
+        else:
+            if (
+                isinstance(media_key, str)
+                and MEDIA_KEY_PATTERN.fullmatch(media_key) is not None
+                and not media_key_has_role(media_key, role)
+            ):
                 report.add_error(
-                    "E_IMPORT_ROLE_MANIFEST_MISMATCH",
+                    "E_IMPORT_MEDIA_KEY_ROLE_MISMATCH",
                     file,
                     f"{pointer}/role",
                     role,
-                    "import-map role must match the manifest media role",
-                    f"Use role {manifest_role!r} for {media_key}.",
+                    "the first canonicalMediaKey suffix must equal the declared role",
+                    f"Use role {media_key_role(media_key)!r} or rename the media key.",
                 )
+            if isinstance(media_key, str) and media_key in media_roles:
+                manifest_role = media_roles[media_key]
+                if role != manifest_role:
+                    report.add_error(
+                        "E_IMPORT_ROLE_MANIFEST_MISMATCH",
+                        file,
+                        f"{pointer}/role",
+                        role,
+                        "import-map role must match the manifest media role",
+                        f"Use role {manifest_role!r} for {media_key}.",
+                    )
 
         if isinstance(source_path, str):
             previous_pointer = claimed_sources.get(source_path)
@@ -1577,7 +1671,18 @@ def validate_import_map(
             approved_rows.setdefault(media_key, image)
 
         if source_pack is not None and safe_source_relative_path(source_path):
-            source_file = (source_pack / source_path).resolve()
+            try:
+                source_file = (source_pack / source_path).resolve()
+            except (OSError, ValueError):
+                report.add_error(
+                    "E_IMPORT_SOURCE_PATH",
+                    file,
+                    f"{pointer}/sourcePath",
+                    source_path,
+                    "sourcePath must resolve safely inside the supplied source pack",
+                    "Replace malformed path characters with a safe POSIX relative path.",
+                )
+                continue
             if not source_file.is_relative_to(source_pack):
                 report.add_error(
                     "E_IMPORT_SOURCE_OUTSIDE_PACK",
@@ -1834,6 +1939,15 @@ def validate_generated_media(
                 role,
                 "generated media role must use the controlled role vocabulary",
                 "Regenerate the media index from the approved import map.",
+            )
+        elif key_is_canonical and not media_key_has_role(key, role):
+            report.add_error(
+                "E_MEDIA_INDEX_KEY_ROLE_MISMATCH",
+                file,
+                f"{pointer}/role",
+                role,
+                "the first generated media-key suffix must equal the declared role",
+                f"Use role {media_key_role(key)!r} or regenerate the media index.",
             )
         manifest_role = media_roles.get(key)
         if manifest_role is not None and role != manifest_role:
@@ -2136,7 +2250,14 @@ def validate_png_readable(
             width, height = image.size
             mode = image.mode
             image.load()
-    except (OSError, SyntaxError, ValueError, UnidentifiedImageError):
+    except (
+        OSError,
+        SyntaxError,
+        ValueError,
+        UnidentifiedImageError,
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+    ):
         report.add_error(
             code,
             file,
@@ -2282,8 +2403,24 @@ def valid_asset_name(name: Any) -> bool:
     return MEDIA_KEY_PATTERN.fullmatch(stem) is not None
 
 
+def media_key_role(key: Any) -> str | None:
+    if not isinstance(key, str) or MEDIA_KEY_PATTERN.fullmatch(key) is None:
+        return None
+    first_suffix = key.split("__", 1)[1].split("__", 1)[0]
+    for role in sorted(MEDIA_ROLES, key=len, reverse=True):
+        if first_suffix == role or re.fullmatch(rf"{re.escape(role)}_[0-9]+", first_suffix):
+            return role
+    return None
+
+
+def media_key_has_role(key: Any, role: Any) -> bool:
+    return isinstance(role, str) and media_key_role(key) == role
+
+
 def safe_source_relative_path(value: Any) -> bool:
     if not isinstance(value, str) or not value or "\\" in value or value.startswith("/"):
+        return False
+    if any(unicodedata.category(character) in {"Cc", "Cf", "Cs"} for character in value):
         return False
     parts = value.split("/")
     return all(part not in {"", ".", ".."} for part in parts)
@@ -2575,6 +2712,7 @@ def main(arguments: Iterable[str] | None = None) -> int:
         parsed.root,
         strict=parsed.strict,
         source_pack=parsed.source_pack,
+        require_source_pack=parsed.strict,
     )
     print_report(report)
     if report.errors or (parsed.strict and report.warnings):
