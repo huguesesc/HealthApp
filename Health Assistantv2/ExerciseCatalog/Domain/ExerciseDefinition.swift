@@ -29,5 +29,5 @@ struct ExerciseEquipmentClause: Codable, Hashable, Sendable {
 
 struct ExerciseEnvironmentRequirements: Codable, Hashable, Sendable {
     let required: [ExerciseEnvironmentRequirement]
-    let prohibited: [ExerciseEnvironmentRequirement]
+    let prohibited: [ExerciseEnvironmentRequirement]?
 }

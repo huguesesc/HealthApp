@@ -62,6 +62,42 @@ struct ExerciseCatalogDomainTests {
         #expect(definition.lifecycle.replacementExerciseID == nil)
     }
 
+    @Test func definitionDecodesRequiredOnlyEnvironmentRequirements() throws {
+        let json = """
+        {
+          "id": "machine-row",
+          "schemaVersion": 1,
+          "displayName": "Machine Row",
+          "category": "strength",
+          "movementPattern": "pull",
+          "exerciseType": "compound",
+          "equipment": {
+            "required": [],
+            "alternatives": []
+          },
+          "trackingMode": "sets-reps",
+          "instructions": [],
+          "environmentRequirements": {
+            "required": ["machine_access"]
+          },
+          "lifecycle": {
+            "status": "active"
+          }
+        }
+        """
+
+        let definition = try JSONDecoder().decode(
+            ExerciseDefinition.self,
+            from: try #require(json.data(using: .utf8))
+        )
+        let environmentRequirements = try #require(definition.environmentRequirements)
+
+        #expect(environmentRequirements.required == [
+            ExerciseEnvironmentRequirement(rawValue: "machine_access")
+        ])
+        #expect(environmentRequirements.prohibited == nil)
+    }
+
     @Test func categoryRawValueRoundTripsWithEquality() throws {
         let category = ExerciseCategory(rawValue: "strength")
 
