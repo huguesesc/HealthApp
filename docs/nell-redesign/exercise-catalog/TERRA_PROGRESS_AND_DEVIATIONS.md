@@ -1191,3 +1191,93 @@ and Release builds passed; built-product runtime resources/index/Assets.car
 verified; authoring map absent; 43 Python tests and strict validation/report
 passed; complete unit target 96/97 with one separate pre-existing wording-test
 failure; independent spec PASS and quality APPROVED).`
+
+## 2026-07-15 — T14 macOS continuation: media loading and reusable view
+
+### Test-first boundary and implementation
+
+The first focused Xcode 16.2 compile contained only the new
+`ExerciseMediaResolverTests.swift` contract. It failed at the intended RED
+boundary because `BundledExerciseMediaResolver`, `ExerciseMediaResolverError`,
+`DictionaryExerciseMediaResolver`, `ExerciseMediaPresentationModel`, and
+`ExerciseMediaPage` did not yet exist.
+
+The implementation then added:
+
+- `ExerciseMediaResolving` with exact key lookup only;
+- a fail-closed bundled index resolver with typed missing-resource,
+  unsupported-schema, and duplicate-key errors;
+- an injectable dictionary resolver for deterministic tests and fallback
+  composition;
+- deterministic compact and hero ordering, appearance filtering, and missing
+  index/key/compiled-image fallback policy;
+- `ExerciseMediaView`, which renders transparent PNGs aspect-fit, pages multiple
+  instructional items without forced animation, supplies per-item accessibility
+  descriptions/page values, and falls back to the existing vector motion figure
+  plus explicit text;
+- local previews for production media and fallback states.
+
+No workout-plan, Active Workout, history, or existing motion consumer was
+modified. Xcode rewrote unrelated PBX group ordering and quoted the existing
+T13 exclusion while it was open; both changes were manually restored, leaving
+the project file identical to committed T13.
+
+### Focused tests and Release build
+
+Final combined command:
+
+```text
+xcodebuild test -quiet -project "Health Assistantv2.xcodeproj" \
+  -scheme "Health Assistantv2" -configuration Debug \
+  -destination "platform=iOS Simulator,id=F29D78A3-33A7-4EAA-857F-A79813A4CAAE" \
+  -only-testing:"Health Assistantv2Tests/ExerciseMediaResolverTests" \
+  -only-testing:"Health Assistantv2Tests/ExerciseCatalogMediaTests" \
+  -parallel-testing-enabled NO \
+  -resultBundlePath /tmp/nell-t14-focused-4.xcresult \
+  CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+```
+
+Result on iPhone 16 Pro, iOS 18.3.1: 19 passed, 0 failed, 0 skipped;
+zero build/analyzer warnings and zero errors. The hosted checks load the real
+`media-index.json`, resolve the real compiled squat image through UIKit, and
+render real-image and fallback views through `ImageRenderer` in light/dark,
+compact/hero, 160/320-point widths, and AX5 Dynamic Type configurations. Pure
+policy tests cover exact lookup, malformed/unsupported/duplicate index data,
+role/frame order, appearance selection, nil media, absent index keys, and
+missing compiled images.
+
+Release verification:
+
+```text
+xcodebuild build -quiet -project "Health Assistantv2.xcodeproj" \
+  -scheme "Health Assistantv2" -configuration Release \
+  -destination "generic/platform=iOS Simulator" \
+  CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+```
+
+The full Release app target completed with exit 0 and no console diagnostics.
+`git diff --check` and `plutil -lint` for the project file passed.
+
+### Environment deviation and remaining manual coverage
+
+The selected Simulator initially stalled and then reported `Data Migration
+Failed` while disk space was critically low. With explicit local approval, only
+the failed iPhone 16 Pro Simulator was erased and rebooted. A stale 178 MB
+HealthApp DerivedData cache, a regenerable 73 MB index, and the already-recorded
+50 MB T13 full-suite result were removed; no repository source or user document
+was deleted. The repaired Simulator completed migration and all final tests.
+
+SwiftUI's `accessibilityReduceMotion` value is read-only in this SDK, so an
+attempted test-only environment override was removed after a compiler error.
+The component introduces no animation API and no information depends on motion.
+Interactive VoiceOver navigation, physical-device rendering, and human visual
+halo review remain explicitly `NOT RUN` here and stay assigned to T26–T28; no
+claim for those gates is made by T14.
+
+### Durable task ledger
+
+`T14: complete (exact injectable resolver; compact/hero ordered paging;
+aspect-fit compiled PNG rendering; accessible vector/text fallback; production
+bundle and UIKit resolution proved; 19/19 focused media tests passed with zero
+warnings/errors; Release build exit 0; interactive VoiceOver/device/halo gates
+deferred without a pass claim to T26–T28).`
