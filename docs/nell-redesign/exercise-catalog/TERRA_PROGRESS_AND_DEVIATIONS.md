@@ -1281,3 +1281,71 @@ aspect-fit compiled PNG rendering; accessible vector/text fallback; production
 bundle and UIKit resolution proved; 19/19 focused media tests passed with zero
 warnings/errors; Release build exit 0; interactive VoiceOver/device/halo gates
 deferred without a pass claim to T26–T28).`
+
+## 2026-07-15 — T15 macOS continuation: exact legacy resolution
+
+### Test-first boundary and compatibility implementation
+
+The focused `LegacyExerciseResolverTests` contract was compiled before the
+implementation and failed at the intended RED boundary because
+`LegacyExerciseResolution` and `LegacyExerciseMatch` did not exist.
+
+T15 then added:
+
+- exact stable-ID, exact legacy-ID, and normalized exact display-name/alias
+  resolution with explicit `resolved`, `ambiguous`, and `unresolved` outcomes;
+- deterministic sorted ambiguity candidates and injectable diagnostic events;
+- default OSLog diagnostics that hash user-provided references while leaving
+  non-sensitive stable candidate IDs visible;
+- an isolated canonical-equipment adapter for the limited legacy vector
+  renderer (`none`, paired dumbbells, or one goblet-held weight);
+- an exact canonical-ID-to-vector-pose bridge for the seven approved catalogue
+  entries that have a semantically compatible legacy pose;
+- complete removal of the registry's prior substring/contains matching branch.
+
+Stored workout, active-session, and history records were untouched. Unknown,
+custom, ambiguous, and canonical exercises without an approved legacy pose use
+the generic vector fallback and preserve their supplied display text.
+
+One intermediate focused run had 13/14 passing because the test fixture expected
+`bodyweight.squat` before lexicographically earlier
+`bodyweight.forward_lunge`; the expectation was corrected to the specified
+deterministic ordering. An earlier compile also exposed a missing explicit
+`return` after introducing a POSIX locale local variable; that compile-only
+issue was corrected before any green claim.
+
+### Validation
+
+Final focused command:
+
+```text
+xcodebuild test -quiet -project "Health Assistantv2.xcodeproj" \
+  -scheme "Health Assistantv2" -configuration Debug \
+  -destination "platform=iOS Simulator,id=F29D78A3-33A7-4EAA-857F-A79813A4CAAE" \
+  -only-testing:"Health Assistantv2Tests/LegacyExerciseResolverTests" \
+  -only-testing:"Health Assistantv2Tests/NellNavigationAndWorkoutMotionTests" \
+  -parallel-testing-enabled NO \
+  -resultBundlePath /tmp/nell-t15-focused-5.xcresult \
+  CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+```
+
+Result on iPhone 16 Pro, iOS 18.3.1: 15 passed, 0 failed, 0 skipped;
+zero build/analyzer warnings and zero errors. Coverage includes fixture stable
+and legacy IDs, normalized exact aliases/names, explicit ambiguity, diagnostic
+events, unknown/custom values, substring rejection, canonical equipment/vector
+bridging, all eight existing vector display names, and exact stable-ID resolution
+for all 20 production catalogue entries. The production reference `squat`
+remains unresolved rather than partially matching either squat entry.
+
+Final Release verification used the generic iOS Simulator destination with
+`CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO` and completed with
+exit 0 and no console diagnostics. `git diff --check` passed, and the Xcode
+project file remained identical to committed T13.
+
+### Durable task ledger
+
+`T15: complete (exact stable/legacy/normalized-name resolution; explicit
+ambiguous/unresolved outcomes with privacy-preserving diagnostics; old substring
+matching removed; canonical-to-legacy-vector bridge and equipment adapter added;
+15/15 focused tests passed with zero warnings/errors; Release build exit 0;
+stored records untouched).`
