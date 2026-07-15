@@ -141,7 +141,7 @@ extension Array where Element == ExerciseMediaDefinition {
                 continue
             }
             let positiveSequences = namespaceItems.map(\.1).filter { $0 > 0 }
-            let uniqueSequences = Array(Set(positiveSequences)).sorted()
+            let uniqueSequences = Set(positiveSequences).sorted()
 
             let duplicateSequences = uniqueSequences.filter { sequence in
                 positiveSequences.filter { $0 == sequence }.count > 1
@@ -153,7 +153,7 @@ extension Array where Element == ExerciseMediaDefinition {
             guard let lastSequence = uniqueSequences.last else {
                 continue
             }
-            let expected = Array(1...lastSequence)
+            let expected = Array<Int>(1...lastSequence)
             if uniqueSequences != expected {
                 errors.append(
                     .nonContiguousSequence(
