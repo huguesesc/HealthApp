@@ -100,9 +100,22 @@
 		18C7B1242FF3E65A00218ACA /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F4CA19CD3006F9E00000AF04 /* Exceptions for "Health Assistantv2" folder in "Health Assistantv2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ExerciseCatalog/Resources/Authoring/media-import-map.json,
+			);
+			target = 180AD7B12FF3E44200218ACA /* Health Assistantv2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		180AD7B42FF3E44200218ACA /* Health Assistantv2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F4CA19CD3006F9E00000AF04 /* Exceptions for "Health Assistantv2" folder in "Health Assistantv2" target */,
+			);
 			path = "Health Assistantv2";
 			sourceTree = "<group>";
 		};
