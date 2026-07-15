@@ -75,6 +75,8 @@ struct WorkoutProposal: Codable, Equatable {
 
 struct WorkoutPlanStepProposal: Codable, Equatable {
     var type: String
+    var exerciseID: String? = nil
+    var customExercise: Bool? = nil
     var title: String
     var instruction: String?
     var sets: Int?
@@ -89,6 +91,8 @@ struct WorkoutPlanStepProposal: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case type
+        case exerciseID = "exercise_id"
+        case customExercise = "custom_exercise"
         case title
         case instruction
         case sets
@@ -179,7 +183,7 @@ final class ChatEngine {
     private var history: [ChatTurn] = []
     private let modelContext: ModelContext
     private let exerciseCatalogRepository: any ExerciseCatalogRepositoryProviding
-    private var candidateAuthorizedLocation: String?
+    private var generatedWorkoutValidationContext: GeneratedWorkoutValidationContext?
 
     init(
         modelContext: ModelContext,
@@ -205,7 +209,7 @@ final class ChatEngine {
         errorMessage = nil
         items.append(.user(UUID(), trimmed))
         history.append(ChatTurn(role: .user, content: [.text(trimmed)]))
-        candidateAuthorizedLocation = nil
+        generatedWorkoutValidationContext = nil
         isThinking = true
         Task { await runLoop() }
     }
@@ -271,14 +275,29 @@ final class ChatEngine {
                   !proposal.steps.isEmpty else {
                 return "Error: could not parse a complete workout-plan proposal."
             }
-            guard let authorizedLocation = candidateAuthorizedLocation,
+            guard let validationContext = generatedWorkoutValidationContext,
                   let proposedLocation = proposal.location?.trimmed,
-                  authorizedLocation.caseInsensitiveCompare(proposedLocation) == .orderedSame else {
+                  validationContext.locationName.caseInsensitiveCompare(proposedLocation) == .orderedSame else {
                 return "Error: call get_exercise_candidates for the exact proposed location before drafting a workout plan."
             }
-            items.append(.proposal(ChatProposal(kind: .workoutPlan(proposal))))
+            let outcome = GeneratedWorkoutValidator().validate(
+                proposal,
+                context: validationContext
+            )
+            guard let validatedProposal = outcome.proposal, outcome.errors.isEmpty else {
+                let messages = outcome.errors.map(\.message).joined(separator: "; ")
+                return "Error: workout proposal rejected before preview: \(messages). Regenerate using the authorized candidates or an explicitly marked custom exercise."
+            }
+            items.append(.proposal(ChatProposal(kind: .workoutPlan(validatedProposal))))
+            let repairAudit = outcome.repairs.isEmpty
+                ? ""
+                : " Exact legacy repairs: " + outcome.repairs.map {
+                    "step \($0.step) \($0.suppliedReference) -> \($0.stableID)"
+                }.joined(separator: ", ") + "."
             return "Drafted a structured workout plan and showed it to the user for confirmation. "
                 + "It is NOT saved yet — the user must tap Save plan."
+                + " Validation passed."
+                + repairAudit
 
         case "get_recent_summaries":
             struct DaysInput: Codable { var days: Int? }
@@ -335,13 +354,23 @@ final class ChatEngine {
                 goal: goal,
                 durationMinutes: duration
             )
+            let evaluator = ExerciseEligibilityEvaluator(
+                equipmentTaxonomy: taxonomies.equipment,
+                environmentTaxonomy: taxonomies.environments
+            )
             let candidates = ExerciseCandidateFilter(
-                eligibilityEvaluator: ExerciseEligibilityEvaluator(
-                    equipmentTaxonomy: taxonomies.equipment,
-                    environmentTaxonomy: taxonomies.environments
-                )
+                eligibilityEvaluator: evaluator
             ).candidates(from: manifest.exercises, context: context)
-            candidateAuthorizedLocation = location.name
+            generatedWorkoutValidationContext = GeneratedWorkoutValidationContext(
+                locationName: location.name,
+                definitions: manifest.exercises,
+                authorizedCandidateIDs: Set(
+                    candidates.compactMap { ExerciseID(rawValue: $0.id) }
+                ),
+                eligibilityEvaluator: evaluator,
+                environment: context.environment,
+                inventory: context.inventory
+            )
             return encodeJSON(
                 ExerciseCandidatePayload(
                     location: location.name,
@@ -445,6 +474,7 @@ final class ChatEngine {
             return WorkoutStep(
                 order: index,
                 type: type,
+                exerciseIDSnapshot: proposed.exerciseID,
                 title: cleanedTitle,
                 instruction: proposed.instruction?.trimmed.nilIfEmpty,
                 sets: positive(proposed.sets),
@@ -633,6 +663,8 @@ final class ChatEngine {
                     "type": "object",
                     "properties": {
                       "type": {"type": "string", "enum": ["warm_up", "exercise", "mobility", "hold", "cardio", "interval", "distance", "rest", "cooldown", "freeform"]},
+                      "exercise_id": {"type": "string", "description": "Exact stable ID from get_exercise_candidates for catalogue movement steps"},
+                      "custom_exercise": {"type": "boolean", "description": "True only for an explicit custom movement; omit exercise_id when true"},
                       "title": {"type": "string"},
                       "instruction": {"type": "string"},
                       "sets": {"type": "integer", "minimum": 1},

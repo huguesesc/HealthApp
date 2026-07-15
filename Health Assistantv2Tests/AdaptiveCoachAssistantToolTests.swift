@@ -51,7 +51,14 @@ struct AdaptiveCoachAssistantToolTests {
             {
               "title": "Filtered home plan",
               "location": "Home",
-              "steps": [{"type": "exercise", "title": "Bodyweight squat"}]
+              "steps": [{
+                "type": "exercise",
+                "exercise_id": "bodyweight.squat",
+                "title": "Bodyweight squat",
+                "instruction": "Squat with control.",
+                "sets": 3,
+                "reps": 8
+              }]
             }
             """
         )
@@ -78,6 +85,15 @@ struct AdaptiveCoachAssistantToolTests {
         let accepted = await engine.execute(proposal)
         #expect(accepted.contains("Drafted a structured workout plan"))
         #expect(engine.items.contains { if case .proposal = $0 { true } else { false } })
+
+        let proposalCard = try #require(engine.items.compactMap { item -> ChatProposal? in
+            if case .proposal(let proposal) = item { return proposal }
+            return nil
+        }.first)
+        engine.confirm(proposalCard)
+        let saved = try #require(repository.activeWorkoutPlans().first)
+        #expect(saved.orderedSteps.first?.exerciseIDSnapshot == "bodyweight.squat")
+        #expect(saved.orderedSteps.first?.title == "Bodyweight squat")
     }
 
     @Test func coachToolsHaveEmptyReadOnlyInputSchemas() throws {

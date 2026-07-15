@@ -1543,3 +1543,70 @@ media-independent payload; proposal sequencing guard; 15/15 focused/structured,
 53/53 adjacent, and 3/3 bundle tests passed on Xcode 16.2 / iPhone 16 Pro /
 iOS 18.3.1; final Release build exit 0; independent CodeRabbit verdict
 unavailable because its CLI was not installed).`
+
+## 2026-07-15 — T18 macOS continuation: generated-output validation
+
+### Fail-closed proposal boundary
+
+T18 added `GeneratedWorkoutValidator` between model output and the existing
+workout-plan preview/confirmation boundary. Catalogue movement steps must carry
+an exact stable ID from the authorized T17 candidate payload, or resolve through
+an exact legacy ID or unique normalized alias/name. Resolved definitions are
+rechecked for active lifecycle, current location/equipment eligibility,
+candidate authorization, nonempty instructions, and positive tracking fields.
+Unknown, ambiguous, deprecated, disabled, ineligible, unauthorized, and
+malformed steps are rejected with an actionable regeneration error before a
+proposal card can be created.
+
+Exact legacy/unique-reference repairs are canonicalized to the stable ID and
+display name and returned in a repair audit. Explicit custom movements remain
+permitted only when marked `custom_exercise=true`, ID-free, and instructional.
+Structural warm-up, rest, cooldown, and freeform steps retain their existing
+snapshot behavior. Optional `exercise_id` and `custom_exercise` fields preserve
+legacy proposal decoding, while newly confirmed catalogue steps persist their
+stable ID snapshot without changing confirmation transaction semantics.
+
+### Xcode 16.2 validation
+
+The final focused run on iPhone 16 Pro
+`F29D78A3-33A7-4EAA-857F-A79813A4CAAE`, iOS 18.3.1, passed 15/15 across
+`GeneratedWorkoutValidatorTests`, `AdaptiveCoachAssistantToolTests`, and
+`StructuredWorkoutPlanTests`. Coverage includes stable-ID normalization;
+nonexistent, ambiguous, deprecated, disabled, ineligible, and unauthorized
+references; exact legacy/alias repair audit; explicit custom-movement policy;
+instruction/repetition/duration validation; exact-location sequencing; and an
+end-to-end candidate → validated proposal → confirmed saved stable-ID snapshot.
+A clean rebuild followed by the final three-suite test command completed with
+exit 0.
+
+The first generic universal Release attempt reached dSYM merging and stopped
+only because the disposable `/tmp` volume lacked space for the second
+architecture. After removing disposable prior-task build products, the same
+Release configuration for the designated simulator's single architecture
+completed with exit 0. The earlier focused result-bundle write encountered the
+same transient disk limit; its build products were removed, the affected
+expectation was made compatible with the strengthened tool response, and the
+clean final test evidence above passed. No user data or simulator was removed.
+
+### Review-tool deviation and safety record
+
+The required independent read-only reviewer found the CodeRabbit CLI absent and
+made no changes. Its prescribed workflow forbids a manual substitute, and the
+third-party remote installer was not run without explicit user authorization,
+so no independent verdict is claimed. Local contract review and automated
+boundary coverage found no blocking issue.
+
+Xcode's unrelated PBX ordering/quoting rewrite was restored, leaving no project
+file diff. User handoff/planning documents remained untracked and unstaged. No
+remote state changed, nothing was pushed or merged, and no path named `archive`
+was accessed.
+
+### Durable task ledger
+
+`T18: complete with review-tool deviation (generated catalogue references are
+validated fail-closed before preview; exact legacy/unique-reference repair is
+audited; custom exercises are explicit and ID-free; confirmed plans persist
+stable ID snapshots; 15/15 focused/structured tests and final clean rerun passed
+on Xcode 16.2 / iPhone 16 Pro / iOS 18.3.1; single-architecture Release build
+exit 0 after a disposable-volume limit prevented universal dSYM merging;
+independent CodeRabbit verdict unavailable because its CLI was not installed).`
