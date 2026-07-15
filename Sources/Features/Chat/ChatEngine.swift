@@ -178,9 +178,15 @@ final class ChatEngine {
 
     private var history: [ChatTurn] = []
     private let modelContext: ModelContext
+    private let exerciseCatalogRepository: any ExerciseCatalogRepositoryProviding
+    private var candidateAuthorizedLocation: String?
 
-    init(modelContext: ModelContext) {
+    init(
+        modelContext: ModelContext,
+        exerciseCatalogRepository: any ExerciseCatalogRepositoryProviding = BundledExerciseCatalogRepository()
+    ) {
         self.modelContext = modelContext
+        self.exerciseCatalogRepository = exerciseCatalogRepository
     }
 
     private var repo: HealthDataRepository {
@@ -199,6 +205,7 @@ final class ChatEngine {
         errorMessage = nil
         items.append(.user(UUID(), trimmed))
         history.append(ChatTurn(role: .user, content: [.text(trimmed)]))
+        candidateAuthorizedLocation = nil
         isThinking = true
         Task { await runLoop() }
     }
@@ -226,7 +233,7 @@ final class ChatEngine {
 
                 var results: [ChatContent] = []
                 for call in reply.toolCalls {
-                    let result = execute(call)
+                    let result = await execute(call)
                     results.append(.toolResult(toolUseID: call.id, text: result))
                 }
                 history.append(ChatTurn(role: .user, content: results))
@@ -239,7 +246,7 @@ final class ChatEngine {
 
     // MARK: Tool execution
 
-    private func execute(_ call: ChatToolCall) -> String {
+    func execute(_ call: ChatToolCall) async -> String {
         let data = Data(call.inputJSON.utf8)
         switch call.name {
         case "propose_meal":
@@ -264,6 +271,11 @@ final class ChatEngine {
                   !proposal.steps.isEmpty else {
                 return "Error: could not parse a complete workout-plan proposal."
             }
+            guard let authorizedLocation = candidateAuthorizedLocation,
+                  let proposedLocation = proposal.location?.trimmed,
+                  authorizedLocation.caseInsensitiveCompare(proposedLocation) == .orderedSame else {
+                return "Error: call get_exercise_candidates for the exact proposed location before drafting a workout plan."
+            }
             items.append(.proposal(ChatProposal(kind: .workoutPlan(proposal))))
             return "Drafted a structured workout plan and showed it to the user for confirmation. "
                 + "It is NOT saved yet — the user must tap Save plan."
@@ -287,6 +299,59 @@ final class ChatEngine {
             return snapshots.isEmpty
                 ? "The user has not added any active workout locations or equipment yet."
                 : encodeJSON(snapshots, failure: "workout locations")
+
+        case "get_exercise_candidates":
+            struct CandidateInput: Codable {
+                var location: String
+                var goal: String?
+                var durationMinutes: Int?
+
+                enum CodingKeys: String, CodingKey {
+                    case location
+                    case goal
+                    case durationMinutes = "duration_minutes"
+                }
+            }
+            guard let input = try? JSONDecoder().decode(CandidateInput.self, from: data),
+                  let location = repo.matchingActiveLocation(named: input.location) else {
+                return "Error: choose an exact active location before requesting exercise candidates."
+            }
+            guard case .available(let manifest) = await exerciseCatalogRepository.loadState() else {
+                return "Error: the exercise catalogue is unavailable; no unfiltered fallback is allowed."
+            }
+            let taxonomies: BundledExerciseCandidateTaxonomies
+            do {
+                taxonomies = try BundledExerciseCandidateTaxonomies.load()
+            } catch {
+                return "Error: exercise eligibility taxonomies are unavailable; no unfiltered fallback is allowed."
+            }
+
+            let profile = repo.existingProfile()
+            let goal = input.goal?.trimmed.nilIfEmpty ?? profile?.primaryGoal.displayName
+            let duration = input.durationMinutes ?? profile?.preferredSessionMinutes
+            let context = LegacyWorkoutCandidateContextAdapter().context(
+                for: location,
+                equipmentTaxonomy: taxonomies.equipment,
+                goal: goal,
+                durationMinutes: duration
+            )
+            let candidates = ExerciseCandidateFilter(
+                eligibilityEvaluator: ExerciseEligibilityEvaluator(
+                    equipmentTaxonomy: taxonomies.equipment,
+                    environmentTaxonomy: taxonomies.environments
+                )
+            ).candidates(from: manifest.exercises, context: context)
+            candidateAuthorizedLocation = location.name
+            return encodeJSON(
+                ExerciseCandidatePayload(
+                    location: location.name,
+                    goal: goal,
+                    durationMinutes: duration,
+                    candidates: candidates,
+                    customExercisePolicy: "Custom exercises are allowed only when explicitly marked custom and must not claim a catalogue ID."
+                ),
+                failure: "exercise candidates"
+            )
 
         case "get_workout_plans":
             let snapshots = repo.workoutPlanSnapshots(limit: 20)
@@ -460,14 +525,17 @@ final class ChatEngine {
     is already saved or logged.
 
     When the user asks you to CREATE, DESIGN, or SUGGEST a future workout plan, first \
-    call get_health_profile and get_workout_locations. Then call propose_workout_plan. \
-    Use only equipment marked available at the selected active location. Include ordered \
+    call get_health_profile and get_workout_locations. Choose an exact active location, \
+    then call get_exercise_candidates with that location, goal, and duration before calling \
+    propose_workout_plan. The filter considers only equipment marked available at that location. \
+    Use only the returned catalogue candidates; if a genuinely custom \
+    exercise is needed, label it explicitly as custom and never invent a catalogue ID. Include ordered \
     warm-up, exercise, mobility/cardio/rest as appropriate, and cooldown steps. Make the \
     plan realistic for the user's stated duration, experience, goal, and preferences. \
     The plan is a draft requiring Save plan; do not describe it as saved before confirmation.
 
     Health considerations returned by get_health_profile are the user's own reports, not \
-    diagnoses. Account for them conservatively. Do not infer a medical condition, prescribe \
+    diagnoses. Account for them conservatively; never infer a condition or diagnosis, prescribe \
     treatment or rehabilitation, claim an exercise is medically safe, or override clinician \
     guidance. Prefer neutral adjustments such as reduced load, stable support, shorter range, \
     lower volume, or an alternative movement when appropriate.
@@ -612,6 +680,23 @@ final class ChatEngine {
                 + "space limitations. Read-only.",
             inputSchemaJSON: """
             {"type": "object", "properties": {}}
+            """
+        ),
+        ChatToolDef(
+            name: "get_exercise_candidates",
+            description: "Return a compact, deterministic list of only the catalogue exercises "
+                + "eligible for an exact active location, its available equipment, goal, and "
+                + "duration. Call this before proposing a future workout plan. Fails closed.",
+            inputSchemaJSON: """
+            {
+              "type": "object",
+              "properties": {
+                "location": {"type": "string", "description": "Exact active location name from get_workout_locations"},
+                "goal": {"type": "string"},
+                "duration_minutes": {"type": "integer", "minimum": 5, "maximum": 240}
+              },
+              "required": ["location"]
+            }
             """
         ),
         ChatToolDef(

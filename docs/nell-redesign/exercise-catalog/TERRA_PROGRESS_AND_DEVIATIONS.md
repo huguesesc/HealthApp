@@ -1461,3 +1461,85 @@ once with snapshots preserved; 3/3 focused migration tests and four surrounding
 suites passed on Xcode 16.2 / iPhone 16 Pro / iOS 18.3.1; Release build exit 0;
 installed T15→T16 debug upgrade and SQLite integrity passed; rollback documented;
 independent CodeRabbit verdict unavailable because its CLI was not installed).`
+
+## 2026-07-15 — T17 macOS continuation: generator candidate filtering
+
+### Fail-closed candidate boundary
+
+T17 added a pure `ExerciseCandidateFilter` that applies the T05 equipment and
+environment evaluator before any catalogue entry can enter the model payload.
+Disabled/deprecated entries and structurally invalid or ineligible requirements
+are removed. Remaining active entries are ranked deterministically with a POSIX
+locale, goal preference, duration cap, and movement-pattern balance.
+
+The compact payload contains only stable ID, display name, category, movement
+pattern, tracking mode, and equipment option IDs/quantities. Instructions,
+guidance, aliases, legacy IDs, and media are omitted. Media presence therefore
+cannot affect eligibility or ranking. Short sessions return at most six entries,
+30-minute sessions at most ten, and longer/unspecified sessions at most fourteen.
+
+`LegacyWorkoutCandidateContextAdapter` maps stored location categories to the
+canonical home/gym/hotel/outdoors/sport-venue/custom presets and maps only
+available structured equipment categories to canonical equipment IDs. A legacy
+pair-of-dumbbells item fulfills two dumbbells; unavailable and unrecognized
+custom equipment fail closed. Exact custom equipment display names/aliases may
+map to one active taxonomy entry.
+
+### Chat tool integration and safety
+
+`ChatEngine` now exposes `get_exercise_candidates`. It requires an exact active
+location, uses the confirmed profile goal/session duration as defaults, loads the
+cached canonical catalogue plus version-1 equipment/environment taxonomies, and
+returns an error if any dependency is unavailable or invalid. There is no
+unfiltered fallback.
+
+The engine resets candidate authorization for each user message and rejects
+`propose_workout_plan` until candidate filtering has succeeded for the exact
+proposed location during that tool loop. Custom exercise use remains explicit
+and cannot claim a catalogue ID. Meal generation, completed-workout logging,
+direct confirmation/persistence, and unrelated tools were not changed. The
+existing medical-safety prompt wording was strengthened while restoring both
+pre-existing literal safety assertions.
+
+### Xcode 16.2 validation
+
+Final focused/structured verification on iPhone 16 Pro
+`F29D78A3-33A7-4EAA-857F-A79813A4CAAE`, iOS 18.3.1, passed 15/15 with zero
+failures/skips. Coverage includes:
+
+- home/no-equipment removal of weighted, machine, and jumping-only entries;
+- gym capability not substituting for a specific machine;
+- deterministic goal/duration/pattern ranking and token-size bounds;
+- lifecycle and media independence;
+- legacy location/equipment mapping and unavailable-item removal;
+- real 20-entry production catalogue matrices for home, empty gym, and equipped gym;
+- registered tool schema/prompt requirements; and
+- end-to-end rejection before filtering followed by acceptance only after exact-location authorization.
+
+The adjacent profile, domain, eligibility, equipment, loader, and production
+manifest suites passed 53/53. The three application-bundle tests passed,
+including real bundled catalogue/equipment/environment lookup and authoring-map
+exclusion. The final generic iOS Simulator Release build completed with exit 0
+and no console diagnostics. Xcode's unrelated PBX ordering/quoting rewrite was
+restored, leaving no project-file diff.
+
+### Review-tool deviation and safety record
+
+The independent read-only reviewer again found the required CodeRabbit CLI
+missing (`command not found`) and did not install the third-party tool without
+explicit user approval. Its workflow forbids a manual substitute, so no
+independent verdict is claimed. The reviewer changed no file and performed no
+Git mutation. Local scoped review added the exact-location sequencing guard and
+taxonomy version/validation checks before final verification.
+
+User handoff/planning documents remained untracked and unstaged. No remote state
+changed, nothing was pushed or merged, and no path named `archive` was accessed.
+
+### Durable task ledger
+
+`T17: complete with review-tool deviation (fail-closed exact-location candidate
+tool; canonical hard constraints and legacy adapters; compact deterministic
+media-independent payload; proposal sequencing guard; 15/15 focused/structured,
+53/53 adjacent, and 3/3 bundle tests passed on Xcode 16.2 / iPhone 16 Pro /
+iOS 18.3.1; final Release build exit 0; independent CodeRabbit verdict
+unavailable because its CLI was not installed).`
