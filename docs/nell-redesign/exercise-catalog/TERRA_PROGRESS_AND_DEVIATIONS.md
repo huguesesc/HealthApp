@@ -1349,3 +1349,115 @@ ambiguous/unresolved outcomes with privacy-preserving diagnostics; old substring
 matching removed; canonical-to-legacy-vector bridge and equipment adapter added;
 15/15 focused tests passed with zero warnings/errors; Release build exit 0;
 stored records untouched).`
+
+## 2026-07-15 — T16 macOS continuation: persistence migration and compatibility
+
+### Additive schema and compatibility behavior
+
+T16 added optional `exerciseIDSnapshot` strings to `WorkoutStep`,
+`ActiveWorkoutStep`, and `ExerciseSet`, plus typed `ExerciseID` accessors. New
+data propagates the stable ID from plan to active workout to completed history;
+display names, instructions, equipment wording, and completed-history names
+remain independent snapshots. Compact workout-plan snapshots also carry the
+optional stable ID without changing their existing text fields.
+
+`HealthAppSchemaV2` explicitly records schema version 2.0.0. The prior app used
+SwiftData's implicit 1.0.0 schema, and this version adds optional scalar columns
+only, so the production container uses SwiftData's inferred lightweight
+migration. A throwing store-URL initializer exists only to let migration tests
+copy and open immutable fixtures without exercising the fatal production path.
+
+The explicit `LegacyExerciseIDBackfill` repository operation fills only nil ID
+fields that the T15 resolver maps to exactly one stable catalogue definition.
+It never overwrites an existing ID or historical text; ambiguous, unknown, and
+custom references remain nil and are counted in the report. Backfill is not an
+automatic launch mutation.
+
+### Real prior-schema fixture and automated validation
+
+The tracked `Health Assistantv2Tests/Fixtures/T16PriorSchema` store/WAL/SHM set
+was generated once by unchanged T15 model code on Xcode 16.2 / iOS Simulator
+18.3.1, exported, and checkpointed once during integrity verification before its
+final hashes were recorded. The final fixture is treated as immutable. SQLite
+integrity is `ok`.
+Hashes:
+
+```text
+HealthApp.store      543c4d5957263e11f5b09e0879d39c329f94f2eb7c35b222c3815ea5fe0ac5b5
+HealthApp.store-wal  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+HealthApp.store-shm  fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb
+```
+
+After correcting a test-helper URL round-trip that treated `%20` as literal
+text, the final focused Xcode 16.2 command used the designated iPhone 16 Pro
+(`F29D78A3-33A7-4EAA-857F-A79813A4CAAE`) on iOS 18.3.1 and completed with exit
+0:
+
+```text
+xcodebuild test-without-building -quiet \
+  -project "Health Assistantv2.xcodeproj" -scheme "Health Assistantv2" \
+  -destination "platform=iOS Simulator,id=F29D78A3-33A7-4EAA-857F-A79813A4CAAE" \
+  -derivedDataPath /tmp/nell-t16-fixture-build \
+  -parallel-testing-enabled NO \
+  -only-testing:"Health Assistantv2Tests/ExercisePersistenceMigrationTests"
+```
+
+All three migration tests passed. They prove old-store open and reopen; profile,
+location, equipment, plan, active-session, and history readability; nil decoding
+for new fields; exact-only backfill with four unresolved custom/retired values;
+resume from one completed set and 73 accumulated seconds; exactly one history
+conversion after duplicate finish calls; unchanged renamed/retired/custom
+snapshots; and new plan-to-active-to-history ID propagation.
+
+Four surrounding suites then passed together with exit 0 on the same simulator:
+`ActiveWorkoutModeTests`, `StructuredWorkoutPlanTests`,
+`NellActiveWorkoutBoundaryTests`, and `LegacyExerciseResolverTests`. The final
+generic iOS Simulator Release build completed with exit 0 and no console
+diagnostics.
+
+### Installed debug upgrade and rollback evidence
+
+A disposable detached worktree at committed T15 (`8095331`) built and installed
+the prior debug app. Its app container was seeded with a copied fixture and the
+T15 app launched successfully. The current T16 debug app was then installed over
+that app without uninstalling it. The simulator preserved the seeded data while
+assigning a new container UUID; T16 launched, stayed running, and rendered the
+setup screen.
+
+After a clean stop, the installed migrated store retained 1 profile, 1 location,
+1 equipment item, 1 plan/2 steps, 1 active session/2 steps, and 1 history/2 sets.
+All three new columns existed as nullable `VARCHAR`; plan/active/history wording,
+the active step's `completedSets == 1`, and nil legacy IDs were unchanged;
+`PRAGMA integrity_check` returned `ok`. The simulator's pre-test HealthApp store,
+WAL, and SHM were restored afterward and each restored file matched its backup
+SHA-256 byte-for-byte. The disposable worktree, builds, backup, and screenshot
+were removed.
+
+The tracked `T16_PERSISTENCE_MIGRATION_RUNBOOK.md` records backup-as-a-set,
+integrity verification, failed-working-copy retention, and the rule that an old
+binary may open a migrated store only after exact compatibility is proven;
+otherwise rollback restores the untouched version-1 backup with the prior app.
+
+### Review-tool deviation and safety record
+
+The required independent read-only reviewer attempted the configured review
+workflow, but its mandatory CodeRabbit CLI was absent. The prescribed remote
+installer was rejected because installing an unreviewed third-party script had
+not been explicitly authorized, and that workflow forbids substituting a manual
+review after CLI failure. No independent verdict is claimed. A local scoped spec
+audit found no blocking mismatch, and automated plus installed-upgrade evidence
+covers the T16 acceptance boundary.
+
+Xcode's unrelated PBX group reordering and quoting of the existing T13 resource
+exception were restored, leaving no project-file diff. User handoff/planning
+artifacts stayed untracked and unstaged. No remote state changed, nothing was
+pushed or merged, and no path named `archive` was accessed.
+
+### Durable task ledger
+
+`T16: complete with review-tool deviation (optional stable IDs propagate
+plan→active→history; real T15 store fixture migrates/reopens/resumes/completes
+once with snapshots preserved; 3/3 focused migration tests and four surrounding
+suites passed on Xcode 16.2 / iPhone 16 Pro / iOS 18.3.1; Release build exit 0;
+installed T15→T16 debug upgrade and SQLite integrity passed; rollback documented;
+independent CodeRabbit verdict unavailable because its CLI was not installed).`

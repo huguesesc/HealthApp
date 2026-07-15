@@ -4,6 +4,7 @@ import SwiftData
 struct WorkoutPlanStepSnapshot: Codable, Equatable {
     var order: Int
     var type: String
+    var exerciseIDSnapshot: String?
     var title: String
     var instruction: String?
     var sets: Int?
@@ -203,6 +204,7 @@ extension HealthDataRepository {
                     WorkoutPlanStepSnapshot(
                         order: $0.order,
                         type: $0.type.displayName,
+                        exerciseIDSnapshot: $0.exerciseIDSnapshot,
                         title: $0.title,
                         instruction: $0.instruction,
                         sets: $0.sets,

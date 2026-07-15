@@ -26,16 +26,28 @@ final class WorkoutSession {
 @Model
 final class ExerciseSet {
     var exerciseName: String
+    var exerciseIDSnapshot: String?
     var reps: Int
     var weightKilograms: Double?
     var order: Int
 
     var session: WorkoutSession?
 
-    init(exerciseName: String, reps: Int, weightKilograms: Double? = nil, order: Int = 0) {
+    init(
+        exerciseName: String,
+        exerciseIDSnapshot: String? = nil,
+        reps: Int,
+        weightKilograms: Double? = nil,
+        order: Int = 0
+    ) {
         self.exerciseName = exerciseName
+        self.exerciseIDSnapshot = exerciseIDSnapshot
         self.reps = reps
         self.weightKilograms = weightKilograms
         self.order = order
+    }
+
+    var exerciseID: ExerciseID? {
+        exerciseIDSnapshot.flatMap(ExerciseID.init(rawValue:))
     }
 }

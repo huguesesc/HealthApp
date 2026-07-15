@@ -185,6 +185,7 @@ final class WorkoutStep {
     var updatedAt: Date
     var order: Int
     var typeRaw: String
+    var exerciseIDSnapshot: String?
     var title: String
     var instruction: String?
     var sets: Int?
@@ -204,6 +205,7 @@ final class WorkoutStep {
         updatedAt: Date = .now,
         order: Int,
         type: WorkoutStepType,
+        exerciseIDSnapshot: String? = nil,
         title: String,
         instruction: String? = nil,
         sets: Int? = nil,
@@ -222,6 +224,7 @@ final class WorkoutStep {
         self.updatedAt = updatedAt
         self.order = max(order, 0)
         self.typeRaw = type.rawValue
+        self.exerciseIDSnapshot = exerciseIDSnapshot
         self.title = title
         self.instruction = instruction
         self.sets = sets
@@ -238,6 +241,10 @@ final class WorkoutStep {
 
     var type: WorkoutStepType {
         WorkoutStepType(rawValue: typeRaw) ?? .freeform
+    }
+
+    var exerciseID: ExerciseID? {
+        exerciseIDSnapshot.flatMap(ExerciseID.init(rawValue:))
     }
 
     var side: WorkoutStepSide {
