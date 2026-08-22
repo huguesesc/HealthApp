@@ -2817,6 +2817,303 @@ def write_json_file(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+INVENTORY_CONFIDENCE = {
+    "approved_for_import": "high (human-approved for import)",
+    "approved_pending_catalogue_entry": "high-pending-entry (semantics approved; "
+    "entry content approval outstanding)",
+    "unreviewed": "unassessed (no human semantic review recorded)",
+    "quarantined": "quarantined",
+}
+
+
+def png_inventory_metadata(path: Path) -> dict[str, Any]:
+    """Decode a PNG and return dimensions, alpha, and readability metadata."""
+    try:
+        with Image.open(path) as image:
+            width, height = image.size
+            mode = image.mode
+            has_alpha_channel = mode in ("RGBA", "LA") or "transparency" in image.info
+            alpha_used = False
+            if mode in ("RGBA", "LA"):
+                alpha_used = image.getchannel("A").getextrema()[0] < 255
+            elif has_alpha_channel:
+                alpha_used = True
+        return {
+            "readable": True,
+            "width": width,
+            "height": height,
+            "mode": mode,
+            "hasAlphaChannel": has_alpha_channel,
+            "alphaActuallyUsed": alpha_used,
+        }
+    except (OSError, UnidentifiedImageError, ValueError) as error:
+        return {"readable": False, "decodeError": str(error)}
+
+
+def source_name_defects(source_path: str) -> list[str]:
+    """Mechanical filename defects that normalization must repair in copies."""
+    name = Path(source_path).name
+    defects: list[str] = []
+    if ".." in name:
+        defects.append("duplicate_period")
+    elif name.lower().endswith(".png") and Path(name).stem.endswith("."):
+        defects.append("trailing_period")
+    if DUMBELL_MISSPELLING in name.lower():
+        defects.append("dumbell_misspelling")
+    if name != name.lower():
+        defects.append("non_lowercase")
+    if " " in name:
+        defects.append("space_in_filename")
+    return defects
+
+
+def build_inventory(root: Path, source_pack: Path | None) -> dict[str, Any]:
+    """Build a machine-readable disposition inventory for every mapped image.
+
+    Read-only. Combines the import map decisions, catalogue references,
+    generated namespace/index state, and decoded PNG metadata into one record
+    per source illustration so no workout image can remain silently forgotten.
+    """
+    authoring = root / AUTHORING_DIRECTORY
+    import_map_path = authoring / "media-import-map.json"
+    catalog_path = authoring / "catalog.json"
+    equipment_path = authoring / "equipment.json"
+    environments_path = authoring / "environments.json"
+
+    catalogue_by_id: dict[str, dict[str, Any]] = {}
+    referenced_media_keys: set[str] = set()
+    catalog_data = load_json(catalog_path, root, ValidationReport())
+    if isinstance(catalog_data, dict):
+        for exercise in catalog_data.get("exercises", []) or []:
+            if not isinstance(exercise, dict) or not is_exercise_id(exercise.get("id")):
+                continue
+            catalogue_by_id[exercise["id"]] = exercise
+            for media in exercise.get("media", []) or []:
+                if isinstance(media, dict) and isinstance(media.get("key"), str):
+                    referenced_media_keys.add(media["key"])
+
+    equipment_names: dict[str, str] = {}
+    equipment_data = load_json(equipment_path, root, ValidationReport())
+    if isinstance(equipment_data, dict):
+        for definition in equipment_data.get("equipment", []) or []:
+            if isinstance(definition, dict) and isinstance(definition.get("id"), str):
+                equipment_names[definition["id"]] = definition.get("displayName", definition["id"])
+
+    index_keys: set[str] = set()
+    index_path = root / GENERATED_DIRECTORY / "media-index.json"
+    try:
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+        if isinstance(index_data, dict):
+            entries = index_data.get("media", [])
+            if isinstance(entries, list):
+                for entry in entries:
+                    if isinstance(entry, dict) and isinstance(entry.get("key"), str):
+                        index_keys.add(entry["key"])
+            elif isinstance(entries, dict):
+                index_keys.update(str(key) for key in entries)
+    except (OSError, ValueError):
+        pass
+
+    generated_namespace = root / GENERATED_ASSET_DIRECTORY
+
+    rows: list[dict[str, Any]] = []
+    map_data = load_json(import_map_path, root, ValidationReport())
+    images = map_data.get("images", []) if isinstance(map_data, dict) else []
+    verified_hashes: dict[str, str] = {}
+    hash_owners: dict[str, list[str]] = defaultdict(list)
+    for image in images:
+        if not isinstance(image, dict):
+            continue
+        source_path = image.get("sourcePath")
+        row_source = source_pack / source_path if (
+            source_pack and isinstance(source_path, str)
+        ) else None
+        actual_checksum = sha256(row_source) if row_source and row_source.is_file() else None
+        if isinstance(source_path, str):
+            verified_hashes[source_path] = actual_checksum or ""
+            if actual_checksum:
+                hash_owners[actual_checksum].append(source_path)
+
+    for image in images:
+        if not isinstance(image, dict):
+            continue
+        source_path = image.get("sourcePath") if isinstance(image.get("sourcePath"), str) else ""
+        exercise_id = image.get("canonicalExerciseID")
+        media_key = image.get("canonicalMediaKey")
+        canonical_filename = image.get("canonicalFileName")
+        status = image.get("status")
+
+        definition = catalogue_by_id.get(exercise_id) if isinstance(exercise_id, str) else None
+        equipment_ids: list[str] = []
+        environment_required: list[str] = []
+        if definition:
+            clauses = definition.get("equipment", {}).get("required", [])
+            alternatives = definition.get("equipment", {}).get("alternatives", [])
+            equipment_ids = sorted({
+                clause.get("id") for clause in clauses if isinstance(clause, dict)
+            })
+            equipment_ids += sorted({
+                clause.get("id")
+                for group in alternatives if isinstance(group, list)
+                for clause in group if isinstance(clause, dict)
+            })
+            environment_required = list(
+                definition.get("environmentRequirements", {}).get("required", []) or []
+            )
+
+        imageset_name = (
+            str(canonical_filename).removesuffix(".png") + ".imageset"
+            if isinstance(canonical_filename, str) else ""
+        )
+        imageset_present = bool(imageset_name) and (
+            generated_namespace / imageset_name
+        ).is_dir()
+        checksum_matches = (
+            verified_hashes.get(source_path) == image.get("sourceSHA256")
+            if source_pack else None
+        )
+        duplicate_of = [
+            other for other in hash_owners.get(verified_hashes.get(source_path, ""), [])
+            if other != source_path
+        ] if source_pack and verified_hashes.get(source_path) else []
+
+        flags = source_name_defects(source_path)
+        if status == "unreviewed":
+            flags.append("pending_human_semantic_review")
+        if checksum_matches is False:
+            flags.append("source_checksum_mismatch")
+        if duplicate_of:
+            flags.append("duplicate_content")
+        if definition is None and status == "approved_for_import":
+            flags.append("import_row_without_catalogue_entry")
+
+        rows.append({
+            "sourcePath": source_path,
+            "normalizedDestination": canonical_filename,
+            "status": status,
+            "confidence": INVENTORY_CONFIDENCE.get(str(status), "unknown"),
+            "ambiguityFlags": flags,
+            "approvalReference": image.get("approvalReference"),
+            "proposedExerciseID": exercise_id,
+            "displayName": definition.get("displayName") if definition else None,
+            "aliases": definition.get("aliases", []) if definition else [],
+            "hiddenLegacyNames": definition.get("legacyNames", []) if definition else [],
+            "equipmentIDs": equipment_ids,
+            "equipmentDisplayNames": [
+                equipment_names.get(item, item) for item in equipment_ids
+            ],
+            "environmentRequiredCapabilities": environment_required,
+            "mediaRole": image.get("role"),
+            "mediaKey": media_key,
+            "mediaUsageNote": image.get("note") or image.get("mediaUsage"),
+            "referencedByCatalogue": media_key in referenced_media_keys if media_key else False,
+            "generatedImagesetPresent": imageset_present,
+            "mediaIndexEntryPresent": media_key in index_keys if media_key else False,
+            "importedIntoApp": bool(imageset_present and media_key in index_keys),
+            "checksumMatchesSource": checksum_matches,
+            "exactDuplicateSources": sorted(duplicate_of),
+            "pngMetadata": (
+                png_inventory_metadata(row_source)
+                if row_source and row_source.is_file()
+                else {"readable": False, "decodeError": "source file unavailable"}
+            ),
+            "fileSizeBytes": (
+                row_source.stat().st_size
+                if row_source and row_source.is_file()
+                else None
+            ),
+        })
+
+    outside_directories: dict[str, int] = {}
+    if source_pack and source_pack.is_dir():
+        mapped_directory = ""
+        source_metadata = map_data.get("sourcePack", {}) if isinstance(map_data, dict) else {}
+        if isinstance(source_metadata, dict):
+            mapped_directory = str(source_metadata.get("mappedDirectory", ""))
+        for png in sorted(source_pack.rglob("*.png")):
+            relative_png = relative_path(source_pack, png)
+            top = relative_png.split("/")[0]
+            if mapped_directory and relative_png.startswith(f"{mapped_directory}/"):
+                continue
+            outside_directories[top] = outside_directories.get(top, 0) + 1
+            rows.append({
+                "sourcePath": relative_png,
+                "normalizedDestination": None,
+                "status": "outside_exercise_scope",
+                "confidence": "not-an-exercise-illustration (brand/pose pipeline)",
+                "ambiguityFlags": [],
+                "approvalReference": None,
+                "proposedExerciseID": None,
+                "displayName": None,
+                "aliases": [],
+                "hiddenLegacyNames": [],
+                "equipmentIDs": [],
+                "equipmentDisplayNames": [],
+                "environmentRequiredCapabilities": [],
+                "mediaRole": None,
+                "mediaKey": None,
+                "mediaUsageNote": None,
+                "referencedByCatalogue": False,
+                "generatedImagesetPresent": False,
+                "mediaIndexEntryPresent": False,
+                "importedIntoApp": False,
+                "checksumMatchesSource": None,
+                "exactDuplicateSources": [],
+                "pngMetadata": png_inventory_metadata(png),
+                "fileSizeBytes": png.stat().st_size,
+            })
+
+    imported_count = sum(1 for row in rows if row["importedIntoApp"])
+    pending_entry_count = sum(
+        1 for row in rows if row["status"] == "approved_pending_catalogue_entry"
+    )
+    unreviewed_count = sum(1 for row in rows if row["status"] == "unreviewed")
+    flagged_count = sum(1 for row in rows if row["ambiguityFlags"])
+    return {
+        "inventorySchemaVersion": 1,
+        "totals": {
+            "rows": len(rows),
+            "mappedExerciseImages": sum(
+                1 for row in rows if row["status"] != "outside_exercise_scope"
+            ),
+            "imported": imported_count,
+            "approvedPendingCatalogueEntry": pending_entry_count,
+            "unreviewed": unreviewed_count,
+            "rowsWithAmbiguityFlags": flagged_count,
+            "outsideDirectories": outside_directories,
+        },
+        "images": rows,
+    }
+
+
+def run_inventory(root: Path | str, source_pack: Path | str | None, as_json: bool) -> int:
+    inventory = build_inventory(Path(root), Path(source_pack) if source_pack else None)
+    if as_json:
+        print(json.dumps(inventory, indent=2, sort_keys=True))
+        return 0
+    totals = inventory["totals"]
+    print(
+        f"exercise-catalog inventory: rows={totals['rows']} "
+        f"mapped={totals['mappedExerciseImages']} imported={totals['imported']} "
+        f"pending_entry={totals['approvedPendingCatalogueEntry']} "
+        f"unreviewed={totals['unreviewed']} "
+        f"flagged={totals['rowsWithAmbiguityFlags']}"
+    )
+    print(
+        "status breakdown by row: sourcePath -> status -> proposed ID -> "
+        "imported / referenced / flags"
+    )
+    for row in inventory["images"]:
+        destination = row["normalizedDestination"] or "-"
+        flags = ",".join(row["ambiguityFlags"]) if row["ambiguityFlags"] else "-"
+        print(
+            f"{row['sourcePath']} -> {row['status']} -> {row['proposedExerciseID'] or '-'}"
+            f" | dest={destination} imported={row['importedIntoApp']} "
+            f"referenced={row['referencedByCatalogue']} flags={flags}"
+        )
+    return 0
+
+
 def print_report(report: ValidationReport) -> None:
     print(
         "exercise-catalog validation: "
@@ -2853,6 +3150,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Generate only approved imagesets and the media index transactionally.",
     )
+    inventory_command = subcommands.add_parser("inventory")
+    inventory_command.add_argument("--root", type=Path, default=repository_root())
+    inventory_command.add_argument(
+        "--source-pack",
+        type=Path,
+        help="Source-pack root used for PNG metadata, checksums, and duplicate detection.",
+    )
+    inventory_command.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the machine-readable JSON inventory instead of a table.",
+    )
     return parser
 
 
@@ -2863,6 +3172,8 @@ def main(arguments: Iterable[str] | None = None) -> int:
         if parsed.apply:
             return run_import_apply(parsed.root, parsed.source_pack)
         return run_import_dry_run(parsed.root, parsed.source_pack)
+    if parsed.command == "inventory":
+        return run_inventory(parsed.root, parsed.source_pack, parsed.json)
     report = validate_catalogue(
         parsed.root,
         strict=parsed.strict,

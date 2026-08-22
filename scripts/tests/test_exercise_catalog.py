@@ -1337,6 +1337,69 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             fixture["legacyNames"] = legacy_names
         return fixture
 
+    def test_inventory_reports_dispositions_without_writing(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source = self.source_pack / "workout_avatar" / "bodyweight_squat.png"
+        source.parent.mkdir(parents=True)
+        transparent_fixture = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        for pixel_x in range(4):
+            for pixel_y in range(4):
+                transparent_fixture.putpixel((pixel_x, pixel_y), (20, 30, 40, 255))
+        transparent_fixture.save(source)
+        self.write_json(
+            "media-import-map.json",
+            {
+                "schemaVersion": 1,
+                "sourcePack": {
+                    "directoryName": "source-pack",
+                    "mappedDirectory": "workout_avatar",
+                    "verifiedFileCount": 1,
+                    "mappedImageCount": 1,
+                    "verifiedZipSHA256": "a" * 64,
+                },
+                "images": [
+                    {
+                        "status": "approved_for_import",
+                        "sourcePath": "workout_avatar/bodyweight_squat.png",
+                        "sourceSHA256": exercise_catalog.sha256(source),
+                        "canonicalExerciseID": "bodyweight.squat",
+                        "canonicalMediaKey": "bodyweight.squat__composite",
+                        "canonicalFileName": "bodyweight.squat__composite.png",
+                        "role": "composite",
+                        "approvalReference": "TEST-APPROVAL",
+                    }
+                ],
+            },
+        )
+
+        inventory = exercise_catalog.build_inventory(self.root, self.source_pack)
+
+        mapped_rows = [
+            row for row in inventory["images"]
+            if row["status"] != "outside_exercise_scope"
+        ]
+        self.assertEqual(len(mapped_rows), 1)
+        row = mapped_rows[0]
+        self.assertEqual(row["proposedExerciseID"], "bodyweight.squat")
+        self.assertEqual(row["displayName"], "Bodyweight squat")
+        self.assertTrue(row["referencedByCatalogue"])
+        self.assertFalse(row["importedIntoApp"])
+        self.assertFalse(row["generatedImagesetPresent"])
+        self.assertTrue(row["pngMetadata"]["readable"])
+        self.assertEqual((row["pngMetadata"]["width"], row["pngMetadata"]["height"]), (16, 16))
+        self.assertTrue(row["pngMetadata"]["alphaActuallyUsed"])
+        self.assertEqual(row["fileSizeBytes"], source.stat().st_size)
+        self.assertEqual(row["checksumMatchesSource"], True)
+        self.assertEqual(inventory["totals"]["unreviewed"], 0)
+
     def test_legacy_names_participate_in_alias_collision_detection(self):
         catalogue = self.catalog_fixture()
         catalogue["exercises"].append(
