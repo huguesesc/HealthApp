@@ -1469,6 +1469,145 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertIn("E_LEGACY_COMPAT_UNEXPECTED_ID", codes)
         self.assertIn("E_LEGACY_COMPAT_RESOLUTION", codes)
 
+    def test_failure_injection_duplicate_exercise_id_is_isolated(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"].append(
+            self.exercise_fixture(
+                exercise_id="bodyweight.squat",
+                display_name="Duplicate squat",
+            )
+        )
+        self.write_json("catalog.json", catalogue)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        diagnostic = self.find_diagnostic(report, "E_EXERCISE_DUPLICATE")
+        self.assertEqual(diagnostic.pointer, "/exercises")
+        self.assertIn("bodyweight.squat", diagnostic.value)
+        self.assertIn("unique", diagnostic.rule)
+
+    def test_failure_injection_hidden_legacy_name_collision_across_exercises(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"].append(
+            self.exercise_fixture(
+                exercise_id="bodyweight.other",
+                display_name="Other movement",
+                legacy_names=["Secret alias"],
+            )
+        )
+        catalogue["exercises"][0]["legacyNames"] = ["secret ALIAS"]
+        self.write_json("catalog.json", catalogue)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        self.assertIn("E_ALIAS_COLLISION", self.error_codes(report))
+
+    def test_failure_injection_orphan_generated_imageset_is_reported(self):
+        namespace = (
+            self.root
+            / "Health Assistantv2"
+            / "Assets.xcassets"
+            / "ExerciseMedia"
+            / "bodyweight.squat__composite.imageset"
+        )
+        namespace.mkdir(parents=True)
+        (namespace / "bodyweight.squat__composite.png").write_bytes(b"placeholder")
+        (namespace / "Contents.json").write_text("{}", encoding="utf-8")
+        generated_directory = (
+            self.root
+            / "Health Assistantv2"
+            / "ExerciseCatalog"
+            / "Resources"
+            / "Generated"
+        )
+        generated_directory.mkdir(parents=True)
+        (generated_directory / "media-index.json").write_text(
+            json.dumps({"media": []}),
+            encoding="utf-8",
+        )
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        codes = self.error_codes(report)
+        # The unindexed imageset must be flagged as an extra/orphan, alongside
+        # the deterministic fail-closed complaints about the stub index.
+        self.assertIn("E_MEDIA_IMAGESET_EXTRA", codes)
+        self.assertIn("E_MEDIA_NAMESPACE_CONTENTS_MISSING", codes)
+        orphan = next(item for item in report.errors if item.code == "E_MEDIA_IMAGESET_EXTRA")
+        self.assertIn("bodyweight.squat", orphan.value + orphan.file)
+
+    def test_failure_injection_renamed_source_file_breaks_checksum_mapping(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source = self.source_pack / "workout_avatar" / "bodyweight_squat.png"
+        source.parent.mkdir(parents=True)
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(source)
+        import_map = {
+            "schemaVersion": 1,
+            "sourcePack": {
+                "directoryName": "source-pack",
+                "mappedDirectory": "workout_avatar",
+                "verifiedFileCount": 1,
+                "mappedImageCount": 1,
+                "verifiedZipSHA256": "a" * 64,
+            },
+            "images": [
+                {
+                    "status": "approved_for_import",
+                    "sourcePath": "workout_avatar/bodyweight_squat.png",
+                    "sourceSHA256": exercise_catalog.sha256(source),
+                    "canonicalExerciseID": "bodyweight.squat",
+                    "canonicalMediaKey": "bodyweight.squat__composite",
+                    "canonicalFileName": "bodyweight.squat__composite.png",
+                    "role": "composite",
+                    "approvalReference": "TEST-APPROVAL",
+                }
+            ],
+        }
+        self.write_json("media-import-map.json", import_map)
+
+        intact = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+            include_generated=False,
+        )
+        self.assertEqual(intact.errors, [])
+
+        source.rename(source.parent / "bodyweight_squat_renamed.png")
+        renamed = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+            include_generated=False,
+        )
+        missing = self.find_diagnostic(renamed, "E_IMPORT_SOURCE_MISSING")
+        self.assertIn("bodyweight_squat.png", missing.value)
+        self.assertEqual(missing.pointer, "/images/0/sourcePath")
+
+    def test_failure_injection_truncated_json_and_future_schema_version(self):
+        catalog_path = self.authoring / "catalog.json"
+        catalog_path.write_text('{"catalogSchemaVersion": 1, "exercises": [', encoding="utf-8")
+
+        malformed = exercise_catalog.validate_catalogue(self.root, strict=True)
+        self.assertTrue(malformed.errors, "truncated JSON must fail closed")
+
+        self.write_json("catalog.json", self.catalog_fixture())
+        future = self.catalog_fixture()
+        future["catalogSchemaVersion"] = 2
+        self.write_json("catalog.json", future)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+        diagnostic = self.find_diagnostic(report, "E_SCHEMA_VERSION")
+        self.assertIn("2", diagnostic.value)
+
     def test_legacy_names_participate_in_alias_collision_detection(self):
         catalogue = self.catalog_fixture()
         catalogue["exercises"].append(
