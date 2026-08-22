@@ -1608,6 +1608,67 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         diagnostic = self.find_diagnostic(report, "E_SCHEMA_VERSION")
         self.assertIn("2", diagnostic.value)
 
+    def test_scale_synthetic_catalogue_of_one_thousand_stays_deterministic(self):
+        import time
+
+        count = 1000
+        equipment = self.equipment_fixture()
+        equipment["equipment"].append(
+            {
+                "id": "scale_band",
+                "displayName": "Scale band",
+                "category": "resistance_band",
+                "lifecycle": {"status": "active"},
+            }
+        )
+        self.write_json("equipment.json", equipment)
+        catalogue = {
+            "catalogSchemaVersion": 1,
+            "exercises": [
+                {
+                    "id": f"bodyweight.scale_exercise_{index:04d}",
+                    "schemaVersion": 1,
+                    "displayName": f"Scale exercise {index:04d}",
+                    "category": "strength",
+                    "movementPattern": "squat",
+                    "exerciseType": "repetition",
+                    "equipment": (
+                        {"required": [{"id": "none", "quantity": 1}], "alternatives": []}
+                        if index % 2 == 0
+                        else {"required": [{"id": "scale_band", "quantity": 1}], "alternatives": []}
+                    ),
+                    "trackingMode": "reps",
+                    "instructions": ["Begin in a stable position.", "Move with control."],
+                    "lifecycle": {"status": "active"},
+                    "aliases": [
+                        f"alias {index:04d} alpha",
+                        f"alias {index:04d} beta",
+                    ],
+                    "legacyNames": [f"legacy name {index:04d}"],
+                }
+                for index in range(count)
+            ],
+        }
+        self.write_json("catalog.json", catalogue)
+
+        started = time.perf_counter()
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+        elapsed = time.perf_counter() - started
+        # Roughly 4000 normalized name claims across 1000 entries.
+        print(f"\nscale validate(1000 exercises): {elapsed:.2f}s")
+        self.assertEqual(report.errors, [])
+        self.assertEqual(report.exercise_count, count)
+        self.assertLess(elapsed, 60.0)
+
+        # Collision detection still isolates the single injected duplicate.
+        duplicate = dict(catalogue)
+        duplicate["exercises"] = catalogue["exercises"] + [
+            dict(catalogue["exercises"][0], displayName="Duplicate scale entry")
+        ]
+        self.write_json("catalog.json", duplicate)
+        broken = exercise_catalog.validate_catalogue(self.root, strict=True)
+        self.assertIn("E_EXERCISE_DUPLICATE", self.error_codes(broken))
+
     def test_legacy_names_participate_in_alias_collision_detection(self):
         catalogue = self.catalog_fixture()
         catalogue["exercises"].append(
