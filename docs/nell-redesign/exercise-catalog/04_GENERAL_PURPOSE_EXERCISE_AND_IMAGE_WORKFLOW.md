@@ -9,8 +9,11 @@ This is the permanent contributor contract. Terra must update commands only if i
 3. Run `python scripts/exercise_catalog.py validate --strict`.
 4. Run `python scripts/exercise_catalog.py import --dry-run`, review the mapping, then rerun with `--apply`.
 5. Run `python scripts/exercise_catalog.py report` and inspect orphan/missing/duplicate sections.
-6. On macOS, run targeted tests and the app’s debug gallery.
-7. Verify the generated resource diff, build, accessibility states, and Git scope before committing.
+6. Run `python scripts/exercise_catalog.py inventory --json` for the full per-image
+   disposition record (dimensions, alpha, checksum, imported/referenced status,
+   ambiguity flags) — every workout illustration must keep an explicit row.
+7. On macOS, run targeted tests and the app’s debug gallery.
+8. Verify the generated resource diff, build, accessibility states, and Git scope before committing.
 
 Validation errors must show a JSON pointer or file, the invalid value, the rule, and a likely fix. Never bypass an error by weakening validation without a documented schema reason.
 
@@ -130,6 +133,7 @@ Expected commands after Terra implements them:
 ```text
 python scripts/exercise_catalog.py validate --strict
 python scripts/exercise_catalog.py import --dry-run
+python scripts/exercise_catalog.py inventory --json
 xcodebuild test -project "Health Assistantv2.xcodeproj" -scheme "Health Assistantv2" -destination "platform=iOS Simulator,name=iPhone 16 Pro"
 xcodebuild build -project "Health Assistantv2.xcodeproj" -scheme "Health Assistantv2" -configuration Release -destination "generic/platform=iOS Simulator"
 ```
