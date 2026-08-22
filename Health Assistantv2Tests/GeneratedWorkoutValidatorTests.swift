@@ -221,6 +221,88 @@ struct GeneratedWorkoutValidatorTests {
         #expect(unilateral.demotions.count == 1)
     }
 
+    @Test func demotionTouchesOnlyTheOffendingStepAndIsDeterministic() {
+        let squat = exercise("bodyweight.squat", name: "Bodyweight squat")
+        let validationContext = context(definitions: [squat], authorized: [squat.id])
+
+        var first = movementStep(id: squat.id.rawValue, title: squat.displayName)
+        first.instruction = "Squat with control."
+        var second = movementStep(id: nil, title: "Mystery machine flow")
+        second.instruction = "Move however the machine allows."
+        var third = movementStep(id: squat.id.rawValue, title: squat.displayName)
+        third.instruction = "Finish with control."
+        let proposal = WorkoutPlanProposal(
+            title: "Multi-step",
+            goal: "Build strength",
+            estimatedDurationMinutes: 20,
+            targetEffort: 5,
+            location: "Home",
+            notes: "Keep it easy",
+            steps: [first, second, third]
+        )
+
+        let outcomeOne = validator.validate(proposal, context: validationContext)
+        let outcomeTwo = validator.validate(proposal, context: validationContext)
+
+        #expect(outcomeOne.proposal?.steps[0].exerciseID == "bodyweight.squat")
+        #expect(outcomeOne.proposal?.steps[0].title == "Bodyweight squat")
+        #expect(outcomeOne.proposal?.steps[2].exerciseID == "bodyweight.squat")
+
+        #expect(outcomeOne.proposal?.steps[1].customExercise == true)
+        #expect(outcomeOne.proposal?.steps[1].exerciseID == nil)
+        #expect(outcomeOne.proposal?.steps[1].title == "Mystery machine flow")
+        #expect(outcomeOne.demotions == [
+            GeneratedWorkoutDemotion(
+                step: 2,
+                suppliedReference: "Mystery machine flow",
+                reason: .unresolvedReference
+            ),
+        ])
+        #expect(outcomeOne.repairs.isEmpty)
+
+        // Deterministic: identical input produces an identical outcome.
+        #expect(outcomeOne.proposal == outcomeTwo.proposal)
+        #expect(outcomeOne.demotions == outcomeTwo.demotions)
+        #expect(outcomeOne.errors == outcomeTwo.errors)
+    }
+
+    @Test func demotionPreservesNeighbouringStepsVerbatim() throws {
+        let squat = exercise("bodyweight.squat", name: "Bodyweight squat")
+        let validationContext = context(definitions: [squat], authorized: [squat.id])
+
+        let neighbourBefore = movementStep(id: squat.id.rawValue, title: squat.displayName)
+        var offender = movementStep(id: nil, title: "Unknown band sequence")
+        offender.instruction = "Follow the band sequence."
+        offender.notes = "keep these notes"
+        let neighbourAfter = movementStep(id: squat.id.rawValue, title: squat.displayName)
+
+        let outcome = validator.validate(
+            WorkoutPlanProposal(
+                title: "Three steps",
+                goal: nil,
+                estimatedDurationMinutes: nil,
+                targetEffort: nil,
+                location: "Home",
+                notes: nil,
+                steps: [neighbourBefore, offender, neighbourAfter]
+            ),
+            context: validationContext
+        )
+
+        let validated = try #require(outcome.proposal)
+        #expect(validated.steps.count == 3)
+        #expect(validated.steps[0].title == "Bodyweight squat")
+        #expect(validated.steps[0].customExercise == false)
+        #expect(validated.steps[2].title == "Bodyweight squat")
+        #expect(validated.steps[2].customExercise == false)
+
+        #expect(validated.steps[1].title == "Unknown band sequence")
+        #expect(validated.steps[1].instruction == "Follow the band sequence.")
+        #expect(validated.steps[1].notes == "keep these notes")
+        #expect(validated.steps[1].exerciseID == nil)
+        #expect(validated.steps[1].customExercise == true)
+    }
+
     @Test func instructionsAndTrackingFieldsAreValidatedBeforePreview() {
         let reps = exercise("bodyweight.squat", name: "Bodyweight squat")
         let duration = exercise(
