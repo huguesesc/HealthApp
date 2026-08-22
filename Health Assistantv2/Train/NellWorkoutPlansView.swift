@@ -241,8 +241,41 @@ struct NellWorkoutPlanDetailView: View {
 
 struct NellExerciseDetailView: View {
     let step: WorkoutStep
+    private let repository: any ExerciseCatalogRepositoryProviding
+
+    @State private var resolvedDefinition: ExerciseDefinition?
+    @State private var didResolve = false
+
+    init(
+        step: WorkoutStep,
+        repository: any ExerciseCatalogRepositoryProviding = BundledExerciseCatalogRepository()
+    ) {
+        self.step = step
+        self.repository = repository
+    }
 
     var body: some View {
+        Group {
+            if let resolvedDefinition {
+                ExerciseCatalogDetailView(
+                    definition: resolvedDefinition,
+                    plannedStep: step
+                )
+            } else {
+                savedSnapshotDetail
+            }
+        }
+        .task(id: step.exerciseIDSnapshot) {
+            guard let reference = step.exerciseIDSnapshot?.trimmed, !reference.isEmpty else {
+                didResolve = true
+                return
+            }
+            resolvedDefinition = await repository.resolve(reference: reference)
+            didResolve = true
+        }
+    }
+
+    private var savedSnapshotDetail: some View {
         NellScreen {
             WorkoutMotionView(
                 title: step.title,
@@ -259,6 +292,12 @@ struct NellExerciseDetailView: View {
                     Text(step.type.displayName)
                         .font(Theme.FontToken.caption)
                         .foregroundStyle(NellPalette.primary)
+                    if step.exerciseIDSnapshot != nil {
+                        NellStatusChip(
+                            title: didResolve ? "Saved snapshot" : "Loading catalogue details",
+                            tone: didResolve ? .attention : .informational
+                        )
+                    }
                     Text(step.instruction?.isEmpty == false
                         ? step.instruction!
                         : "Follow the motion guide and use the plan's targets. Stop or adjust when the movement does not feel appropriate for you.")

@@ -209,6 +209,13 @@ struct NellTrainHomeView: View {
             NellCard(padding: 0) {
                 VStack(spacing: 0) {
                     toolLink(
+                        "Exercise catalogue",
+                        detail: "Search canonical movements, equipment and written guidance.",
+                        symbol: "books.vertical.fill",
+                        tint: NellPalette.primary
+                    ) { ExerciseCatalogView() }
+                    Divider().padding(.leading, 56)
+                    toolLink(
                         "Start or continue workout",
                         detail: "Choose a plan or resume a saved session.",
                         symbol: "figure.run.circle.fill",
