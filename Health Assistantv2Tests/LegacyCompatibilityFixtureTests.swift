@@ -85,7 +85,10 @@ struct LegacyCompatibilityFixtureTests {
     @Test func noEntryIsLeftWithoutAnExplicitExpectation() {
         let supported = Set(["canonical", "free-form", "ambiguous", "deprecated"])
         for entry in fixture.entries {
-            #expect(supported.contains(entry.expectedResolution), entry.raw)
+            #expect(
+                supported.contains(entry.expectedResolution),
+                "unsupported expectedResolution '\(entry.expectedResolution)' for raw '\(entry.raw)'"
+            )
         }
     }
 }
