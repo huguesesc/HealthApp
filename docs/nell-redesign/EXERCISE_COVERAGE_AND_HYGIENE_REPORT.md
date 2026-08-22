@@ -34,20 +34,23 @@ an explicit tier; none depends on filename or display-text coincidence.
 | Entire `Assets.xcassets` tree on disk | 12,323,248 bytes (11.8 MiB) |
 | Source pack workout_avatar (50 PNGs, reference only) | ~34.6 MB |
 
-Largest imported composites (candidates for lossless re-export if app size
-ever matters; originals untouched either way):
+Largest imported composites — measured lossless recompression probe
+(2026-08-23, Pillow `optimize=True`, decoded pixels proven identical; assets
+NOT modified pending HR-11):
 
-| Asset | Bytes |
-|---|---|
-| machine.lat_pulldown__composite.png | 904,166 |
-| cable.triceps_pushdown__composite.png | 833,329 |
-| dumbbell.biceps_curl__composite.png | 666,281 |
-| band.lateral_squat__composite.png | 639,965 |
-| machine.leg_press__composite.png | 629,733 |
-| bodyweight.calf_raise__composite.png | 610,487 |
+| Asset | Bytes | Lossless floor | Saving |
+|---|---|---|---|
+| machine.lat_pulldown__composite.png | 904,166 | 644,338 | 28.7% |
+| cable.triceps_pushdown__composite.png | 833,329 | 601,694 | 27.8% |
+| dumbbell.biceps_curl__composite.png | 666,281 | 486,023 | 27.1% |
+| band.lateral_squat__composite.png | 639,965 | 481,364 | 24.8% |
+| machine.leg_press__composite.png | 629,733 | 470,803 | 25.2% |
+| bodyweight.calf_raise__composite.png | 610,487 | 448,629 | 26.5% |
 
 Note: actool re-encodes into `Assets.car` at build time, so shipped size will
-differ from source bytes; measure the built `.app` before optimizing.
+differ from source bytes; measure the built `.app` before optimizing. The
+byte-exact generated-checksum invariant is why the probe was not applied —
+see HR-11 for the pipeline decision.
 
 ## Repository hygiene
 
