@@ -54,10 +54,39 @@ struct GeneratedWorkoutRepair: Equatable, Sendable {
     let match: LegacyExerciseMatch
 }
 
+enum GeneratedWorkoutDemotionReason: Equatable, Sendable {
+    case unresolvedReference
+    case ambiguousReference
+    case inactiveLifecycle(ExerciseLifecycleStatus)
+}
+
+/// A movement step whose catalogue reference could not be exactly resolved or
+/// is not active. The step is preserved verbatim as an explicit custom
+/// exercise so no user-visible movement is ever dropped; the demotion is
+/// recorded for audit and surfaced to the model/user.
+struct GeneratedWorkoutDemotion: Equatable, Sendable {
+    let step: Int
+    let suppliedReference: String
+    let reason: GeneratedWorkoutDemotionReason
+}
+
 struct GeneratedWorkoutValidationOutcome: Sendable {
     let proposal: WorkoutPlanProposal?
     let repairs: [GeneratedWorkoutRepair]
+    let demotions: [GeneratedWorkoutDemotion]
     let errors: [GeneratedWorkoutValidationError]
+
+    init(
+        proposal: WorkoutPlanProposal?,
+        repairs: [GeneratedWorkoutRepair],
+        demotions: [GeneratedWorkoutDemotion] = [],
+        errors: [GeneratedWorkoutValidationError]
+    ) {
+        self.proposal = proposal
+        self.repairs = repairs
+        self.demotions = demotions
+        self.errors = errors
+    }
 
     var isValid: Bool {
         proposal != nil && errors.isEmpty
@@ -75,6 +104,7 @@ struct GeneratedWorkoutValidator: Sendable {
         )
         var validated = proposal
         var repairs: [GeneratedWorkoutRepair] = []
+        var demotions: [GeneratedWorkoutDemotion] = []
         var errors: [GeneratedWorkoutValidationError] = []
 
         for index in validated.steps.indices {
@@ -113,21 +143,42 @@ struct GeneratedWorkoutValidator: Sendable {
                 definition = resolved
                 match = resolvedMatch
             case .ambiguous:
-                errors.append(.ambiguousReference(step: position, reference: reference))
+                if let demotionError = demote(
+                    &validated.steps[index],
+                    position: position,
+                    reference: reference,
+                    reason: .ambiguousReference,
+                    demotions: &demotions,
+                    errors: &errors
+                ) {
+                    errors.append(demotionError)
+                }
                 continue
             case .unresolved:
-                errors.append(.unresolvedReference(step: position, reference: reference))
+                if let demotionError = demote(
+                    &validated.steps[index],
+                    position: position,
+                    reference: reference,
+                    reason: .unresolvedReference,
+                    demotions: &demotions,
+                    errors: &errors
+                ) {
+                    errors.append(demotionError)
+                }
                 continue
             }
 
             guard definition.lifecycle.status == .active else {
-                errors.append(
-                    .inactiveExercise(
-                        step: position,
-                        id: definition.id.rawValue,
-                        status: definition.lifecycle.status
-                    )
-                )
+                if let demotionError = demote(
+                    &validated.steps[index],
+                    position: position,
+                    reference: reference,
+                    reason: .inactiveLifecycle(definition.lifecycle.status),
+                    demotions: &demotions,
+                    errors: &errors
+                ) {
+                    errors.append(demotionError)
+                }
                 continue
             }
             guard context.eligibilityEvaluator.evaluate(
@@ -184,14 +235,43 @@ struct GeneratedWorkoutValidator: Sendable {
             return GeneratedWorkoutValidationOutcome(
                 proposal: nil,
                 repairs: repairs,
+                demotions: demotions,
                 errors: errors
             )
         }
         return GeneratedWorkoutValidationOutcome(
             proposal: validated,
             repairs: repairs,
+            demotions: demotions,
             errors: []
         )
+    }
+
+    /// Preserves an unresolvable movement as an explicit custom exercise.
+    /// Returns the error to record when preservation is impossible because the
+    /// step carries no written instruction; a movement without text cannot be
+    /// kept honestly, and inventing one is forbidden.
+    private static func demote(
+        _ step: inout WorkoutPlanStepProposal,
+        position: Int,
+        reference: String,
+        reason: GeneratedWorkoutDemotionReason,
+        demotions: inout [GeneratedWorkoutDemotion],
+        errors: inout [GeneratedWorkoutValidationError]
+    ) -> GeneratedWorkoutValidationError? {
+        guard step.instruction?.trimmed.isEmpty == false else {
+            return .missingInstruction(step: position)
+        }
+        step.exerciseID = nil
+        step.customExercise = true
+        demotions.append(
+            GeneratedWorkoutDemotion(
+                step: position,
+                suppliedReference: reference,
+                reason: reason
+            )
+        )
+        return nil
     }
 
     private static func requiresExerciseReference(_ rawType: String) -> Bool {

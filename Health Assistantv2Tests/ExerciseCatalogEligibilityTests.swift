@@ -239,7 +239,8 @@ struct ExerciseCatalogEligibilityTests {
                 prohibited: prohibitedCapabilities.isEmpty
                     ? nil
                     : prohibitedCapabilities.map { ExerciseEnvironmentRequirement(rawValue: $0) }
-            )
+            ),
+            legacyNames: nil
         )
     }
 

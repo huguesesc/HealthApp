@@ -143,7 +143,8 @@ struct ExerciseCatalogViewStateTests {
             aliases: aliases,
             legacyIDs: nil,
             guidance: nil,
-            environmentRequirements: environmentRequirements
+            environmentRequirements: environmentRequirements,
+            legacyNames: nil
         )
     }
 

@@ -17,6 +17,7 @@ struct ExerciseDefinition: Codable, Hashable, Sendable {
     let legacyIDs: [ExerciseID]?
     let guidance: [String]?
     let environmentRequirements: ExerciseEnvironmentRequirements?
+    let legacyNames: [String]?
 }
 
 struct ExerciseEquipmentRequirements: Codable, Hashable, Sendable {

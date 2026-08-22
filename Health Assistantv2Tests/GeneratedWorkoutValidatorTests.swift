@@ -17,7 +17,31 @@ struct GeneratedWorkoutValidatorTests {
         #expect(validated.steps[0].title == "Bodyweight squat")
     }
 
-    @Test func nonexistentAmbiguousDeprecatedAndDisabledReferencesAreRejected() {
+    @Test func unresolvableReferencesArePreservedAsExplicitCustomExercises() throws {
+        let validationContext = context(definitions: [], authorized: [])
+
+        let outcome = validator.validate(
+            plan(step: movementStep(id: nil, title: "Unmarked custom")),
+            context: validationContext
+        )
+
+        let validated = try #require(outcome.proposal)
+        #expect(outcome.errors.isEmpty)
+        #expect(validated.steps[0].customExercise == true)
+        #expect(validated.steps[0].exerciseID == nil)
+        #expect(validated.steps[0].title == "Unmarked custom")
+        #expect(
+            outcome.demotions == [
+                GeneratedWorkoutDemotion(
+                    step: 1,
+                    suppliedReference: "Unmarked custom",
+                    reason: .unresolvedReference
+                ),
+            ]
+        )
+    }
+
+    @Test func ambiguousAndInactiveReferencesArePreservedWithoutCatalogueEndorsement() throws {
         let ambiguousA = exercise("bodyweight.alpha", name: "Shared name")
         let ambiguousB = exercise("bodyweight.beta", name: "Shared name")
         let deprecated = exercise(
@@ -36,26 +60,29 @@ struct GeneratedWorkoutValidatorTests {
             authorized: Set(definitions.map(\.id))
         )
 
-        #expect(validator.validate(
-            plan(step: movementStep(id: "missing.exercise", title: "Missing")),
-            context: validationContext
-        ).errors == [.unresolvedReference(step: 1, reference: "missing.exercise")])
-        #expect(validator.validate(
+        let ambiguous = validator.validate(
             plan(step: movementStep(id: nil, title: "Shared name")),
             context: validationContext
-        ).errors == [.ambiguousReference(step: 1, reference: "Shared name")])
-        #expect(validator.validate(
+        )
+        let deprecatedOutcome = validator.validate(
             plan(step: movementStep(id: deprecated.id.rawValue, title: deprecated.displayName)),
             context: validationContext
-        ).errors == [
-            .inactiveExercise(step: 1, id: deprecated.id.rawValue, status: .deprecated),
-        ])
-        #expect(validator.validate(
+        )
+        let disabledOutcome = validator.validate(
             plan(step: movementStep(id: disabled.id.rawValue, title: disabled.displayName)),
             context: validationContext
-        ).errors == [
-            .inactiveExercise(step: 1, id: disabled.id.rawValue, status: .disabled),
-        ])
+        )
+
+        for outcome in [ambiguous, deprecatedOutcome, disabledOutcome] {
+            let validated = try #require(outcome.proposal)
+            #expect(outcome.errors.isEmpty)
+            #expect(validated.steps[0].customExercise == true)
+            #expect(validated.steps[0].exerciseID == nil)
+            #expect(!outcome.demotions.isEmpty)
+        }
+        #expect(ambiguous.demotions[0].reason == .ambiguousReference)
+        #expect(deprecatedOutcome.demotions[0].reason == .inactiveLifecycle(.deprecated))
+        #expect(disabledOutcome.demotions[0].reason == .inactiveLifecycle(.disabled))
     }
 
     @Test func ineligibleAndEligibleButUnauthorizedExercisesAreRejectedSeparately() {
@@ -136,10 +163,62 @@ struct GeneratedWorkoutValidatorTests {
             context: validationContext
         ).errors == [.missingInstruction(step: 1)])
 
-        #expect(validator.validate(
+        let unmarked = validator.validate(
             plan(step: movementStep(id: nil, title: "Unmarked custom")),
             context: validationContext
-        ).errors == [.unresolvedReference(step: 1, reference: "Unmarked custom")])
+        )
+        #expect(unmarked.isValid)
+        #expect(unmarked.proposal?.steps[0].customExercise == true)
+
+        var unresolvableWithoutInstruction = movementStep(id: nil, title: "Mystery move")
+        unresolvableWithoutInstruction.instruction = " "
+        #expect(validator.validate(
+            plan(step: unresolvableWithoutInstruction),
+            context: validationContext
+        ).errors == [.missingInstruction(step: 1)])
+    }
+
+    @Test func boundedNormalizationResolvesMessyInputsToExactEntries() throws {
+        let squat = exercise("bodyweight.squat", name: "Bodyweight squat")
+        let rdl = exercise(
+            "barbell.romanian_deadlift",
+            name: "Barbell Romanian deadlift",
+            aliases: ["RDL", "Romanian deadlift", "Barbell RDL"]
+        )
+        let curl = exercise(
+            "dumbbell.biceps_curl",
+            name: "Dumbbell biceps curl",
+            legacyNames: ["Dumbell biceps curl"]
+        )
+        let validationContext = context(
+            definitions: [squat, rdl, curl],
+            authorized: [squat.id, rdl.id, curl.id]
+        )
+
+        func resolvedTitle(_ raw: String) throws -> String {
+            let outcome = validator.validate(
+                plan(step: movementStep(id: nil, title: raw)),
+                context: validationContext
+            )
+            let validated = try #require(outcome.proposal)
+            #expect(outcome.demotions.isEmpty)
+            return validated.steps[0].exerciseID ?? "<custom>"
+        }
+
+        #expect(try resolvedTitle("  Bodyweight  SQUAT!! ") == "bodyweight.squat")
+        #expect(try resolvedTitle("body-weight-squat") == "bodyweight.squat")
+        #expect(try resolvedTitle("rdl") == "barbell.romanian_deadlift")
+        #expect(try resolvedTitle("Romanian Deadlift.") == "barbell.romanian_deadlift")
+        #expect(try resolvedTitle("BARBELL RDL!") == "barbell.romanian_deadlift")
+        #expect(try resolvedTitle("dumbell BICEPS CURL") == "dumbbell.biceps_curl")
+
+        let unilateral = validator.validate(
+            plan(step: movementStep(id: nil, title: "Single-leg bodyweight squat variation")),
+            context: validationContext
+        )
+        #expect(unilateral.proposal?.steps[0].exerciseID == nil)
+        #expect(unilateral.proposal?.steps[0].title == "Single-leg bodyweight squat variation")
+        #expect(unilateral.demotions.count == 1)
     }
 
     @Test func instructionsAndTrackingFieldsAreValidatedBeforePreview() {
@@ -262,7 +341,8 @@ struct GeneratedWorkoutValidatorTests {
         trackingMode: String = "reps",
         status: ExerciseLifecycleStatus = .active,
         aliases: [String]? = nil,
-        legacyIDs: [ExerciseID]? = nil
+        legacyIDs: [ExerciseID]? = nil,
+        legacyNames: [String]? = nil
     ) -> ExerciseDefinition {
         ExerciseDefinition(
             id: ExerciseID(rawValue: id)!,
@@ -284,7 +364,8 @@ struct GeneratedWorkoutValidatorTests {
             aliases: aliases,
             legacyIDs: legacyIDs,
             guidance: nil,
-            environmentRequirements: nil
+            environmentRequirements: nil,
+            legacyNames: legacyNames
         )
     }
 }

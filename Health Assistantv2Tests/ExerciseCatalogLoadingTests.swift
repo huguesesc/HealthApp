@@ -284,7 +284,8 @@ struct ExerciseCatalogLoadingTests {
             aliases: aliases,
             legacyIDs: legacyIDs?.compactMap(ExerciseID.init(rawValue:)),
             guidance: nil,
-            environmentRequirements: nil
+            environmentRequirements: nil,
+            legacyNames: nil
         )
     }
 }

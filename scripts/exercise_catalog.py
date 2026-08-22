@@ -648,6 +648,7 @@ def validate_catalog(
                 "Choose a unique stable ID such as bodyweight.squat.",
             )
             continue
+        flag_canonical_dumbell(exercise_id, file, f"{pointer}/id", "stable IDs", report)
         if exercise_id in exercise_ids:
             duplicate_ids.add(exercise_id)
         exercise_ids.add(exercise_id)
@@ -705,7 +706,10 @@ def validate_catalog(
         aliases = exercise.get("aliases", [])
         if not isinstance(aliases, list):
             aliases = []
-        for claim in [exercise.get("displayName")] + aliases:
+        legacy_names = exercise.get("legacyNames", [])
+        if not isinstance(legacy_names, list):
+            legacy_names = []
+        for claim in [exercise.get("displayName")] + aliases + legacy_names:
             normalized = normalized_reference(claim)
             if normalized:
                 normalized_claims[normalized].add(exercise_id)
@@ -757,8 +761,8 @@ def validate_catalog(
                 file,
                 "/exercises",
                 f"{normalized}: {sorted(owners)}",
-                "normalized display names and aliases must be unique",
-                "Remove or distinguish the ambiguous alias.",
+                "normalized display names, aliases, and legacy names must be unique",
+                "Remove or distinguish the ambiguous name.",
             )
     for legacy_id, owners in sorted(legacy_claims.items()):
         if len(owners) > 1:
@@ -783,6 +787,30 @@ def validate_catalog(
 
     validate_replacements(replacement_edges, exercise_by_id, file, report)
     return media_roles
+
+
+DUMBELL_MISSPELLING = "dumbell"
+
+
+def flag_canonical_dumbell(
+    value: Any,
+    file: str,
+    pointer: str,
+    field_kind: str,
+    report: ValidationReport,
+) -> None:
+    """Canonical catalogue text must spell 'dumbbell'; only hidden legacy
+    names may deliberately preserve the historical 'dumbell' misspelling."""
+    if isinstance(value, str) and DUMBELL_MISSPELLING in value.lower():
+        report.add_error(
+            "E_CANONICAL_DUMBELL",
+            file,
+            pointer,
+            value,
+            f"{field_kind} must use the canonical spelling 'dumbbell'",
+            "Replace 'dumbell' with 'dumbbell'; keep the historical "
+            "misspelling only in legacyNames.",
+        )
 
 
 def validate_exercise_fields(
@@ -860,6 +888,46 @@ def validate_exercise_fields(
                     "aliases must be nonblank strings",
                     "Remove the blank alias or provide a distinct name.",
                 )
+
+    flag_canonical_dumbell(
+        exercise.get("displayName"),
+        file,
+        f"{pointer}/displayName",
+        "display names",
+        report,
+    )
+    if isinstance(aliases, list):
+        for alias_index, alias in enumerate(aliases):
+            flag_canonical_dumbell(
+                alias,
+                file,
+                f"{pointer}/aliases/{alias_index}",
+                "aliases",
+                report,
+            )
+
+    legacy_names = exercise.get("legacyNames")
+    if legacy_names is not None:
+        if not isinstance(legacy_names, list):
+            report.add_error(
+                "E_LEGACY_NAME_LIST",
+                file,
+                f"{pointer}/legacyNames",
+                legacy_names,
+                "legacyNames must be an array when present",
+                "Use an array of historical misspelled or retired human titles.",
+            )
+        else:
+            for name_index, name in enumerate(legacy_names):
+                if not isinstance(name, str) or not name.strip():
+                    report.add_error(
+                        "E_LEGACY_NAME_BLANK",
+                        file,
+                        f"{pointer}/legacyNames/{name_index}",
+                        name,
+                        "legacyNames must be nonblank strings",
+                        "Remove the blank entry or provide the historical title.",
+                    )
 
     if "guidance" in exercise:
         guidance = exercise.get("guidance")
@@ -1556,6 +1624,16 @@ def validate_import_map(
                 "canonicalExerciseID must use the stable exercise ID format",
                 "Use the canonical stable ID proposed for this image.",
             )
+        else:
+            flag_canonical_dumbell(
+                exercise_id, file, f"{pointer}/canonicalExerciseID", "stable IDs", report
+            )
+        flag_canonical_dumbell(
+            media_key, file, f"{pointer}/canonicalMediaKey", "media keys", report
+        )
+        flag_canonical_dumbell(
+            filename, file, f"{pointer}/canonicalFileName", "generated filenames", report
+        )
         if not isinstance(media_key, str) or MEDIA_KEY_PATTERN.fullmatch(media_key) is None:
             report.add_error(
                 "E_IMPORT_MEDIA_KEY_FORMAT",

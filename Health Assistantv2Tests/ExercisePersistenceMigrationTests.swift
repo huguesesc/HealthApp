@@ -240,7 +240,8 @@ final class ExercisePersistenceMigrationTests: XCTestCase {
             aliases: nil,
             legacyIDs: nil,
             guidance: nil,
-            environmentRequirements: nil
+            environmentRequirements: nil,
+            legacyNames: nil
         )
     }
 }

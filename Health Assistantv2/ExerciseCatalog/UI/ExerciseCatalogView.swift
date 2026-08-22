@@ -514,7 +514,8 @@ enum ExerciseCatalogPreviewFixture {
         environmentRequirements: ExerciseEnvironmentRequirements(
             required: [ExerciseEnvironmentRequirement(rawValue: "standing_space")],
             prohibited: nil
-        )
+        ),
+        legacyNames: nil
     )
 
     static let deprecated = ExerciseDefinition(
@@ -537,7 +538,8 @@ enum ExerciseCatalogPreviewFixture {
         aliases: nil,
         legacyIDs: nil,
         guidance: nil,
-        environmentRequirements: nil
+        environmentRequirements: nil,
+        legacyNames: nil
     )
 
     static let manifest = ExerciseCatalogManifest(

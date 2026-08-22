@@ -372,6 +372,7 @@
         "Stand holding the barbell in front of the thighs.",
         "Hinge at the hips to lower the barbell, then extend the hips to stand."
       ],
+      "aliases": ["RDL", "Romanian deadlift", "Barbell RDL"],
       "media": [
         {
           "key": "barbell.romanian_deadlift__composite",

@@ -1319,8 +1319,8 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             ],
         }
 
-    def exercise_fixture(self, exercise_id, display_name, aliases=None):
-        return {
+    def exercise_fixture(self, exercise_id, display_name, aliases=None, legacy_names=None):
+        fixture = {
             "id": exercise_id,
             "schemaVersion": 1,
             "displayName": display_name,
@@ -1333,6 +1333,58 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
             "lifecycle": {"status": "active"},
             "aliases": aliases or [],
         }
+        if legacy_names is not None:
+            fixture["legacyNames"] = legacy_names
+        return fixture
+
+    def test_legacy_names_participate_in_alias_collision_detection(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"].append(
+            self.exercise_fixture(
+                exercise_id="bodyweight.lunge",
+                display_name="Forward lunge",
+            )
+        )
+        catalogue["exercises"][0]["legacyNames"] = ["Forward lunge"]
+        self.write_json("catalog.json", catalogue)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+
+        diagnostic = self.find_diagnostic(report, "E_ALIAS_COLLISION")
+        self.assertIn("forwardlunge", diagnostic.value)
+
+    def test_legacy_names_may_hold_dumbell_but_canonical_fields_cannot(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["displayName"] = "Dumbell squat"
+        catalogue["exercises"][0]["aliases"] = ["Dumbell air squat"]
+        catalogue["exercises"][0]["legacyNames"] = ["Dumbell squat (historical)"]
+        catalogue["exercises"].append(
+            self.exercise_fixture(
+                exercise_id="dumbell.press",
+                display_name="Clean press",
+            )
+        )
+        self.write_json("catalog.json", catalogue)
+
+        report = exercise_catalog.validate_catalogue(self.root, strict=True)
+        codes = self.error_codes(report)
+
+        self.assertIn("E_CANONICAL_DUMBELL", codes)
+        dumbell_diagnostics = [
+            item for item in report.errors if item.code == "E_CANONICAL_DUMBELL"
+        ]
+        pointers = {item.pointer for item in dumbell_diagnostics}
+        self.assertEqual(
+            pointers,
+            {
+                "/exercises/0/displayName",
+                "/exercises/0/aliases/0",
+                "/exercises/1/id",
+            },
+        )
+        # The hidden legacy name itself must never be flagged.
+        self.assertNotIn("/exercises/0/legacyNames/0", pointers)
+        self.assertIn("dumbbell", dumbell_diagnostics[0].fix)
 
 
 if __name__ == "__main__":

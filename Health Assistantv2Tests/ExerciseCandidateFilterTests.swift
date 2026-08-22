@@ -294,7 +294,8 @@ struct ExerciseCandidateFilterTests {
                     required: [ExerciseEnvironmentRequirement(rawValue: $0)],
                     prohibited: nil
                 )
-            }
+            },
+            legacyNames: nil
         )
     }
 

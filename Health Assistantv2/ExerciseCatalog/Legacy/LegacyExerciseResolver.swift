@@ -41,8 +41,8 @@ struct LegacyExerciseResolver {
             for legacyID in definition.legacyIDs ?? [] {
                 legacyClaims[legacyID.rawValue, default: []].append(definition)
             }
-            for reference in [definition.displayName] + (definition.aliases ?? []) {
-                guard let normalized = Self.normalizedReference(reference) else {
+            for reference in ExerciseReferenceNormalization.references(for: definition) {
+                guard let normalized = ExerciseReferenceNormalization.normalized(reference) else {
                     continue
                 }
                 referenceClaims[normalized, default: [:]][definition.id] = definition
@@ -70,7 +70,7 @@ struct LegacyExerciseResolver {
                 match: .legacyID
             )
         }
-        if let normalized = Self.normalizedReference(reference),
+        if let normalized = ExerciseReferenceNormalization.normalized(reference),
            let claims = normalizedReferenceClaims[normalized] {
             return resolution(
                 for: reference,
@@ -107,19 +107,6 @@ struct LegacyExerciseResolver {
         )
         diagnosticHandler(diagnostic)
         return .ambiguous(reference: reference, candidateIDs: candidateIDs)
-    }
-
-    private static func normalizedReference(_ reference: String) -> String? {
-        let locale = Locale(identifier: "en_US_POSIX")
-        let folded = reference
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
-            .lowercased(with: locale)
-        let normalized = folded.unicodeScalars.reduce(into: "") { result, scalar in
-            if CharacterSet.alphanumerics.contains(scalar) {
-                result.unicodeScalars.append(scalar)
-            }
-        }
-        return normalized.isEmpty ? nil : normalized
     }
 
     static func log(_ diagnostic: LegacyExerciseDiagnostic) {

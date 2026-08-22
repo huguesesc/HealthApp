@@ -294,10 +294,18 @@ final class ChatEngine {
                 : " Exact legacy repairs: " + outcome.repairs.map {
                     "step \($0.step) \($0.suppliedReference) -> \($0.stableID)"
                 }.joined(separator: ", ") + "."
+            let demotionAudit = outcome.demotions.isEmpty
+                ? ""
+                : " Preserved unknown or retired movements as explicit custom exercises (not catalogue-endorsed): "
+                    + outcome.demotions.map {
+                        "step \($0.step) '\($0.suppliedReference)'"
+                    }.joined(separator: ", ")
+                    + ". Do not re-mark these steps; they keep their supplied titles and instructions."
             return "Drafted a structured workout plan and showed it to the user for confirmation. "
                 + "It is NOT saved yet — the user must tap Save plan."
                 + " Validation passed."
                 + repairAudit
+                + demotionAudit
 
         case "get_recent_summaries":
             struct DaysInput: Codable { var days: Int? }

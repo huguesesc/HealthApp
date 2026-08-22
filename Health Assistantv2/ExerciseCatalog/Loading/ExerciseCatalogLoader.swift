@@ -79,8 +79,8 @@ struct ExerciseCatalogIndex: Sendable {
         var ambiguousNormalizedReferences: Set<String> = []
         for exercise in manifest.exercises {
             let normalizedReferences = Set(
-                ([exercise.displayName] + (exercise.aliases ?? []))
-                    .compactMap(Self.normalizedReference)
+                ExerciseReferenceNormalization.references(for: exercise)
+                    .compactMap(ExerciseReferenceNormalization.normalized)
             )
             for normalizedReference in normalizedReferences {
                 guard let existing = normalizedReferenceIndex[normalizedReference] else {
@@ -123,22 +123,9 @@ struct ExerciseCatalogIndex: Sendable {
            let exercise = exercisesByLegacyID[legacyID] {
             return exercise
         }
-        guard let normalizedReference = Self.normalizedReference(reference) else {
+        guard let normalizedReference = ExerciseReferenceNormalization.normalized(reference) else {
             return nil
         }
         return exercisesByNormalizedReference[normalizedReference]
-    }
-
-    private static func normalizedReference(_ reference: String) -> String? {
-        let locale = Locale(identifier: "en_US_POSIX")
-        let folded = reference
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
-            .lowercased(with: locale)
-        let normalized = folded.unicodeScalars.reduce(into: "") { result, scalar in
-            if CharacterSet.alphanumerics.contains(scalar) {
-                result.unicodeScalars.append(scalar)
-            }
-        }
-        return normalized.isEmpty ? nil : normalized
     }
 }
