@@ -143,7 +143,7 @@ struct GeneratedWorkoutValidator: Sendable {
                 definition = resolved
                 match = resolvedMatch
             case .ambiguous:
-                if let demotionError = demote(
+                if let demotionError = Self.demote(
                     &validated.steps[index],
                     position: position,
                     reference: reference,
@@ -155,7 +155,7 @@ struct GeneratedWorkoutValidator: Sendable {
                 }
                 continue
             case .unresolved:
-                if let demotionError = demote(
+                if let demotionError = Self.demote(
                     &validated.steps[index],
                     position: position,
                     reference: reference,
@@ -169,7 +169,7 @@ struct GeneratedWorkoutValidator: Sendable {
             }
 
             guard definition.lifecycle.status == .active else {
-                if let demotionError = demote(
+                if let demotionError = Self.demote(
                     &validated.steps[index],
                     position: position,
                     reference: reference,

@@ -195,22 +195,22 @@ struct GeneratedWorkoutValidatorTests {
             authorized: [squat.id, rdl.id, curl.id]
         )
 
-        func resolvedTitle(_ raw: String) throws -> String {
+        func resolvedTitle(_ raw: String) -> String {
             let outcome = validator.validate(
                 plan(step: movementStep(id: nil, title: raw)),
                 context: validationContext
             )
-            let validated = try #require(outcome.proposal)
             #expect(outcome.demotions.isEmpty)
+            guard let validated = outcome.proposal else { return "<rejected>" }
             return validated.steps[0].exerciseID ?? "<custom>"
         }
 
-        #expect(try resolvedTitle("  Bodyweight  SQUAT!! ") == "bodyweight.squat")
-        #expect(try resolvedTitle("body-weight-squat") == "bodyweight.squat")
-        #expect(try resolvedTitle("rdl") == "barbell.romanian_deadlift")
-        #expect(try resolvedTitle("Romanian Deadlift.") == "barbell.romanian_deadlift")
-        #expect(try resolvedTitle("BARBELL RDL!") == "barbell.romanian_deadlift")
-        #expect(try resolvedTitle("dumbell BICEPS CURL") == "dumbbell.biceps_curl")
+        #expect(resolvedTitle("  Bodyweight  SQUAT!! ") == "bodyweight.squat")
+        #expect(resolvedTitle("body-weight-squat") == "bodyweight.squat")
+        #expect(resolvedTitle("rdl") == "barbell.romanian_deadlift")
+        #expect(resolvedTitle("Romanian Deadlift.") == "barbell.romanian_deadlift")
+        #expect(resolvedTitle("BARBELL RDL!") == "barbell.romanian_deadlift")
+        #expect(resolvedTitle("dumbell BICEPS CURL") == "dumbbell.biceps_curl")
 
         let unilateral = validator.validate(
             plan(step: movementStep(id: nil, title: "Single-leg bodyweight squat variation")),

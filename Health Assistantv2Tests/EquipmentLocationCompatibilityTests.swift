@@ -37,8 +37,8 @@ struct EquipmentLocationCompatibilityTests {
 
     private func inventory(_ quantities: [String: Int]) -> EquipmentInventory {
         EquipmentInventory(quantities: Dictionary(
-            uniqueKeysWithValues: quantities.compactMap { key, value in
-                ExerciseEquipmentID(rawValue: key).map { ($0, value) }
+            uniqueKeysWithValues: quantities.map { key, value in
+                (ExerciseEquipmentID(rawValue: key), value)
             }
         ))
     }
