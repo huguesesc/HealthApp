@@ -95,8 +95,10 @@ Other possible issues:
 
 - **On a real iPhone:** Xcode → Settings → Accounts → add your own Apple ID (free is
   fine), pick your Personal Team on the target, set a unique bundle ID.
-- **Screen Time:** needs the XcodeGen project (`project.yml`), the
-  `DeviceActivityMonitorExtension` target, the App Group, the Family Controls
-  entitlement (Apple approval), and a real device.
+- **Screen Time:** the `DeviceActivityMonitorExtension` target, the App Group,
+  the Family Controls entitlement (Apple approval), and a real device. Note:
+  `project.yml` is a stale XcodeGen description that does NOT match the
+  committed `Health Assistantv2.xcodeproj`; do not regenerate the project from
+  it (see docs/nell-redesign/exercise-catalog/01_CURRENT_STATE_AND_ASSET_AUDIT.md).
 - **Real AI (M2):** add your Claude API key in-app (stored in Keychain) and flip
   `AIClientFactory` to return `ClaudeAIClient`.

@@ -18,7 +18,7 @@ struct NellWorkoutPlansView: View {
             if activePlans.isEmpty {
                 NellEmptyState(
                     title: "No workout plans",
-                    message: "Create a plan manually or ask the Coach to prepare an editable draft.",
+                    message: "Create a plan manually or ask Nell to prepare an editable draft.",
                     systemImage: "list.clipboard"
                 )
             } else {

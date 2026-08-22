@@ -91,3 +91,52 @@ primary. It remains pending a matching catalogue entry.
 - **Exact question:** Which signed physical device/OS should be used for installed-upgrade and accessibility QA?
 - **Blocker:** blocks a claim of full device validation, not implementation or draft PR preparation.
 - **Recommendation:** test one current small/standard iPhone on the minimum supported or representative iOS plus the latest available device if possible.
+
+## HR-08 — Five media rows promoted to "approved-pending" remain blocked on entry content (recorded 2026-08-23)
+
+- **Affected:** `barbell.lying_triceps_extension`, `machine.lying_leg_curl`,
+  `machine.seated_row` (HR-04), `dumbbell.floor_press` (HR-01),
+  `bodyweight.step_up` (HR-05).
+- **Evidence:** the recorded approvals cover identity/naming/media mapping
+  only. No recorded decision approves equipment semantics or written
+  instructions for these five, so no catalogue entry may be authored yet.
+- **Safe default:** keep `status=approved_pending_catalogue_entry` in
+  `media-import-map.json`; catalogue stays at 20 entries; images stay out of
+  generated resources.
+- **Exact question:** approve neutral draft instructions plus the equipment
+  clauses listed in the migration map for each row (floor press needs a
+  dumbbell×2 + floor_space clause; step-up needs its `step`/bench equipment
+  stance confirmed)?
+- **Blocker:** blocks only those five entries/images; nothing else.
+- **Recommendation:** approve in one batch with HR-03-style review wording so
+  a single importer run promotes all five together.
+
+## HR-09 — Alias policy confirmations (opened 2026-08-23)
+
+- **Affected:** `docs/nell-redesign/exercise-catalog/LEGACY_EXERCISE_NAME_AUDIT.md`.
+- **Evidence:** this phase added exactly-safe aliases (Air squat, Dumbbell
+  row, Overhead press, Shoulder press, Deadlift, RDL family). Deliberately
+  NOT aliased: `military press`, `dumbbell press` (ambiguous), bare
+  `squat`/`row`/`lunge`/`plank`.
+- **Why human:** aliasing is an identity claim affecting localization,
+  search, and generation eligibility.
+- **Safe default:** current conservative mapping stands; ambiguous strings
+  resolve to free-form and are preserved verbatim.
+- **Exact question:** confirm the added set, and decide whether
+  `military press` should map to `dumbbell.overhead_press` or stay free-form.
+- **Blocker:** non-blocking; affects compatibility only when historical data
+  contains those strings.
+- **Recommendation:** accept current defaults now; revisit if real user data
+  shows unresolved high-frequency names.
+
+## HR-10 — Mascot success-state fallback rendering
+
+- **Affected:** `NellMascotSuccess` (enum case without imageset) rendered on
+  the workout-completion overlay via vector/SF-symbol fallback.
+- **Evidence:** brand audit matrix (`BRAND_ASSET_REFERENCE_AUDIT.md`); runtime
+  fallback chain documented in `NellAssets.swift`.
+- **Why human:** whether the drawn placeholder is acceptable on the most
+  celebratory screen is aesthetic/product judgment, not mechanical.
+- **Safe default:** keep fallback until design supplies approved art.
+- **Exact question:** ship real success artwork, or bless the placeholder?
+- **Blocker:** not blocking any technical work; visual QA only.

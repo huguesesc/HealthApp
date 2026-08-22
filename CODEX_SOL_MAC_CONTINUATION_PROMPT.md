@@ -129,13 +129,13 @@ Read completely, in this order:
 2. `../NELL_SOL_MASTER_PLANNING_PROMPT.md`
 3. Any repository `AGENTS.md`
 4. `docs/nell-redesign/exercise-catalog/00_SOL_EXECUTIVE_DECISIONS.md`
-5. `docs/nell-redesign/exercise-catalog/01_CURRENT_STATE_AUDIT.md`
+5. `docs/nell-redesign/exercise-catalog/01_CURRENT_STATE_AND_ASSET_AUDIT.md`
 6. `docs/nell-redesign/exercise-catalog/02_EXERCISE_CATALOG_ARCHITECTURE.md`
 7. `docs/nell-redesign/exercise-catalog/03_ASSET_INVENTORY_AND_MIGRATION_MAP.md`
-8. `docs/nell-redesign/exercise-catalog/04_GENERAL_DEVELOPMENT_WORKFLOW.md`
+8. `docs/nell-redesign/exercise-catalog/04_GENERAL_PURPOSE_EXERCISE_AND_IMAGE_WORKFLOW.md`
 9. `docs/nell-redesign/exercise-catalog/05_TERRA_IMPLEMENTATION_PLAN.md`
 10. `docs/nell-redesign/exercise-catalog/06_TERRA_MASTER_EXECUTION_PROMPT.md`
-11. `docs/nell-redesign/exercise-catalog/07_ROLLOUT_AND_ROLLBACK_RUNBOOK.md`
+11. `docs/nell-redesign/exercise-catalog/07_TEST_AND_QA_MATRIX.md`
 12. `docs/nell-redesign/exercise-catalog/08_ACCEPTANCE_CHECKLIST.md`
 13. `docs/nell-redesign/exercise-catalog/09_OPEN_QUESTIONS_AND_HUMAN_REVIEW_QUEUE.md`
 14. `docs/nell-redesign/exercise-catalog/TERRA_PROGRESS_AND_DEVIATIONS.md`
