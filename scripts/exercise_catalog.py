@@ -1754,11 +1754,23 @@ def validate_import_map(
                 "Supply the reviewed source pack or correct mappedDirectory.",
             )
         else:
-            expected_sources = {
-                relative_path(source_pack, source_file)
-                for source_file in mapped_root.rglob("*")
-                if source_file.is_file() and source_file.suffix.lower() == ".png"
-            }
+            expected_sources = set()
+            for source_file in mapped_root.rglob("*"):
+                if not source_file.is_file() or source_file.suffix.lower() != ".png":
+                    continue
+                if source_file.name.startswith("._"):
+                    report.add_warning(
+                        "W_SOURCE_APPLEDOUBLE_SKIPPED",
+                        file,
+                        "/images",
+                        relative_path(source_pack, source_file),
+                        "macOS AppleDouble metadata files are transfer artifacts, "
+                        "not catalogue images",
+                        "Delete the ._ file from the transferred pack; it must never "
+                        "receive an import-map row.",
+                    )
+                    continue
+                expected_sources.add(relative_path(source_pack, source_file))
             for unmapped_source in sorted(expected_sources - set(claimed_sources)):
                 report.add_error(
                     "E_IMPORT_SOURCE_UNMAPPED",

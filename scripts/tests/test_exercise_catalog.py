@@ -255,10 +255,59 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertIn("E_IMPORT_FILENAME", self.error_codes(invalid_report))
         self.assertIn("E_IMPORT_SOURCE_CHECKSUM", self.error_codes(invalid_report))
         self.assertIn("E_IMPORT_SOURCE_UNMAPPED", self.error_codes(invalid_report))
-        self.assertIn(
-            "E_IMPORT_MAP_MANIFEST_MEDIA_UNMAPPED",
-            self.error_codes(invalid_report),
+        self.assertIn("E_IMPORT_MAP_MANIFEST_MEDIA_UNMAPPED", self.error_codes(invalid_report))
+
+    def test_appledouble_metadata_files_are_skipped_with_warning(self):
+        catalogue = self.catalog_fixture()
+        catalogue["exercises"][0]["media"] = [
+            {
+                "key": "bodyweight.squat__composite",
+                "role": "composite",
+                "accessibilityDescription": "Bodyweight squat composite",
+            }
+        ]
+        self.write_json("catalog.json", catalogue)
+        source = self.source_pack / "workout_avatar" / "bodyweight_squat.png"
+        source.parent.mkdir(parents=True)
+        Image.new("RGBA", (16, 16), (20, 30, 40, 255)).save(source)
+        apple_double = source.parent / "._bodyweight_squat.png"
+        apple_double.write_bytes(b"\x00\x05\x16\x07\x00" + b"\x00" * 32)
+        import_map = {
+            "schemaVersion": 1,
+            "sourcePack": {
+                "directoryName": "source-pack",
+                "mappedDirectory": "workout_avatar",
+                "verifiedFileCount": 2,
+                "mappedImageCount": 1,
+                "verifiedZipSHA256": "a" * 64,
+            },
+            "images": [
+                {
+                    "status": "approved_for_import",
+                    "sourcePath": "workout_avatar/bodyweight_squat.png",
+                    "sourceSHA256": exercise_catalog.sha256(source),
+                    "canonicalExerciseID": "bodyweight.squat",
+                    "canonicalMediaKey": "bodyweight.squat__composite",
+                    "canonicalFileName": "bodyweight.squat__composite.png",
+                    "role": "composite",
+                    "approvalReference": "TEST-APPROVAL",
+                }
+            ],
+        }
+        self.write_json("media-import-map.json", import_map)
+
+        report = exercise_catalog.validate_catalogue(
+            self.root,
+            strict=True,
+            source_pack=self.source_pack,
+            include_generated=False,
         )
+
+        self.assertEqual(report.errors, [])
+        self.assertIn("W_SOURCE_APPLEDOUBLE_SKIPPED", self.warning_codes(report))
+        warning = self.find_diagnostic(report, "W_SOURCE_APPLEDOUBLE_SKIPPED")
+        self.assertIn("._bodyweight_squat.png", warning.value)
+        self.assertIn("Delete the ._ file", warning.fix)
 
     def test_import_dry_run_lists_only_approved_rows_without_writing(self):
         catalogue = self.catalog_fixture()
@@ -1227,6 +1276,9 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
 
     def error_codes(self, report):
         return {diagnostic.code for diagnostic in report.errors}
+
+    def warning_codes(self, report):
+        return {diagnostic.code for diagnostic in report.warnings}
 
     def catalog_fixture(self):
         return {
