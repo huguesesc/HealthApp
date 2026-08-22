@@ -14,6 +14,7 @@
         "Stand with feet under the hips and lower into a squat.",
         "Press through the feet to return to standing."
       ],
+      "aliases": ["Air squat"],
       "media": [
         {
           "key": "bodyweight.squat__composite",
@@ -270,7 +271,7 @@
         "Hinge forward with a dumbbell in each hand and arms extended.",
         "Pull the dumbbells toward the ribs, then lower them with control."
       ],
-      "aliases": ["bent_over_row"],
+      "aliases": ["bent_over_row", "Dumbbell row"],
       "media": [
         {
           "key": "dumbbell.bent_over_row__composite",
@@ -315,7 +316,7 @@
         "Hold dumbbells at shoulder height with palms facing forward.",
         "Press both dumbbells overhead, then return them to shoulder height."
       ],
-      "aliases": ["overhead_press"],
+      "aliases": ["overhead_press", "Overhead press", "Shoulder press"],
       "media": [
         {
           "key": "dumbbell.overhead_press__composite",
@@ -344,6 +345,7 @@
         "Stand with the barbell over the middle of the feet and hinge to grip it.",
         "Extend the hips and knees to stand, then return the barbell to the floor."
       ],
+      "aliases": ["Deadlift"],
       "media": [
         {
           "key": "barbell.deadlift__composite",
