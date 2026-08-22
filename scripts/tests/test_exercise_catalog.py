@@ -1161,6 +1161,15 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
     def test_checked_in_catalogue_remains_strict_green(self):
         root = exercise_catalog.repository_root()
         source_pack = root.parent / "HealthAssistant_image_Pack"
+        if not source_pack.is_dir():
+            # The reviewed pack intentionally lives outside the repository, so
+            # hosts without it (for example CI) cannot run checksum-pinned
+            # validation. Skipping here keeps "not run" honest instead of
+            # failing on an environmental absence.
+            self.skipTest(
+                "source pack not present beside the repository; "
+                "run this check on a host with the pack checkout"
+            )
 
         report = exercise_catalog.validate_catalogue(
             root,
