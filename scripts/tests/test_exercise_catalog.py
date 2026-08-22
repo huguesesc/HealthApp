@@ -1409,6 +1409,66 @@ class ExerciseCatalogValidationTests(unittest.TestCase):
         self.assertEqual(row["checksumMatchesSource"], True)
         self.assertEqual(inventory["totals"]["unreviewed"], 0)
 
+    def test_legacy_compatibility_fixture_is_validated_when_present(self):
+        catalogue = self.catalog_fixture()
+        self.write_json("catalog.json", catalogue)
+        self.write_json(
+            "legacy-name-compatibility.json",
+            {
+                "schemaVersion": 1,
+                "entries": [
+                    {
+                        "raw": "Air squat",
+                        "expectedResolution": "canonical",
+                        "expectedExerciseID": "bodyweight.squat",
+                    },
+                    {
+                        "raw": "mystery move",
+                        "expectedResolution": "free-form",
+                        "expectedExerciseID": None,
+                    },
+                ],
+            },
+        )
+
+        valid = exercise_catalog.validate_catalogue(self.root, strict=True)
+        self.assertEqual(valid.errors, [])
+
+        self.write_json(
+            "legacy-name-compatibility.json",
+            {
+                "schemaVersion": 1,
+                "entries": [
+                    {
+                        "raw": "Air squat",
+                        "expectedResolution": "canonical",
+                        "expectedExerciseID": "bodyweight.unknown_target",
+                    },
+                    {
+                        "raw": "air SQUAT",
+                        "expectedResolution": "free-form",
+                        "expectedExerciseID": None,
+                    },
+                    {
+                        "raw": "broken row",
+                        "expectedResolution": "free-form",
+                        "expectedExerciseID": "bodyweight.squat",
+                    },
+                    {
+                        "raw": "odd case",
+                        "expectedResolution": "sometimes",
+                        "expectedExerciseID": None,
+                    },
+                ],
+            },
+        )
+        invalid = exercise_catalog.validate_catalogue(self.root, strict=True)
+        codes = self.error_codes(invalid)
+        self.assertIn("E_LEGACY_COMPAT_TARGET_UNKNOWN", codes)
+        self.assertIn("E_LEGACY_COMPAT_DUPLICATE", codes)
+        self.assertIn("E_LEGACY_COMPAT_UNEXPECTED_ID", codes)
+        self.assertIn("E_LEGACY_COMPAT_RESOLUTION", codes)
+
     def test_legacy_names_participate_in_alias_collision_detection(self):
         catalogue = self.catalog_fixture()
         catalogue["exercises"].append(

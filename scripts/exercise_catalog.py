@@ -192,8 +192,160 @@ def validate_catalogue(
     if include_generated:
         validate_generated_media(root_path, media_roles, approved_rows, report)
     validate_intake_assets(root_path, set(media_roles), report)
+
+    compatibility_path = authoring / "legacy-name-compatibility.json"
+    if compatibility_path.is_file():
+        catalogue_by_id: dict[str, dict[str, Any]] = {}
+        if isinstance(catalog, dict) and isinstance(catalog.get("exercises"), list):
+            for exercise_record in catalog["exercises"]:
+                if (
+                    isinstance(exercise_record, dict)
+                    and is_exercise_id(exercise_record.get("id"))
+                ):
+                    catalogue_by_id[exercise_record["id"]] = exercise_record
+        validate_legacy_compatibility(
+            load_json(compatibility_path, root_path, report),
+            compatibility_path,
+            root_path,
+            catalogue_by_id,
+            report,
+        )
     report.finalise()
     return report
+
+
+LEGACY_COMPATIBILITY_STATUSES = {"canonical", "free-form", "ambiguous", "deprecated"}
+
+
+def validate_legacy_compatibility(
+    data: Any,
+    path: Path,
+    root: Path,
+    catalogue_by_id: dict[str, dict[str, Any]],
+    report: ValidationReport,
+) -> None:
+    """Validate the machine-readable legacy-name compatibility fixture.
+
+    The fixture pins every historical exercise string to an explicit
+    expectation so normalization or catalogue changes surface broken
+    compatibility deterministically instead of silently.
+    """
+    file = relative_path(root, path)
+    if not isinstance(data, dict):
+        report.add_error(
+            "E_LEGACY_COMPAT_OBJECT",
+            file,
+            "",
+            data,
+            "legacy-name-compatibility.json must contain a top-level object",
+            "Restore the documented fixture object.",
+        )
+        return
+    validate_schema_version(data.get("schemaVersion"), file, "/schemaVersion", report)
+    entries = data.get("entries")
+    if not isinstance(entries, list) or not entries:
+        report.add_error(
+            "E_LEGACY_COMPAT_ENTRIES",
+            file,
+            "/entries",
+            entries,
+            "entries must be a nonempty array",
+            "Record at least the harvested historical strings.",
+        )
+        return
+
+    seen_raws: set[str] = set()
+    for index, entry in enumerate(entries):
+        pointer = f"/entries/{index}"
+        if not isinstance(entry, dict):
+            report.add_error(
+                "E_LEGACY_COMPAT_RECORD",
+                file,
+                pointer,
+                entry,
+                "compatibility entries must be objects",
+                "Replace the value with one raw-name record.",
+            )
+            continue
+        raw = entry.get("raw")
+        if not isinstance(raw, str) or not raw.strip():
+            report.add_error(
+                "E_LEGACY_COMPAT_RAW",
+                file,
+                f"{pointer}/raw",
+                raw,
+                "raw must be a nonblank string",
+                "Record the exact historical string.",
+            )
+            continue
+        normalized_raw = raw.casefold()
+        if normalized_raw in seen_raws:
+            report.add_error(
+                "E_LEGACY_COMPAT_DUPLICATE",
+                file,
+                pointer,
+                raw,
+                "each raw name may appear only once",
+                "Merge duplicate rows or distinguish the strings.",
+            )
+        seen_raws.add(normalized_raw)
+
+        resolution = entry.get("expectedResolution")
+        if not isinstance(resolution, str) or resolution not in LEGACY_COMPATIBILITY_STATUSES:
+            report.add_error(
+                "E_LEGACY_COMPAT_RESOLUTION",
+                file,
+                f"{pointer}/expectedResolution",
+                resolution,
+                "expectedResolution must be canonical, free-form, ambiguous, or deprecated",
+                "Pick one of the four documented expectations.",
+            )
+            continue
+
+        expected_id = entry.get("expectedExerciseID")
+        if resolution == "canonical":
+            if not is_exercise_id(expected_id):
+                report.add_error(
+                    "E_LEGACY_COMPAT_TARGET_ID",
+                    file,
+                    f"{pointer}/expectedExerciseID",
+                    expected_id,
+                    "canonical expectations need a stable exercise ID target",
+                    "Record the resolved stable ID or downgrade the row to free-form.",
+                )
+                continue
+            definition = catalogue_by_id.get(expected_id)
+            if definition is None:
+                report.add_error(
+                    "E_LEGACY_COMPAT_TARGET_UNKNOWN",
+                    file,
+                    f"{pointer}/expectedExerciseID",
+                    expected_id,
+                    "the recorded target exercise does not exist in catalog.json",
+                    "Correct the target or re-classify the row after a catalogue change.",
+                )
+            elif (
+                isinstance(definition, dict)
+                and isinstance(definition.get("lifecycle"), dict)
+                and definition["lifecycle"].get("status") != "active"
+            ):
+                report.add_error(
+                    "E_LEGACY_COMPAT_TARGET_INACTIVE",
+                    file,
+                    f"{pointer}/expectedExerciseID",
+                    expected_id,
+                    "canonical expectations must target an active exercise",
+                    "Re-classify the row or update the lifecycle decision.",
+                )
+        elif expected_id is not None:
+            report.add_error(
+                "E_LEGACY_COMPAT_UNEXPECTED_ID",
+                file,
+                f"{pointer}/expectedExerciseID",
+                expected_id,
+                f"{resolution} expectations must leave expectedExerciseID null",
+                "Remove the ID or change the expectation to canonical.",
+            )
 
 
 def load_json(path: Path, root: Path, report: ValidationReport) -> Any | None:
