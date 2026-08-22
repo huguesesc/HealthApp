@@ -3124,6 +3124,29 @@ def print_report(report: ValidationReport) -> None:
         print(diagnostic.format())
 
 
+def print_report_json(report: ValidationReport) -> None:
+    payload = {
+        "exercises": report.exercise_count,
+        "intakeAssets": report.intake_asset_count,
+        "errors": [diagnostic_payload(item) for item in report.errors],
+        "warnings": [diagnostic_payload(item) for item in report.warnings],
+        "ok": not report.errors,
+    }
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def diagnostic_payload(diagnostic: Diagnostic) -> dict[str, str]:
+    return {
+        "severity": diagnostic.severity,
+        "code": diagnostic.code,
+        "file": diagnostic.file,
+        "pointer": diagnostic.pointer,
+        "value": diagnostic.value,
+        "rule": diagnostic.rule,
+        "fix": diagnostic.fix,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -3136,6 +3159,11 @@ def build_parser() -> argparse.ArgumentParser:
             help="Optional source-pack root used to verify mapped source checksums.",
         )
         command.add_argument("--strict", action="store_true")
+        command.add_argument(
+            "--json",
+            action="store_true",
+            help="Emit the machine-readable JSON report instead of text.",
+        )
     importer = subcommands.add_parser("import")
     importer.add_argument("--root", type=Path, default=repository_root())
     importer.add_argument("--source-pack", type=Path, required=True)
@@ -3180,7 +3208,10 @@ def main(arguments: Iterable[str] | None = None) -> int:
         source_pack=parsed.source_pack,
         require_source_pack=parsed.strict,
     )
-    print_report(report)
+    if parsed.json:
+        print_report_json(report)
+    else:
+        print_report(report)
     if report.errors or (parsed.strict and report.warnings):
         return 1
     return 0
