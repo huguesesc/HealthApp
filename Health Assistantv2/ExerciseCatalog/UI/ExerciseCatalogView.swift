@@ -90,7 +90,9 @@ struct ExerciseCatalogFilter: Equatable, Sendable {
     }
 }
 
-private enum ExerciseCatalogScreenState: Equatable {
+/// Shared load-state machine for catalogue screens; internal so the DEBUG
+/// gallery can reuse it instead of duplicating the shape.
+enum ExerciseCatalogScreenState: Equatable {
     case loading
     case available(ExerciseCatalogContent)
     case unavailable(String)
