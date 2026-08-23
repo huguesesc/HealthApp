@@ -32,6 +32,7 @@ extension HealthDataRepository {
                 order: index,
                 sourcePlanStepIDSnapshot: planStep.id,
                 type: planStep.type,
+                exerciseIDSnapshot: planStep.exerciseIDSnapshot,
                 title: planStep.title,
                 instruction: planStep.instruction,
                 plannedSets: planStep.sets,
@@ -402,6 +403,7 @@ extension HealthDataRepository {
                 result.append(
                     ExerciseSet(
                         exerciseName: step.title,
+                        exerciseIDSnapshot: step.exerciseIDSnapshot,
                         reps: reps,
                         weightKilograms: step.actualWeightKilograms ?? step.plannedWeightKilograms,
                         order: result.count

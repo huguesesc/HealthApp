@@ -175,6 +175,25 @@ struct NellAboutView: View {
                 title: "Product principle",
                 message: "Show recorded facts clearly, label uncertainty, and require confirmation before writing structured health information."
             )
+
+            #if DEBUG
+            NellCard {
+                NavigationLink {
+                    ExerciseCatalogDebugGalleryView()
+                } label: {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                        Label("Exercise catalogue debug gallery", systemImage: "ladybug")
+                            .font(Theme.FontToken.cardTitle)
+                            .foregroundStyle(NellPalette.primary)
+                        Text("DEBUG-only inspector for stable IDs, aliases, media and fallback states.")
+                            .font(Theme.FontToken.caption)
+                            .foregroundStyle(NellPalette.textSecondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens the developer-only exercise catalogue inspector")
+            }
+            #endif
         }
         .navigationTitle("About Nell")
         .navigationBarTitleDisplayMode(.inline)

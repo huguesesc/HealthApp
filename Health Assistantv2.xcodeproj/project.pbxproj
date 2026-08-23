@@ -100,9 +100,22 @@
 		18C7B1242FF3E65A00218ACA /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F4CA19CD3006F9E00000AF04 /* Exceptions for "Health Assistantv2" folder in "Health Assistantv2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"ExerciseCatalog/Resources/Authoring/media-import-map.json",
+			);
+			target = 180AD7B12FF3E44200218ACA /* Health Assistantv2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		180AD7B42FF3E44200218ACA /* Health Assistantv2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F4CA19CD3006F9E00000AF04 /* Exceptions for "Health Assistantv2" folder in "Health Assistantv2" target */,
+			);
 			path = "Health Assistantv2";
 			sourceTree = "<group>";
 		};
@@ -237,40 +250,6 @@
 			path = Workout;
 			sourceTree = "<group>";
 		};
-		18C7B1052FF3E65A00218ACA /* Chat */ = {
-			isa = PBXGroup;
-			children = (
-				18C7B1022FF3E65A00218ACA /* ChatEngine.swift */,
-				18C7B1032FF3E65A00218ACA /* ChatView.swift */,
-			);
-			path = Chat;
-			sourceTree = "<group>";
-		};
-		18C7B1172FF3E65A00218ACA /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				18C7B1152FF3E65A00218ACA /* SettingsView.swift */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		18C7B1252FF3E65A00218ACA /* HealthKit */ = {
-			isa = PBXGroup;
-			children = (
-				18C7B1232FF3E65A00218ACA /* HealthKitImport.swift */,
-				18C7B1242FF3E65A00218ACA /* HealthKitService.swift */,
-			);
-			path = HealthKit;
-			sourceTree = "<group>";
-		};
-		18C7B1262FF3E65A00218ACA /* Integrations */ = {
-			isa = PBXGroup;
-			children = (
-				18C7B1252FF3E65A00218ACA /* HealthKit */,
-			);
-			path = Integrations;
-			sourceTree = "<group>";
-		};
 		180AD8662FF3E65A00218ACA /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -339,6 +318,40 @@
 				180AD8752FF3E65A00218ACA /* Shared */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		18C7B1052FF3E65A00218ACA /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1022FF3E65A00218ACA /* ChatEngine.swift */,
+				18C7B1032FF3E65A00218ACA /* ChatView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		18C7B1172FF3E65A00218ACA /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1152FF3E65A00218ACA /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		18C7B1252FF3E65A00218ACA /* HealthKit */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1232FF3E65A00218ACA /* HealthKitImport.swift */,
+				18C7B1242FF3E65A00218ACA /* HealthKitService.swift */,
+			);
+			path = HealthKit;
+			sourceTree = "<group>";
+		};
+		18C7B1262FF3E65A00218ACA /* Integrations */ = {
+			isa = PBXGroup;
+			children = (
+				18C7B1252FF3E65A00218ACA /* HealthKit */,
+			);
+			path = Integrations;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -685,6 +698,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Health Assistantv2/Preview Content\"";
+				DEVELOPMENT_TEAM = JSHV5HVJ6G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health Assistant reads Apple Health activity, workouts, sleep, and heart summaries to personalize your daily summary and assistant coaching.";
@@ -716,6 +730,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Health Assistantv2/Preview Content\"";
+				DEVELOPMENT_TEAM = JSHV5HVJ6G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health Assistant reads Apple Health activity, workouts, sleep, and heart summaries to personalize your daily summary and assistant coaching.";

@@ -1,0 +1,207 @@
+name: Nell catalogue and iOS verification
+
+# Scoped verification for the exercise-catalogue feature branch. This workflow
+# intentionally does NOT run on main or every branch yet; broaden triggers only
+# after it has proven stable here.
+
+on:
+  push:
+    branches:
+      - "feature/nell-exercise-catalog-location-context"
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    branches:
+      - "main"
+      - "feature/nell-exercise-catalog-location-context"
+  workflow_dispatch:
+
+concurrency:
+  group: nell-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  catalogue-tooling:
+    name: Catalogue JSON/tooling (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tooling dependencies
+        run: pip install -r scripts/exercise_catalog_requirements.txt
+
+      - name: Structural catalogue validation (no source pack on CI)
+        run: |
+          python -B scripts/exercise_catalog.py validate --json
+          python -B scripts/exercise_catalog.py report --json
+          python -B scripts/exercise_catalog.py inventory --json > inventory.json
+          python -B -c "import json;d=json.load(open('inventory.json'));print('inventory rows:',d['totals']['rows'],'imported:',d['totals']['imported'])"
+
+      - name: Python tooling test suite
+        run: python -B -m unittest scripts.tests.test_exercise_catalog -v
+
+      - name: Upload inventory artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exercise-inventory
+          path: inventory.json
+          if-no-files-found: error
+
+  ios-simulator:
+    name: iOS Simulator build + unit tests (macOS)
+    runs-on: macos-15
+    needs: catalogue-tooling
+    env:
+      CODE_SIGNING_ALLOWED: "NO"
+      COMPILER_INDEX_STORE_ENABLE: "NO"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record toolchain facts
+        run: |
+          sw_vers
+          ls -d /Applications/Xcode*.app | sort
+          xcodebuild -version
+          xcrun simctl list runtimes available
+
+      - name: Select newest Xcode 16.x
+        run: |
+          set -euo pipefail
+          CANDIDATE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selecting ${CANDIDATE}"
+          sudo xcode-select -s "${CANDIDATE}"
+          xcodebuild -version
+
+      - name: Clean Debug build (generic simulator destination)
+        run: |
+          set -o pipefail
+          xcodebuild clean build \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath /tmp/nell-ci-build \
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Discover an available iPhone simulator
+        id: simulator
+        run: |
+          set -euo pipefail
+          LINE=$(xcrun simctl list devices available | grep "iPhone" | head -1 || true)
+          if [ -z "${LINE}" ]; then
+            echo "::error::No available iPhone simulator found"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          UDID=$(echo "${LINE}" | grep -Eo "[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}")
+          NAME=$(xcrun simctl list devices available | grep "${UDID}" | sed -E 's/^ *[^(]+ \((.*)\).*/\1/')
+          echo "udid=${UDID}" >> "$GITHUB_OUTPUT"
+          echo "Using simulator ${NAME} (${UDID})"
+
+      - name: Unit tests (Health Assistantv2Tests only)
+        id: tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -only-testing:"Health Assistantv2Tests" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath /tmp/nell-ci-tests \
+            -resultBundlePath /tmp/nell-ci.xcresult \
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-failure-diagnostics
+          path: |
+            /tmp/nell-ci.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ios-screenshots:
+    name: Simulator screenshots (macOS)
+    runs-on: macos-15
+    needs: ios-simulator
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          CANDIDATE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selecting ${CANDIDATE}"
+          sudo xcode-select -s "${CANDIDATE}"
+          xcodebuild -version
+
+      - name: Discover an available iPhone simulator
+        id: simulator
+        run: |
+          set -euo pipefail
+          LINE=$(xcrun simctl list devices available | grep "iPhone" | head -1 || true)
+          if [ -z "${LINE}" ]; then
+            echo "::error::No available iPhone simulator found"
+            exit 1
+          fi
+          UDID=$(echo "${LINE}" | grep -Eo "[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}")
+          echo "udid=${UDID}" >> "$GITHUB_OUTPUT"
+          # Appearance changes require a booted device.
+          xcrun simctl boot "${UDID}" || true
+          xcrun simctl bootstatus "${UDID}" -b
+
+      - name: Capture light-mode screenshots
+        run: |
+          set -o pipefail
+          xcrun simctl ui "${{ steps.simulator.outputs.udid }}" appearance light
+          xcodebuild test \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -only-testing:"Health Assistantv2UITests/ScreenshotCaptureUITests" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath /tmp/nell-shots-light \
+            -resultBundlePath /tmp/nell-shots-light.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture dark-mode screenshots
+        run: |
+          set -o pipefail
+          xcrun simctl ui "${{ steps.simulator.outputs.udid }}" appearance dark
+          xcodebuild test \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -only-testing:"Health Assistantv2UITests/ScreenshotCaptureUITests" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath /tmp/nell-shots-dark \
+            -resultBundlePath /tmp/nell-shots-dark.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export attachments from result bundles
+        if: always()
+        run: |
+          mkdir -p screenshots/light screenshots/dark
+          xcrun xcresulttool export attachments \
+            --path /tmp/nell-shots-light.xcresult \
+            --output-path screenshots/light || true
+          xcrun xcresulttool export attachments \
+            --path /tmp/nell-shots-dark.xcresult \
+            --output-path screenshots/dark || true
+
+      - name: Upload screenshot artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nell-screenshots
+          path: screenshots
+          if-no-files-found: warn
+          retention-days: 14

@@ -104,6 +104,16 @@ enum WorkoutMotionRegistry {
         return result
     }()
 
+    private static let legacyMovementIDByCanonicalID: [String: String] = [
+        "bodyweight.squat": "goblet_squat",
+        "dumbbell.goblet_squat": "goblet_squat",
+        "dumbbell.bent_over_row": "bent_over_row",
+        "dumbbell.overhead_press": "overhead_press",
+        "bodyweight.forward_lunge": "split_squat",
+        "barbell.deadlift": "hip_hinge",
+        "barbell.romanian_deadlift": "hip_hinge"
+    ]
+
     static func definition(movementID: String) -> WorkoutMotionDefinition? {
         definitionsByID[movementID]
     }
@@ -115,16 +125,39 @@ enum WorkoutMotionRegistry {
             return exact
         }
 
-        if let partial = definitions.first(where: { definition in
-            definition.aliases.contains { alias in
-                let normalisedAlias = normalise(alias)
-                return key.contains(normalisedAlias) || normalisedAlias.contains(key)
-            }
-        }) {
-            return partial
-        }
-
         return fallbackDefinition(title: title, type: type)
+    }
+
+    static func definition(
+        for reference: String,
+        using resolver: LegacyExerciseResolver,
+        type: WorkoutStepType? = nil
+    ) -> WorkoutMotionDefinition {
+        switch resolver.resolve(reference) {
+        case .resolved(let exercise, _):
+            return definition(for: exercise, type: type)
+        case .ambiguous, .unresolved:
+            return fallbackDefinition(title: reference, type: type)
+        }
+    }
+
+    static func definition(
+        for exercise: ExerciseDefinition,
+        type: WorkoutStepType? = nil
+    ) -> WorkoutMotionDefinition {
+        guard let legacyMovementID = legacyMovementIDByCanonicalID[exercise.id.rawValue],
+              let template = definitionsByID[legacyMovementID] else {
+            return fallbackDefinition(title: exercise.displayName, type: type)
+        }
+        return WorkoutMotionDefinition(
+            movementID: template.movementID,
+            displayName: exercise.displayName,
+            startPose: template.startPose,
+            endPose: template.endPose,
+            equipment: LegacyEquipmentAdapter.avatarEquipment(for: exercise),
+            characterStyleID: template.characterStyleID,
+            aliases: template.aliases
+        )
     }
 
     static func movementID(for title: String, type: WorkoutStepType? = nil) -> String {
@@ -157,9 +190,10 @@ enum WorkoutMotionRegistry {
     }
 
     private static func normalise(_ value: String) -> String {
-        value
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .lowercased()
+        let locale = Locale(identifier: "en_US_POSIX")
+        return value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: locale)
+            .lowercased(with: locale)
             .replacingOccurrences(of: "-", with: " ")
             .replacingOccurrences(of: "_", with: " ")
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber })

@@ -15,8 +15,14 @@ HealthAssistant.xcodeproj/
 .build/
 .swiftpm/
 
+# Python test/runtime cache files
+__pycache__/
+
 # macOS
 .DS_Store
+
+# macOS AppleDouble metadata (created when copying through exFAT/USB)
+._*
 
 # Transfer archives
 *.zip

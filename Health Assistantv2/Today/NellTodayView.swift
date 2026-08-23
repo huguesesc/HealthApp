@@ -37,10 +37,7 @@ struct NellTodayView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink { SettingsView() } label: {
-                    Image(systemName: "person.crop.circle")
-                }
-                .accessibilityLabel("Profile and settings")
+                NellSettingsLogoButton()
             }
         }
         .onAppear { _ = repo.refreshTodayRollup() }
@@ -156,10 +153,20 @@ struct NellTodayView: View {
                         Text(streakTitle(streak))
                             .font(Theme.FontToken.cardTitle)
                             .foregroundStyle(NellPalette.textPrimary)
-                        Text(todayRollup?.summaryText ?? fallbackInsight)
-                            .font(Theme.FontToken.secondaryBody)
-                            .foregroundStyle(NellPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let summary = todayRollup?.summaryText {
+                            Text(summary)
+                                .font(Theme.FontToken.secondaryBody)
+                                .foregroundStyle(NellPalette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("Generated from today's logs by the assistant; values come from your records.")
+                                .font(Theme.FontToken.caption)
+                                .foregroundStyle(NellPalette.textTertiary)
+                        } else {
+                            Text(fallbackInsight)
+                                .font(Theme.FontToken.secondaryBody)
+                                .foregroundStyle(NellPalette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     Spacer(minLength: 0)
                 }
@@ -288,7 +295,7 @@ struct NellTodayView: View {
             return "You have \(session.titleSnapshot) in progress. Continue from the saved step when you are ready."
         }
         if checkInToday == nil {
-            return "There is no check-in for today yet. A quick self-report gives the Coach better context without making a diagnosis."
+            return "There is no check-in for today yet. A quick self-report gives Nell better context without making a diagnosis."
         }
         if workoutsToday.isEmpty, (todayRollup?.healthExerciseMinutes ?? 0) == 0 {
             return "No workout or Apple Health exercise minutes are recorded today. Rest may be appropriate, or you can choose a short session in Train."
@@ -296,7 +303,7 @@ struct NellTodayView: View {
         if mealsToday.isEmpty {
             return "No meals are logged today. Logging is optional, but it helps the nutrition overview reflect what actually happened."
         }
-        return "Today already contains useful context from your logs. Ask the Coach to review it or help plan the next small step."
+        return "Today already contains useful context from your logs. Ask Nell to review it or help plan the next small step."
     }
 
     private var fallbackInsight: String {

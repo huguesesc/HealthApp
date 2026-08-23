@@ -1,0 +1,165 @@
+{
+  "media": [
+    {
+      "assetName": "band.lateral_squat__composite",
+      "filename": "band.lateral_squat__composite.png",
+      "key": "band.lateral_squat__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/resistance_band_lateral_squat.png",
+      "sourceSHA256": "aaccf3fb1bb1f2a020fb85c254c0b2af99fda88131707184a52163d1d503ef4a"
+    },
+    {
+      "assetName": "barbell.deadlift__composite",
+      "filename": "barbell.deadlift__composite.png",
+      "key": "barbell.deadlift__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/barbell_deadlift.png",
+      "sourceSHA256": "110e1ecc2a0d591cb149b5fe8a56c10344036bb04596bbbadda66e0925227c01"
+    },
+    {
+      "assetName": "barbell.romanian_deadlift__composite",
+      "filename": "barbell.romanian_deadlift__composite.png",
+      "key": "barbell.romanian_deadlift__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/barbell_romanian_deadlift.png",
+      "sourceSHA256": "04f5d72e752edb899680d59c721541d4dbe0258619d9831b4306f85df5f99123"
+    },
+    {
+      "assetName": "bodyweight.bird_dog__composite",
+      "filename": "bodyweight.bird_dog__composite.png",
+      "key": "bodyweight.bird_dog__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_bird_dog..png",
+      "sourceSHA256": "be807595d962f896bdbc7dba4ee22787856e9b6c10ee2552463efa8f3d46e7c7"
+    },
+    {
+      "assetName": "bodyweight.calf_raise__composite",
+      "filename": "bodyweight.calf_raise__composite.png",
+      "key": "bodyweight.calf_raise__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_calf_raise..png",
+      "sourceSHA256": "3e9ef27155f3cf760c1787ca4d542db6e013673835d5f18852889e9516d3c627"
+    },
+    {
+      "assetName": "bodyweight.dead_bug__composite",
+      "filename": "bodyweight.dead_bug__composite.png",
+      "key": "bodyweight.dead_bug__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_dead_bug..png",
+      "sourceSHA256": "633fae8e32969f48a27dc7cdcbc3919828322399146039d903d70b7a770e8b70"
+    },
+    {
+      "assetName": "bodyweight.forward_lunge__composite",
+      "filename": "bodyweight.forward_lunge__composite.png",
+      "key": "bodyweight.forward_lunge__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_forward_lunge..png",
+      "sourceSHA256": "a6eed44988b49933a568365604af31135312e0ead9333439d9372c3c9542e1dc"
+    },
+    {
+      "assetName": "bodyweight.glute_bridge__composite",
+      "filename": "bodyweight.glute_bridge__composite.png",
+      "key": "bodyweight.glute_bridge__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_glute_bridge.png",
+      "sourceSHA256": "2547455a422c2d64744c01c762aa565e6631d62bc0b1da276a22bd26c634e946"
+    },
+    {
+      "assetName": "bodyweight.jumping_jack__composite",
+      "filename": "bodyweight.jumping_jack__composite.png",
+      "key": "bodyweight.jumping_jack__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_jumping_jack.png",
+      "sourceSHA256": "47c0a606022506462fb4a5f28d3cd3136db8b5fb1a7f31fa9550954d73d0a5f8"
+    },
+    {
+      "assetName": "bodyweight.mountain_climber__composite",
+      "filename": "bodyweight.mountain_climber__composite.png",
+      "key": "bodyweight.mountain_climber__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_mountain_climber.png",
+      "sourceSHA256": "45d43c9381740bdda1948e50a36e15ee417a69cd9b39395f29b73733e1ff868d"
+    },
+    {
+      "assetName": "bodyweight.push_up__composite",
+      "filename": "bodyweight.push_up__composite.png",
+      "key": "bodyweight.push_up__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_push_up.png",
+      "sourceSHA256": "605acc438aa37f379c200f8b95986e742c34dafc21bfbaa82d105604b9201622"
+    },
+    {
+      "assetName": "bodyweight.side_plank__composite",
+      "filename": "bodyweight.side_plank__composite.png",
+      "key": "bodyweight.side_plank__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_side_plank.png",
+      "sourceSHA256": "af711144750a2e2641dcab5115a557d49d2a82c429a198d61544e75a8c26a68c"
+    },
+    {
+      "assetName": "bodyweight.squat__composite",
+      "filename": "bodyweight.squat__composite.png",
+      "key": "bodyweight.squat__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/bodyweight_squat.png",
+      "sourceSHA256": "d08029198cf219fa07dd8c8f3c932da9e3d420e0b9bf0c39fb956c34e4df8e96"
+    },
+    {
+      "assetName": "cable.triceps_pushdown__composite",
+      "filename": "cable.triceps_pushdown__composite.png",
+      "key": "cable.triceps_pushdown__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/cable_triceps_pushdown.png",
+      "sourceSHA256": "64ae15ba69ada9d07fdd3a422745e4f67a205c62a3244dab56d5a8ab7e1158df"
+    },
+    {
+      "assetName": "dumbbell.bent_over_row__composite",
+      "filename": "dumbbell.bent_over_row__composite.png",
+      "key": "dumbbell.bent_over_row__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/dumbbell_bent_over_row.png",
+      "sourceSHA256": "1fc158bf3a943e5e95610bb7ac86547f794bda1394a5dcc938c15b97b3a1eb44"
+    },
+    {
+      "assetName": "dumbbell.biceps_curl__composite",
+      "filename": "dumbbell.biceps_curl__composite.png",
+      "key": "dumbbell.biceps_curl__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/dumbbell_biceps_curl.png",
+      "sourceSHA256": "ff54a2c48388363add9b736d75baab334e5f4fdff634b1b7c4110ae8301b9c25"
+    },
+    {
+      "assetName": "dumbbell.goblet_squat__composite",
+      "filename": "dumbbell.goblet_squat__composite.png",
+      "key": "dumbbell.goblet_squat__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/dumbbell_goblet_squat.png",
+      "sourceSHA256": "abbea5a651fbf3ecf713128735097c15424f36c95f172c97f32ed0b17b6fef60"
+    },
+    {
+      "assetName": "dumbbell.overhead_press__composite",
+      "filename": "dumbbell.overhead_press__composite.png",
+      "key": "dumbbell.overhead_press__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/dumbbell_overhead_press.png",
+      "sourceSHA256": "840242b45d20a411354b1f274ff88703c902252455ce3c810be6f87120c50a03"
+    },
+    {
+      "assetName": "machine.lat_pulldown__composite",
+      "filename": "machine.lat_pulldown__composite.png",
+      "key": "machine.lat_pulldown__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/machine_lat_pulldown.png",
+      "sourceSHA256": "89e57a02861db6501a75b2fbe5fc0417b56e03d0da28e950595e233bc90e5f38"
+    },
+    {
+      "assetName": "machine.leg_press__composite",
+      "filename": "machine.leg_press__composite.png",
+      "key": "machine.leg_press__composite",
+      "role": "composite",
+      "sourcePath": "workout_avatar/machine_leg_press.png",
+      "sourceSHA256": "ae1b9294b9e05830fe0545fc5664da8bc5540223cd8d6e77739c457d2fcd9f41"
+    }
+  ],
+  "schemaVersion": 1
+}

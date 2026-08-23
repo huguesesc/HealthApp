@@ -1,38 +1,31 @@
 import SwiftUI
 
 struct NellCoachScreen: View {
+    /// Externally-owned engine so the conversation survives tab switches.
+    @Binding var sharedEngine: ChatEngine?
+
     var body: some View {
         VStack(spacing: 0) {
             coachHeader
             Divider()
-            ChatView()
+            ChatView(sharedEngine: $sharedEngine)
+                .padding(.bottom, Theme.Size.tabBarHeight + Theme.Spacing.sm)
                 .toolbar(.hidden, for: .navigationBar)
         }
         .background(NellPalette.background)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SettingsView()
-                } label: {
-                    Image(systemName: "gearshape")
-                }
-                .accessibilityLabel("Coach settings")
-            }
-        }
     }
 
     private var coachHeader: some View {
         HStack(spacing: Theme.Spacing.md) {
-            NellMascotView(pose: .wave)
+            NellMascotView(pose: .thoughtful)
                 .frame(width: 68, height: 68)
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 HStack(spacing: Theme.Spacing.xs) {
-                    NellCoachMark()
-                        .foregroundStyle(NellPalette.primary)
-                        .frame(width: 24, height: 24)
+                    NellAssetImage(asset: .coachMark)
+                        .frame(width: 28, height: 28)
 
-                    Text("Coach")
+                    Text("Nell")
                         .font(Theme.FontToken.navigationTitle)
                         .foregroundStyle(NellPalette.textPrimary)
                 }
@@ -44,15 +37,16 @@ struct NellCoachScreen: View {
             }
 
             Spacer(minLength: 0)
+            NellSettingsLogoButton()
         }
         .padding(.horizontal, NellLayout.screenPadding)
         .padding(.vertical, Theme.Spacing.sm)
         .background(NellPalette.surface)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 }
 
 #Preview {
-    NavigationStack { NellCoachScreen() }
+    NavigationStack { NellCoachScreen(sharedEngine: .constant(nil)) }
         .modelContainer(PersistenceController.preview.container)
 }

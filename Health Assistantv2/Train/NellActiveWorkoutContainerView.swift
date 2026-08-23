@@ -8,6 +8,24 @@ struct NellActiveWorkoutContainerView: View {
 
     @Bindable var session: ActiveWorkoutSession
 
+    /// Optional catalogue media for the current step. Defaults keep every
+    /// existing call site compiling; injection enables preview/test control.
+    private let catalogue: any ExerciseCatalogRepositoryProviding
+    private let mediaResolver: any ExerciseMediaResolving
+
+    @State private var resolvedMediaDefinition: ExerciseDefinition?
+
+    init(
+        session: ActiveWorkoutSession,
+        catalogue: any ExerciseCatalogRepositoryProviding = BundledExerciseCatalogRepository(),
+        mediaResolver: any ExerciseMediaResolving = ExerciseCatalogDetailView
+            .productionMediaResolver()
+    ) {
+        self.session = session
+        self.catalogue = catalogue
+        self.mediaResolver = mediaResolver
+    }
+
     /// The completion presentation must follow the persisted session lifecycle,
     /// not merely the fact that every step has been resolved. Until the user
     /// confirms effort/notes and saves, ActiveWorkoutView must remain available.
@@ -74,13 +92,8 @@ struct NellActiveWorkoutContainerView: View {
 
     private func motionGuide(for step: ActiveWorkoutStep) -> some View {
         HStack(spacing: Theme.Spacing.md) {
-            WorkoutMotionView(
-                title: step.title,
-                type: step.type,
-                presentation: .pair,
-                showsLabels: false
-            )
-            .frame(width: 150, height: 94)
+            mediaOrMotion(for: step)
+                .frame(width: 150, height: 94)
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text("Movement Guide")
@@ -92,9 +105,15 @@ struct NellActiveWorkoutContainerView: View {
                     .foregroundStyle(NellPalette.textPrimary)
                     .lineLimit(2)
 
-                Text("General start and finish positions")
-                    .font(Theme.FontToken.caption)
-                    .foregroundStyle(NellPalette.textSecondary)
+                if hasRealMedia {
+                    Text("Catalogue illustration")
+                        .font(Theme.FontToken.caption)
+                        .foregroundStyle(NellPalette.textSecondary)
+                } else {
+                    Text("General start and finish positions")
+                        .font(Theme.FontToken.caption)
+                        .foregroundStyle(NellPalette.textSecondary)
+                }
             }
 
             Spacer(minLength: 0)
@@ -103,6 +122,43 @@ struct NellActiveWorkoutContainerView: View {
         .padding(.vertical, Theme.Spacing.xs)
         .background(NellPalette.surface)
         .accessibilityElement(children: .combine)
+        .task(id: step.id) {
+            await resolveMediaDefinition(for: step)
+        }
+    }
+
+    /// Fallback chain: real catalogue media when the step carries a stable ID
+    /// that resolves to an illustrated definition; otherwise the existing
+    /// generated vector illustration. Written instructions stay primary.
+    @ViewBuilder
+    private func mediaOrMotion(for step: ActiveWorkoutStep) -> some View {
+        if let media = resolvedMediaDefinition?.media, media.isEmpty == false {
+            ExerciseMediaView(
+                media: media,
+                fallbackTitle: step.title,
+                presentation: .compact,
+                resolver: mediaResolver
+            )
+        } else {
+            WorkoutMotionView(
+                title: step.title,
+                type: step.type,
+                presentation: .pair,
+                showsLabels: false
+            )
+        }
+    }
+
+    private var hasRealMedia: Bool {
+        resolvedMediaDefinition?.media?.isEmpty == false
+    }
+
+    private func resolveMediaDefinition(for step: ActiveWorkoutStep) async {
+        // Clear first so a slow lookup can never show the previous step's
+        // illustration next to the new step's title.
+        resolvedMediaDefinition = nil
+        let reference = step.exerciseIDSnapshot ?? step.title
+        resolvedMediaDefinition = await catalogue.resolve(reference: reference)
     }
 
     private var completionOverlay: some View {

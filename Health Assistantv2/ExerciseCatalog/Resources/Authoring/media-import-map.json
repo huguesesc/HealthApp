@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 1,
+  "sourcePack": {
+    "directoryName": "HealthAssistant_image_Pack",
+    "mappedDirectory": "workout_avatar",
+    "verifiedFileCount": 65,
+    "mappedImageCount": 50,
+    "verifiedZipSHA256": "a997ee69fc7f51ac283bd9caa5cf2076c469083182f5e1d45ad5d87e87a9297a"
+  },
+  "images": [
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/barbell_biceps_curl.png",
+      "sourceSHA256": "7a805962f17d750151df56b6fdfe64d54274b535e7bdacc2726183c0a6c0e95e",
+      "canonicalExerciseID": "barbell.biceps_curl",
+      "canonicalMediaKey": "barbell.biceps_curl__composite",
+      "canonicalFileName": "barbell.biceps_curl__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/barbell_close_grip_bench_press.png",
+      "sourceSHA256": "ea3105be9f029ee8b851abdfb1aad63804739098e691859d0118499e05d05867",
+      "canonicalExerciseID": "barbell.close_grip_bench_press",
+      "canonicalMediaKey": "barbell.close_grip_bench_press__composite",
+      "canonicalFileName": "barbell.close_grip_bench_press__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/barbell_deadlift.png",
+      "sourceSHA256": "110e1ecc2a0d591cb149b5fe8a56c10344036bb04596bbbadda66e0925227c01",
+      "canonicalExerciseID": "barbell.deadlift",
+      "canonicalMediaKey": "barbell.deadlift__composite",
+      "canonicalFileName": "barbell.deadlift__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/barbell_flat_bench_press.png",
+      "sourceSHA256": "62f7d52d51cdff6689ee33486861853379ab68a7eec6c124d7d435e7d4b4cab7",
+      "canonicalExerciseID": "barbell.flat_bench_press",
+      "canonicalMediaKey": "barbell.flat_bench_press__composite",
+      "canonicalFileName": "barbell.flat_bench_press__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/barbell_overhead_triceps_extension.png",
+      "sourceSHA256": "5aaf8168cd88a0c9247ad8c596f8fcb9cc9f56d8b25f2e75a79b6fe8868adc6a",
+      "canonicalExerciseID": "barbell.overhead_triceps_extension",
+      "canonicalMediaKey": "barbell.overhead_triceps_extension__composite",
+      "canonicalFileName": "barbell.overhead_triceps_extension__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/barbell_reverse_curl.png",
+      "sourceSHA256": "f2e8541126617706a48390c7afc3c44b8e6d907c2c3f8bb5aa173683d5851601",
+      "canonicalExerciseID": "barbell.reverse_curl",
+      "canonicalMediaKey": "barbell.reverse_curl__composite",
+      "canonicalFileName": "barbell.reverse_curl__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/barbell_romanian_deadlift.png",
+      "sourceSHA256": "04f5d72e752edb899680d59c721541d4dbe0258619d9831b4306f85df5f99123",
+      "canonicalExerciseID": "barbell.romanian_deadlift",
+      "canonicalMediaKey": "barbell.romanian_deadlift__composite",
+      "canonicalFileName": "barbell.romanian_deadlift__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_pending_catalogue_entry",
+      "sourcePath": "workout_avatar/barbell_skullcrusher.png",
+      "sourceSHA256": "3711624db853ce95bf9701d798b4cdbb4db2e277f8140a5555f32cc6c3cad843",
+      "canonicalExerciseID": "barbell.lying_triceps_extension",
+      "canonicalMediaKey": "barbell.lying_triceps_extension__composite",
+      "canonicalFileName": "barbell.lying_triceps_extension__composite.png",
+      "role": "composite",
+      "approvedAliases": ["skullcrusher"],
+      "approvalReference": "HR-04 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bench_copenhagen_plank_isometric_hold_short_lever..png",
+      "sourceSHA256": "ea73a4702cf3b2e77fc379713bb4d3200e809f7619e5e2685c05f6cd6bcb3f42",
+      "canonicalExerciseID": "bodyweight.copenhagen_plank.short_lever",
+      "canonicalMediaKey": "bodyweight.copenhagen_plank.short_lever__composite",
+      "canonicalFileName": "bodyweight.copenhagen_plank.short_lever__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_pending_catalogue_entry",
+      "sourcePath": "workout_avatar/bench_dumbbell_flat_chest_press..png",
+      "sourceSHA256": "bb72c3cc98a1c055ec009fb87aae1038ff75b325d900ea20e83f2ac15c149462",
+      "canonicalExerciseID": "dumbbell.floor_press",
+      "canonicalMediaKey": "dumbbell.floor_press__composite",
+      "canonicalFileName": "dumbbell.floor_press__composite.png",
+      "role": "composite",
+      "approvalReference": "HR-01 approval (2026-07-14)",
+      "note": "Approved as floor press only; never identify this source as a bench press."
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bench_dumbbell_flat_chest_press_alt_01..png",
+      "sourceSHA256": "9374f5ea128d590ef1968a67b9617c30d6406546c11e8815469081da70418908",
+      "canonicalExerciseID": "dumbbell.flat_bench_press",
+      "canonicalMediaKey": "dumbbell.flat_bench_press__composite",
+      "canonicalFileName": "dumbbell.flat_bench_press__composite.png",
+      "role": "composite",
+      "note": "Reserved as the separate flat-bench-press candidate."
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bench_dumbbell_incline_chest_press..png",
+      "sourceSHA256": "a6efb7c383570aeaf5ed45cff465678de61df22c0386fd617b70923f356807a6",
+      "canonicalExerciseID": "dumbbell.incline_bench_press",
+      "canonicalMediaKey": "dumbbell.incline_bench_press__composite",
+      "canonicalFileName": "dumbbell.incline_bench_press__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bench_dumbell_hip_thrust.png",
+      "sourceSHA256": "0a4fc63a69c71c6b8408a291aac29c56aa15e16b17939631eb9fc67e70cd369f",
+      "canonicalExerciseID": "dumbbell.hip_thrust",
+      "canonicalMediaKey": "dumbbell.hip_thrust__composite",
+      "canonicalFileName": "dumbbell.hip_thrust__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_pending_catalogue_entry",
+      "sourcePath": "workout_avatar/bench_step_up..png",
+      "sourceSHA256": "4e46aa8908ee3e6d2b5884b70dc71cd6f819e936ea9e8df8d2247fef5e77c443",
+      "canonicalExerciseID": "bodyweight.step_up",
+      "canonicalMediaKey": "bodyweight.step_up__composite",
+      "canonicalFileName": "bodyweight.step_up__composite.png",
+      "role": "composite",
+      "mediaUsage": "supplementary_setup_only",
+      "approvalReference": "HR-05 approval (2026-07-14)",
+      "note": "Not a complete start/end sequence; written instructions remain primary."
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_bird_dog..png",
+      "sourceSHA256": "be807595d962f896bdbc7dba4ee22787856e9b6c10ee2552463efa8f3d46e7c7",
+      "canonicalExerciseID": "bodyweight.bird_dog",
+      "canonicalMediaKey": "bodyweight.bird_dog__composite",
+      "canonicalFileName": "bodyweight.bird_dog__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_calf_raise..png",
+      "sourceSHA256": "3e9ef27155f3cf760c1787ca4d542db6e013673835d5f18852889e9516d3c627",
+      "canonicalExerciseID": "bodyweight.calf_raise",
+      "canonicalMediaKey": "bodyweight.calf_raise__composite",
+      "canonicalFileName": "bodyweight.calf_raise__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bodyweight_cat_cow..png",
+      "sourceSHA256": "24808432c7e464bd7ccbb06e0cb92fcdc7d1bbaca5b2ceab4b12c095df690a25",
+      "canonicalExerciseID": "mobility.cat_cow",
+      "canonicalMediaKey": "mobility.cat_cow__composite",
+      "canonicalFileName": "mobility.cat_cow__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_dead_bug..png",
+      "sourceSHA256": "633fae8e32969f48a27dc7cdcbc3919828322399146039d903d70b7a770e8b70",
+      "canonicalExerciseID": "bodyweight.dead_bug",
+      "canonicalMediaKey": "bodyweight.dead_bug__composite",
+      "canonicalFileName": "bodyweight.dead_bug__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_forward_lunge..png",
+      "sourceSHA256": "a6eed44988b49933a568365604af31135312e0ead9333439d9372c3c9542e1dc",
+      "canonicalExerciseID": "bodyweight.forward_lunge",
+      "canonicalMediaKey": "bodyweight.forward_lunge__composite",
+      "canonicalFileName": "bodyweight.forward_lunge__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_glute_bridge.png",
+      "sourceSHA256": "2547455a422c2d64744c01c762aa565e6631d62bc0b1da276a22bd26c634e946",
+      "canonicalExerciseID": "bodyweight.glute_bridge",
+      "canonicalMediaKey": "bodyweight.glute_bridge__composite",
+      "canonicalFileName": "bodyweight.glute_bridge__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_jumping_jack.png",
+      "sourceSHA256": "47c0a606022506462fb4a5f28d3cd3136db8b5fb1a7f31fa9550954d73d0a5f8",
+      "canonicalExerciseID": "bodyweight.jumping_jack",
+      "canonicalMediaKey": "bodyweight.jumping_jack__composite",
+      "canonicalFileName": "bodyweight.jumping_jack__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_mountain_climber.png",
+      "sourceSHA256": "45d43c9381740bdda1948e50a36e15ee417a69cd9b39395f29b73733e1ff868d",
+      "canonicalExerciseID": "bodyweight.mountain_climber",
+      "canonicalMediaKey": "bodyweight.mountain_climber__composite",
+      "canonicalFileName": "bodyweight.mountain_climber__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_push_up.png",
+      "sourceSHA256": "605acc438aa37f379c200f8b95986e742c34dafc21bfbaa82d105604b9201622",
+      "canonicalExerciseID": "bodyweight.push_up",
+      "canonicalMediaKey": "bodyweight.push_up__composite",
+      "canonicalFileName": "bodyweight.push_up__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_side_plank.png",
+      "sourceSHA256": "af711144750a2e2641dcab5115a557d49d2a82c429a198d61544e75a8c26a68c",
+      "canonicalExerciseID": "bodyweight.side_plank",
+      "canonicalMediaKey": "bodyweight.side_plank__composite",
+      "canonicalFileName": "bodyweight.side_plank__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/bodyweight_squat.png",
+      "sourceSHA256": "d08029198cf219fa07dd8c8f3c932da9e3d420e0b9bf0c39fb956c34e4df8e96",
+      "canonicalExerciseID": "bodyweight.squat",
+      "canonicalMediaKey": "bodyweight.squat__composite",
+      "canonicalFileName": "bodyweight.squat__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bodyweight_standing_side_bend.png",
+      "sourceSHA256": "3af051722e289b4886c61e5f59c6f8c66b775a2fd6edefa802db26ff4c21f5d8",
+      "canonicalExerciseID": "mobility.standing_side_bend",
+      "canonicalMediaKey": "mobility.standing_side_bend__composite",
+      "canonicalFileName": "mobility.standing_side_bend__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/bodyweight_yoga_dancer_pose.png",
+      "sourceSHA256": "f94d20c6b23cf2a0858d0fcedd502a56100354f93350d463ce0cf3aee7f6184b",
+      "canonicalExerciseID": "yoga.dancer_pose",
+      "canonicalMediaKey": "yoga.dancer_pose__composite",
+      "canonicalFileName": "yoga.dancer_pose__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/cable_standing_hip_extension_kickback.png",
+      "sourceSHA256": "532c8cb814fd07358daa2f62e21d811e7cf0a3649f89d48943f6ad7a09bafc26",
+      "canonicalExerciseID": "cable.standing_hip_extension",
+      "canonicalMediaKey": "cable.standing_hip_extension__composite",
+      "canonicalFileName": "cable.standing_hip_extension__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/cable_triceps_pushdown.png",
+      "sourceSHA256": "64ae15ba69ada9d07fdd3a422745e4f67a205c62a3244dab56d5a8ab7e1158df",
+      "canonicalExerciseID": "cable.triceps_pushdown",
+      "canonicalMediaKey": "cable.triceps_pushdown__composite",
+      "canonicalFileName": "cable.triceps_pushdown__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/dumbbell_bent_over_row.png",
+      "sourceSHA256": "1fc158bf3a943e5e95610bb7ac86547f794bda1394a5dcc938c15b97b3a1eb44",
+      "canonicalExerciseID": "dumbbell.bent_over_row",
+      "canonicalMediaKey": "dumbbell.bent_over_row__composite",
+      "canonicalFileName": "dumbbell.bent_over_row__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/dumbbell_biceps_curl.png",
+      "sourceSHA256": "ff54a2c48388363add9b736d75baab334e5f4fdff634b1b7c4110ae8301b9c25",
+      "canonicalExerciseID": "dumbbell.biceps_curl",
+      "canonicalMediaKey": "dumbbell.biceps_curl__composite",
+      "canonicalFileName": "dumbbell.biceps_curl__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_bulgarian_split_squat.png",
+      "sourceSHA256": "b915260efb8c516324024deac0209336224c75dcd8b580b070050ed1f5a79a1e",
+      "canonicalExerciseID": "dumbbell.bulgarian_split_squat",
+      "canonicalMediaKey": "dumbbell.bulgarian_split_squat__composite",
+      "canonicalFileName": "dumbbell.bulgarian_split_squat__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_forward_lunge.png",
+      "sourceSHA256": "9987c106a43814be772662b612df100e38052d381feaf8e3d12beaec343eb8a2",
+      "canonicalExerciseID": "dumbbell.forward_lunge",
+      "canonicalMediaKey": "dumbbell.forward_lunge__composite",
+      "canonicalFileName": "dumbbell.forward_lunge__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/dumbbell_goblet_squat.png",
+      "sourceSHA256": "abbea5a651fbf3ecf713128735097c15424f36c95f172c97f32ed0b17b6fef60",
+      "canonicalExerciseID": "dumbbell.goblet_squat",
+      "canonicalMediaKey": "dumbbell.goblet_squat__composite",
+      "canonicalFileName": "dumbbell.goblet_squat__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_hammer_curl.png",
+      "sourceSHA256": "6add15da8a1647f65079c14e486de5e88f862efb10e8223e30503cce19c4b61b",
+      "canonicalExerciseID": "dumbbell.hammer_curl",
+      "canonicalMediaKey": "dumbbell.hammer_curl__composite",
+      "canonicalFileName": "dumbbell.hammer_curl__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_lateral_raise.png",
+      "sourceSHA256": "c25706d6a4a7500aa879b0c694113c66f3e505491d657101d6a68b7f9296090d",
+      "canonicalExerciseID": "dumbbell.lateral_raise",
+      "canonicalMediaKey": "dumbbell.lateral_raise__composite",
+      "canonicalFileName": "dumbbell.lateral_raise__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/dumbbell_overhead_press.png",
+      "sourceSHA256": "840242b45d20a411354b1f274ff88703c902252455ce3c810be6f87120c50a03",
+      "canonicalExerciseID": "dumbbell.overhead_press",
+      "canonicalMediaKey": "dumbbell.overhead_press__composite",
+      "canonicalFileName": "dumbbell.overhead_press__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_romanian_deadlift_hip_hinge.png",
+      "sourceSHA256": "b86a036cd8abfad47da43c4f7dcc3141af73ce644f4655bf8dcdf0d90a081590",
+      "canonicalExerciseID": "dumbbell.romanian_deadlift",
+      "canonicalMediaKey": "dumbbell.romanian_deadlift__composite",
+      "canonicalFileName": "dumbbell.romanian_deadlift__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/dumbbell_thruster.png",
+      "sourceSHA256": "96ccaf36a561cdb4e7103aa74503fe51094ed838ff65a34ac61345aa73b7b4f0",
+      "canonicalExerciseID": "dumbbell.thruster",
+      "canonicalMediaKey": "dumbbell.thruster__composite",
+      "canonicalFileName": "dumbbell.thruster__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/machine_lat_pulldown.png",
+      "sourceSHA256": "89e57a02861db6501a75b2fbe5fc0417b56e03d0da28e950595e233bc90e5f38",
+      "canonicalExerciseID": "machine.lat_pulldown",
+      "canonicalMediaKey": "machine.lat_pulldown__composite",
+      "canonicalFileName": "machine.lat_pulldown__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/machine_leg_extension.png",
+      "sourceSHA256": "07cca32ee5a669762386b0cd423cf3c2e47d40d2c68de59bb06f14c3572f9c4f",
+      "canonicalExerciseID": "machine.leg_extension",
+      "canonicalMediaKey": "machine.leg_extension__composite",
+      "canonicalFileName": "machine.leg_extension__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/machine_leg_press.png",
+      "sourceSHA256": "ae1b9294b9e05830fe0545fc5664da8bc5540223cd8d6e77739c457d2fcd9f41",
+      "canonicalExerciseID": "machine.leg_press",
+      "canonicalMediaKey": "machine.leg_press__composite",
+      "canonicalFileName": "machine.leg_press__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "approved_pending_catalogue_entry",
+      "sourcePath": "workout_avatar/machine_prone_leg_curl.png",
+      "sourceSHA256": "97ffba8e3c3510e5bfd7697cb24273493c6984409030248da5fd2ff860a62a7b",
+      "canonicalExerciseID": "machine.lying_leg_curl",
+      "canonicalMediaKey": "machine.lying_leg_curl__composite",
+      "canonicalFileName": "machine.lying_leg_curl__composite.png",
+      "role": "composite",
+      "approvedAliases": ["prone leg curl"],
+      "approvalReference": "HR-04 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/machine_seated_calf_raise.png",
+      "sourceSHA256": "7130549e20a1824f8289d3e0e4ddbadb8efa3f44d9b33f00c66245169167c1b8",
+      "canonicalExerciseID": "machine.seated_calf_raise",
+      "canonicalMediaKey": "machine.seated_calf_raise__composite",
+      "canonicalFileName": "machine.seated_calf_raise__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "approved_pending_catalogue_entry",
+      "sourcePath": "workout_avatar/machine_seated_row.png",
+      "sourceSHA256": "50ddf1751ba7a41056c60dafb5963fb9fc13b8573b3b2e405c512d97e4f1f050",
+      "canonicalExerciseID": "machine.seated_row",
+      "canonicalMediaKey": "machine.seated_row__composite",
+      "canonicalFileName": "machine.seated_row__composite.png",
+      "role": "composite",
+      "approvalReference": "HR-04 approval (2026-07-14)",
+      "note": "Keep the explicit rowing-machine subtype in future equipment taxonomy."
+    },
+    {
+      "status": "approved_for_import",
+      "sourcePath": "workout_avatar/resistance_band_lateral_squat.png",
+      "sourceSHA256": "aaccf3fb1bb1f2a020fb85c254c0b2af99fda88131707184a52163d1d503ef4a",
+      "canonicalExerciseID": "band.lateral_squat",
+      "canonicalMediaKey": "band.lateral_squat__composite",
+      "canonicalFileName": "band.lateral_squat__composite.png",
+      "role": "composite",
+      "approvalReference": "T07 initial 20 approval (2026-07-14)"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/resistance_band_standing_hip_extension.png",
+      "sourceSHA256": "c15651f70ebd104f1fd8c523fc2f23cd48b6aeb403fec3e42734f8db72466df3",
+      "canonicalExerciseID": "band.standing_hip_extension",
+      "canonicalMediaKey": "band.standing_hip_extension__composite",
+      "canonicalFileName": "band.standing_hip_extension__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/resistance_band_terminal_knee_extension_tke.png",
+      "sourceSHA256": "c583b744c43f6d903c1b1d9b3a1cf0440a9019dc8cbf4d4c613a472c6efc1b0b",
+      "canonicalExerciseID": "band.terminal_knee_extension",
+      "canonicalMediaKey": "band.terminal_knee_extension__composite",
+      "canonicalFileName": "band.terminal_knee_extension__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/stability_ball_glute_bridge.png",
+      "sourceSHA256": "b6c24815a419dbbf0f0a32019a8a77ebe0ad2bd7958c2b31149a84400fc2bcf4",
+      "canonicalExerciseID": "stability_ball.glute_bridge",
+      "canonicalMediaKey": "stability_ball.glute_bridge__composite",
+      "canonicalFileName": "stability_ball.glute_bridge__composite.png",
+      "role": "composite"
+    },
+    {
+      "status": "unreviewed",
+      "sourcePath": "workout_avatar/stability_ball_hamstring_curl.png",
+      "sourceSHA256": "459fe6e42733bd97da4f29722e34f11ad54eefc624377efaa4cc906ceb8ff01d",
+      "canonicalExerciseID": "stability_ball.hamstring_curl",
+      "canonicalMediaKey": "stability_ball.hamstring_curl__composite",
+      "canonicalFileName": "stability_ball.hamstring_curl__composite.png",
+      "role": "composite"
+    }
+  ]
+}

@@ -8,6 +8,8 @@ struct NellWorkoutStartView: View {
     @Query(sort: \WorkoutPlan.updatedAt, order: .reverse)
     private var plans: [WorkoutPlan]
 
+    @State private var showingPlanManager = false
+
     var body: some View {
         NellScreen {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -63,8 +65,10 @@ struct NellWorkoutStartView: View {
             if activePlans.isEmpty {
                 NellEmptyState(
                     title: "No workout plans",
-                    message: "Create a plan manually or ask the Coach to prepare an editable draft.",
-                    systemImage: "list.clipboard"
+                    message: "Create a plan manually or ask Nell to prepare an editable draft.",
+                    systemImage: "list.clipboard",
+                    actionTitle: "Open plan manager",
+                    action: { showingPlanManager = true }
                 )
             } else {
                 NellCard(padding: 0) {
@@ -141,6 +145,9 @@ struct NellWorkoutStartView: View {
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingPlanManager) {
+            NavigationStack { WorkoutPlansView() }
+        }
     }
 
     private var resumable: [ActiveWorkoutSession] {

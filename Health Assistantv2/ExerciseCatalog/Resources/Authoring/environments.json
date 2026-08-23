@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "environments": [
+    {
+      "id": "home",
+      "displayName": "Home",
+      "defaultCapabilities": ["floor_space", "wall_access"],
+      "rankingTags": ["home"],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "gym",
+      "displayName": "Gym",
+      "defaultCapabilities": ["floor_space", "wall_access", "anchor_point", "machine_access", "jumping_allowed"],
+      "rankingTags": ["gym"],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "hotel",
+      "displayName": "Hotel",
+      "defaultCapabilities": ["floor_space", "wall_access", "quiet_space"],
+      "rankingTags": ["hotel"],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "outdoors",
+      "displayName": "Outdoors",
+      "defaultCapabilities": ["floor_space", "jumping_allowed"],
+      "rankingTags": ["outdoors"],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "sport_venue",
+      "displayName": "Sport Venue",
+      "defaultCapabilities": ["floor_space", "wall_access", "anchor_point", "jumping_allowed"],
+      "rankingTags": ["sport_venue"],
+      "lifecycle": {"status": "active"}
+    },
+    {
+      "id": "custom",
+      "displayName": "Custom",
+      "defaultCapabilities": [],
+      "rankingTags": ["custom"],
+      "lifecycle": {"status": "active"}
+    }
+  ]
+}

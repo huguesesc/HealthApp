@@ -75,7 +75,7 @@ struct DashboardView: View {
 
     private var assistantCard: some View {
         NavigationLink {
-            ChatView()
+            ChatView(sharedEngine: .constant(nil))
         } label: {
             HStack(spacing: 14) {
                 Image(systemName: "leaf.circle.fill")

@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "policy": "Every historical or fixture exercise string discovered in the repository gets an explicit expectation here so normalization or catalogue changes surface broken compatibility immediately. canonical = must resolve to exactly one active catalogue entry; free-form = must stay unresolved; ambiguous/deprecated are reserved for future states and fail closed while empty.",
+  "entries": [
+    {
+      "raw": "Goblet squat",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.goblet_squat",
+      "matchKind": "displayName",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift displayName", "ActiveWorkoutModeTests.swift fixture", "StructuredWorkoutPlanTests.swift fixture", "ExercisePersistenceMigrationTests.swift fixture"],
+      "reason": "registry display name is an exact synonym of the catalogue entry"
+    },
+    {
+      "raw": "goblet_squat",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.goblet_squat",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift movementID/alias", "NellNavigationAndWorkoutMotionTests.swift"],
+      "reason": "legacy motion identifier approved as a visible alias during T07"
+    },
+    {
+      "raw": "Air squat",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "bodyweight.squat",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias", "LegacyExerciseResolverTests.swift"],
+      "reason": "common exact synonym of the bodyweight squat; unique across the catalogue"
+    },
+    {
+      "raw": "Bodyweight squat",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "bodyweight.squat",
+      "matchKind": "displayName",
+      "userVisibleAlias": false,
+      "sources": ["AdaptiveCoachAssistantToolTests.swift fixture"],
+      "reason": "catalogue display name"
+    },
+    {
+      "raw": "Bent-over row",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.bent_over_row",
+      "matchKind": "displayName",
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift displayName", "NellNavigationAndWorkoutMotionTests.swift"],
+      "reason": "normalization removes hyphens before comparison"
+    },
+    {
+      "raw": "bent over row",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.bent_over_row",
+      "matchKind": "displayName",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "spaced variant of the display name"
+    },
+    {
+      "raw": "Dumbbell row",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.bent_over_row",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "equipment-qualified synonym unique while no seated row entry exists"
+    },
+    {
+      "raw": "Overhead press",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.overhead_press",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift displayName/alias", "WorkoutMotionView.swift preview"],
+      "reason": "unique overhead press claim while only the dumbbell entry exists"
+    },
+    {
+      "raw": "Shoulder press",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.overhead_press",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "gym synonym; HR-09 records the confirmation question"
+    },
+    {
+      "raw": "overhead_press",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "dumbbell.overhead_press",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift movementID", "NellNavigationAndWorkoutMotionTests.swift"],
+      "reason": "legacy motion identifier approved as a visible alias during T07"
+    },
+    {
+      "raw": "Forward lunge",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "bodyweight.forward_lunge",
+      "matchKind": "displayName",
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias", "LegacyExerciseResolverTests.swift"],
+      "reason": "catalogue display name"
+    },
+    {
+      "raw": "RDL",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "barbell.romanian_deadlift",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias", "mission F messy-input case"],
+      "reason": "universal abbreviation; a future dumbbell RDL entry would collide loudly at validation"
+    },
+    {
+      "raw": "rdl!",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "barbell.romanian_deadlift",
+      "matchKind": "alias",
+      "userVisibleAlias": false,
+      "sources": ["GeneratedWorkoutValidatorTests messy-case"],
+      "reason": "punctuation-stripped RDL proves bounded normalization"
+    },
+    {
+      "raw": "Romanian deadlift",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "barbell.romanian_deadlift",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias", "mission F case"],
+      "reason": "bare movement synonym; equipment prefix stays optional"
+    },
+    {
+      "raw": "Barbell RDL",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "barbell.romanian_deadlift",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["GeneratedWorkoutValidatorTests messy-case"],
+      "reason": "equipment-qualified abbreviation"
+    },
+    {
+      "raw": "Deadlift",
+      "expectedResolution": "canonical",
+      "expectedExerciseID": "barbell.deadlift",
+      "matchKind": "alias",
+      "userVisibleAlias": true,
+      "sources": ["WorkoutMotionRegistry.swift alias", "legacy name audit"],
+      "reason": "bare deadlift conventionally names the conventional barbell lift"
+    },
+    {
+      "raw": "squat",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias (vector fallback only)", "T15 policy"],
+      "reason": "three legitimate variants exist; silent narrowing forbidden"
+    },
+    {
+      "raw": "row",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias (vector fallback only)"],
+      "reason": "row/pulldown family ambiguity"
+    },
+    {
+      "raw": "lunge",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias", "LegacyExerciseResolverTests.swift"],
+      "reason": "forward/reverse/lateral ambiguity"
+    },
+    {
+      "raw": "reverse lunge",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "distinct movement needing its own approved entry"
+    },
+    {
+      "raw": "plank",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "front plank differs from the catalogue Side plank"
+    },
+    {
+      "raw": "split squat",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift displayName", "MovementFeedbackAndMarkdownTests.swift"],
+      "reason": "no approved split-squat entry; pack candidate unreviewed"
+    },
+    {
+      "raw": "Renegade row",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias", "NellNavigationAndWorkoutMotionTests.swift"],
+      "reason": "no renegade-row entry exists or is proposed with approval"
+    },
+    {
+      "raw": "hip hinge",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift displayName/alias"],
+      "reason": "pattern-level term, not a product-defined exercise"
+    },
+    {
+      "raw": "good morning",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "distinct loaded hinge without an entry"
+    },
+    {
+      "raw": "side stretch",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift displayName/alias"],
+      "reason": "mobility.standing_side_bend content approval outstanding (HR-03)"
+    },
+    {
+      "raw": "standing side bend",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "target entry blocked pending content approval"
+    },
+    {
+      "raw": "tree pose",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "no approved yoga entry; dancer-pose image unreviewed"
+    },
+    {
+      "raw": "single leg balance",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "preview fixtures are deliberately not production entries"
+    },
+    {
+      "raw": "military press",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "strict-stance variant is a distinct coaching claim; HR-09 tracks the decision"
+    },
+    {
+      "raw": "dumbbell press",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["WorkoutMotionRegistry.swift alias"],
+      "reason": "commonly means a bench press; never auto-map to an overhead movement"
+    },
+    {
+      "raw": "TKE",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["mission F messy case", "resistance band pack filename"],
+      "reason": "band.terminal_knee_extension has no approved catalogue entry yet"
+    },
+    {
+      "raw": "terminal knee extension",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["pack filename semantics"],
+      "reason": "same blocker as TKE"
+    },
+    {
+      "raw": "dumbell biceps curl",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["mission F messy case"],
+      "reason": "hidden legacyNames mechanism ships unseeded; flips to canonical the day a real historical string justifies it"
+    },
+    {
+      "raw": "Coach's custom reach",
+      "expectedResolution": "free-form",
+      "expectedExerciseID": null,
+      "matchKind": null,
+      "userVisibleAlias": false,
+      "sources": ["ExercisePersistenceMigrationTests.swift fixture store"],
+      "reason": "custom exercises remain custom forever; resolution must never claim them"
+    }
+  ]
+}

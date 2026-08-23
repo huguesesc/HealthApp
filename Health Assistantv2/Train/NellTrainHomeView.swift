@@ -7,6 +7,8 @@ struct NellTrainHomeView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutHistory: [WorkoutSession]
     @Query(sort: \MovementFeedbackEntry.createdAt, order: .reverse) private var feedback: [MovementFeedbackEntry]
 
+    @State private var showingPlanManager = false
+
     var body: some View {
         NellScreen {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -26,8 +28,10 @@ struct NellTrainHomeView: View {
             } else {
                 NellEmptyState(
                     title: "No active workout plan",
-                    message: "Create one manually or ask the Coach to draft a plan for review.",
-                    systemImage: "list.clipboard"
+                    message: "Create one manually or ask Nell to draft a plan for review.",
+                    systemImage: "list.clipboard",
+                    actionTitle: "Open plan manager",
+                    action: { showingPlanManager = true }
                 )
             }
 
@@ -37,11 +41,11 @@ struct NellTrainHomeView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink { SettingsView() } label: {
-                    Image(systemName: "person.crop.circle")
-                }
-                .accessibilityLabel("Profile and settings")
+                NellSettingsLogoButton()
             }
+        }
+        .sheet(isPresented: $showingPlanManager) {
+            NavigationStack { WorkoutPlansView() }
         }
     }
 
@@ -211,6 +215,13 @@ struct NellTrainHomeView: View {
             NellSectionHeader(title: "Training Tools")
             NellCard(padding: 0) {
                 VStack(spacing: 0) {
+                    toolLink(
+                        "Exercise catalogue",
+                        detail: "Search canonical movements, equipment and written guidance.",
+                        symbol: "books.vertical.fill",
+                        tint: NellPalette.primary
+                    ) { ExerciseCatalogView() }
+                    Divider().padding(.leading, 56)
                     toolLink(
                         "Start or continue workout",
                         detail: "Choose a plan or resume a saved session.",
