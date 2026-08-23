@@ -240,6 +240,7 @@ struct ActiveWorkoutView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityLabel("More workout options")
             }
         }
     }
@@ -254,6 +255,8 @@ struct ActiveWorkoutView: View {
                     Text(activeClockLabel(session.elapsedSeconds(at: now)))
                         .font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Elapsed \(activeClockLabel(session.elapsedSeconds(at: now))), \(session.status.displayName.lowercased())")
                 Spacer()
                 Text(stepProgressText)
                     .font(.subheadline.weight(.medium))
@@ -262,6 +265,8 @@ struct ActiveWorkoutView: View {
 
             ProgressView(value: session.progressFraction)
                 .tint(Theme.evergreen)
+                .accessibilityLabel("Workout progress")
+                .accessibilityValue("\(Int(session.progressFraction * 100)) percent, \(stepProgressText)")
 
             HStack(spacing: 12) {
                 if let location = session.locationNameSnapshot {
