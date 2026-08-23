@@ -19,7 +19,21 @@ for every push on the exercise-catalogue branch.
 
 | Date | Commit | Result | Notes |
 |---|---|---|---|
-| 2026-08-23 | workflow added in `ci: add simulator build and test verification` | pending first real run | first run triggered by the push of this commit; results appended below |
+| 2026-08-23 | `f372e81` (run 32605169576) | ubuntu FAILED, macOS skipped | one test assumed the sibling source pack exists; 51 environmental errors |
+| 2026-08-23 | `eedf398` (run 32605289584) | ubuntu GREEN, macOS build FAILED | first real macOS compile: `demote` static/instance mismatch at 3 call sites in GeneratedWorkoutValidator.swift |
+| 2026-08-23 | `0156553` (run 32605735972) | **ALL GREEN** | **Xcode 26.3 on macos-15; clean Debug build OK; unit suite "151 tests in 24 suites passed"; simulator iPhone discovered dynamically** |
+| 2026-08-23 | `2a8b704` (run 32605851893) | macOS test-step failed | Swift Testing API misuse caught by compiler: runtime String cannot fill `Comment?` in `#expect` |
+| 2026-08-23 | `bc3e801`→`c47445e` | cancelled → superseded | concurrency group working |
+| 2026-08-23 | `40bb173` (debug gallery) | macOS build FAILED | gallery referenced a file-private type; promoted to internal (`e2a47b0`) |
+
+**Defects CI caught in Windows-written code: 3** (static-method call, Swift
+Testing Comment conversion, file-private type access). Each was fixed within
+one push cycle — this is exactly the Mac-bottleneck elimination the workflow
+was created for.
+
+Runner facts observed: macos-15 image exposes Xcode 16.4 and 26.x; newest is
+selected automatically; iOS Simulator runtimes include 18.x with multiple
+iPhone devices.
 
 ## Known limitations
 

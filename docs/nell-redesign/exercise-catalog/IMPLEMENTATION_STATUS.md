@@ -52,18 +52,22 @@ python -m unittest scripts.tests.test_exercise_catalog
 
 ### Run and passed on Windows (this phase's final evidence)
 
-- `python -m unittest scripts.tests.test_exercise_catalog` → **47/47 OK**
-  (was 43 at session start; +AppleDouble tolerance, +legacyNames/collision,
-  +dumbell-canonical rule, +inventory disposition test)
+- `python -m unittest scripts.tests.test_exercise_catalog` → **53/53 OK**
+- `python -m unittest scripts.tests.test_nell_integrity` → **5/5 OK**
+- `python scripts/nell_integrity.py` → real repo errors=0, warnings=3
+  (known-stale superseded plan doc references only)
 - Strict validate/report with real source pack → `errors=0 warnings=0`
+- Scale: 2,000 exercises / 12,000 name claims validate in 0.075 s
 - `py_compile` clean; `git diff --check` clean on every commit
 
-### Written this phase, awaiting Xcode
+### Proven on CI macOS runners (not merely written)
 
-- `LegacyNameCompatibilityTests` (5 tests, pins audit decisions vs real manifest)
-- `EquipmentLocationCompatibilityTests` (11 tests, compatibility matrix vs real taxonomies)
-- `GeneratedWorkoutValidatorTests` rewritten for demotion semantics + messy-input cases
-- Full list and run order: see `MAC_XCODE_VERIFICATION_QUEUE.md`
+All Swift unit suites — including every Windows-written file and test from
+both phases — compile and pass on GitHub's macOS runner on each push:
+**151 tests / 24 suites green at `0156553`**, expanded since. Evidence and
+per-run history: `../IOS_CI_STATUS.md`. What remains Mac-only is
+interactive/runtime/visual/device work, enumerated in
+`../MAC_XCODE_VERIFICATION_QUEUE.md`.
 
 ## Resolution architecture (shipped)
 
@@ -93,7 +97,7 @@ re-run because no new import was authorized.
 
 ## Outstanding for macOS/Xcode
 
-Everything in `MAC_XCODE_VERIFICATION_QUEUE.md`: compile gate for
-Windows-written Swift, full unit target, active-workout media screen checks,
-demotion end-to-end chat flow, Release build, plus the standing HR-06 halo
-review, T26 accessibility matrix, and T28 device QA.
+Interactive-only gates (compile + unit tests are CI-proven): simulator
+interaction checklist, HR-06 halo review, T26 accessibility matrix, T28
+device QA — all enumerated with success conditions in
+`../MAC_XCODE_VERIFICATION_QUEUE.md`.
