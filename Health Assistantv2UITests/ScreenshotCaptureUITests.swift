@@ -23,7 +23,7 @@ final class ScreenshotCaptureUITests: XCTestCase {
         let screenshot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
-        attachment.lifecycle = .keepAlways
+        attachment.lifetime = .keepAlways
         add(attachment)
     }
 

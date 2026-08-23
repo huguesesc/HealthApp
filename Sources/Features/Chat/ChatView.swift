@@ -795,6 +795,6 @@ private func planDistanceLabel(_ meters: Double) -> String {
 }
 
 #Preview {
-    NavigationStack { ChatView() }
+    NavigationStack { ChatView(sharedEngine: .constant(nil)) }
         .modelContainer(PersistenceController.preview.container)
 }
