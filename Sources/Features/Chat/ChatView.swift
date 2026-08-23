@@ -5,8 +5,17 @@ import SwiftUI
 /// confirmation cards; future workout-plan requests render editable saved-plan drafts.
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var engine: ChatEngine?
+    /// Optional externally-owned engine. The shell injects one so the
+    /// conversation survives tab switches instead of resetting every time the
+    /// Coach destination is rebuilt.
+    @Binding var sharedEngine: ChatEngine?
     @State private var draft = ""
+
+    init(sharedEngine: Binding<ChatEngine?>) {
+        _sharedEngine = sharedEngine
+    }
+
+    private var engine: ChatEngine? { sharedEngine }
 
     var body: some View {
         Group {
@@ -19,8 +28,8 @@ struct ChatView: View {
         .navigationTitle("Assistant")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            if engine == nil {
-                engine = ChatEngine(modelContext: modelContext)
+            if sharedEngine == nil {
+                sharedEngine = ChatEngine(modelContext: modelContext)
             }
         }
     }
@@ -30,19 +39,16 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     if engine.items.isEmpty {
-                        ChatEmptyState(hasKey: engine.hasKey)
+                        ChatEmptyState(hasKey: engine.hasKey) { suggestion in
+                            engine.send(suggestion)
+                        }
                     }
                     ForEach(engine.items) { item in
                         itemView(item, engine: engine)
                     }
                     if engine.isThinking {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("Thinking…")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 4)
+                        NellThinkingIndicator(label: "Thinking…")
+                            .padding(.horizontal, 4)
                     }
                     if let error = engine.errorMessage {
                         Label(error, systemImage: "exclamationmark.triangle")
@@ -56,7 +62,7 @@ struct ChatView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(NellPalette.background)
             .onChange(of: engine.items.count) {
                 withAnimation {
                     proxy.scrollTo("bottom", anchor: .bottom)
@@ -87,9 +93,13 @@ struct ChatView: View {
                     .padding(.vertical, 10)
                     .padding(.horizontal, 14)
                     .background(
-                        Color(.secondarySystemGroupedBackground),
+                        NellPalette.surface,
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                     )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(NellPalette.border, lineWidth: Theme.Border.standard)
+                    }
                 Spacer(minLength: 48)
             }
         case .proposal(let proposal):
@@ -104,15 +114,21 @@ struct ChatView: View {
                 .padding(.vertical, 9)
                 .padding(.horizontal, 14)
                 .background(
-                    Color(.secondarySystemGroupedBackground),
+                    NellPalette.elevatedSurface,
                     in: RoundedRectangle(cornerRadius: 20, style: .continuous)
                 )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(NellPalette.border, lineWidth: Theme.Border.standard)
+                }
                 .onSubmit(sendDraft)
             Button(action: sendDraft) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 30))
                     .foregroundStyle(
-                        draft.trimmed.isEmpty || engine.isThinking ? Color.secondary : Theme.evergreen
+                        draft.trimmed.isEmpty || engine.isThinking
+                            ? Color.secondary
+                            : NellPalette.primary
                     )
             }
             .disabled(draft.trimmed.isEmpty || engine.isThinking)
@@ -120,7 +136,7 @@ struct ChatView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
+        .background(NellPalette.surface)
     }
 
     private func sendDraft() {
@@ -135,22 +151,38 @@ struct ChatView: View {
 
 private struct ChatEmptyState: View {
     let hasKey: Bool
+    let onSelectSuggestion: (String) -> Void
+
+    private let suggestions = [
+        "I had two eggs and toast",
+        "Did push day — bench 3×8 at 60 kg",
+        "Build me a 35-minute workout for Home",
+        "How has my week been?",
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 40))
-                .foregroundStyle(Theme.evergreen)
+                .foregroundStyle(NellPalette.primary)
             Text("Tell me what you need")
                 .font(.title3.weight(.semibold))
             Text("Try one of these:")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
-                suggestion("“I had two eggs and toast”")
-                suggestion("“Did push day — bench 3×8 at 60 kg”")
-                suggestion("“Build me a 35-minute workout for Home”")
-                suggestion("“How has my week been?”")
+                ForEach(suggestions, id: \.self) { suggestion in
+                    Button {
+                        onSelectSuggestion(suggestion)
+                    } label: {
+                        Label(suggestion, systemImage: "arrow.turn.up.right")
+                            .font(.callout)
+                            .frame(minHeight: NellLayout.minimumTouchTarget, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(NellPalette.moss)
+                    .accessibilityHint("Sends this to Nell")
+                }
             }
             if !hasKey {
                 NavigationLink {
@@ -165,12 +197,6 @@ private struct ChatEmptyState: View {
         }
         .card()
         .padding(.top, 12)
-    }
-
-    private func suggestion(_ text: String) -> some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(Theme.moss)
     }
 }
 

@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct NellCoachScreen: View {
+    /// Externally-owned engine so the conversation survives tab switches.
+    @Binding var sharedEngine: ChatEngine?
+
     var body: some View {
         VStack(spacing: 0) {
             coachHeader
             Divider()
-            ChatView()
+            ChatView(sharedEngine: $sharedEngine)
                 .padding(.bottom, Theme.Size.tabBarHeight + Theme.Spacing.sm)
                 .toolbar(.hidden, for: .navigationBar)
         }
@@ -44,6 +47,6 @@ struct NellCoachScreen: View {
 }
 
 #Preview {
-    NavigationStack { NellCoachScreen() }
+    NavigationStack { NellCoachScreen(sharedEngine: .constant(nil)) }
         .modelContainer(PersistenceController.preview.container)
 }

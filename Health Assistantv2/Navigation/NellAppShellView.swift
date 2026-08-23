@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct NellAppShellView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selection: NellAppSection = .today
     @State private var presentedSheet: NellAppSheet?
+    /// Owned here so the conversation persists across tab switches for the
+    /// whole session instead of resetting each time the Coach tab rebuilds.
+    @State private var coachEngine: ChatEngine?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -39,7 +43,9 @@ struct NellAppShellView: View {
         case .log:
             NavigationStack { NellTodayView() }
         case .coach:
-            NavigationStack { NellCoachScreen() }
+            NavigationStack {
+                NellCoachScreen(sharedEngine: $coachEngine)
+            }
         case .nutrition:
             NavigationStack { NellNutritionView() }
         case .train:
