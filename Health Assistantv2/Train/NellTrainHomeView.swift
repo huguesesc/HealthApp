@@ -7,6 +7,8 @@ struct NellTrainHomeView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutHistory: [WorkoutSession]
     @Query(sort: \MovementFeedbackEntry.createdAt, order: .reverse) private var feedback: [MovementFeedbackEntry]
 
+    @State private var showingPlanManager = false
+
     var body: some View {
         NellScreen {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -27,7 +29,9 @@ struct NellTrainHomeView: View {
                 NellEmptyState(
                     title: "No active workout plan",
                     message: "Create one manually or ask Nell to draft a plan for review.",
-                    systemImage: "list.clipboard"
+                    systemImage: "list.clipboard",
+                    actionTitle: "Open plan manager",
+                    action: { showingPlanManager = true }
                 )
             }
 
@@ -39,6 +43,9 @@ struct NellTrainHomeView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 NellSettingsLogoButton()
             }
+        }
+        .sheet(isPresented: $showingPlanManager) {
+            NavigationStack { WorkoutPlansView() }
         }
     }
 

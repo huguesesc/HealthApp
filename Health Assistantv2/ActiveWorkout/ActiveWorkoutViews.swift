@@ -372,13 +372,16 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishedCard(now: Date) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let isDurable = session.status == .completed && session.workoutLogCreated
+        return VStack(alignment: .leading, spacing: 12) {
             Label(
-                session.status == .completed ? "Workout completed" : "Workout ended early",
-                systemImage: session.status == .completed ? "checkmark.seal.fill" : "stop.circle"
+                session.status == .completed
+                    ? (isDurable ? "Workout completed" : "Finishing workout…")
+                    : "Workout ended early",
+                systemImage: isDurable ? "checkmark.seal.fill" : "stop.circle"
             )
             .font(.title3.weight(.semibold))
-            .foregroundStyle(session.status == .completed ? Theme.moss : .secondary)
+            .foregroundStyle(isDurable ? Theme.moss : .secondary)
 
             Text("Duration: \(activeDurationLabel(session.elapsedSeconds(at: session.completedAt ?? now)))")
             if let effort = session.actualEffort {

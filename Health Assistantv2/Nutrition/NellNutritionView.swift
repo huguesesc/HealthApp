@@ -21,6 +21,9 @@ struct NellNutritionView: View {
                 }
                 .accessibilityLabel("Log a meal")
             }
+            ToolbarItem(placement: .topBarLeading) {
+                NellSettingsLogoButton()
+            }
         }
         .sheet(isPresented: $showingMealEntry) {
             NavigationStack { MealEntryView() }
