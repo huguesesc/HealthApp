@@ -153,10 +153,20 @@ struct NellTodayView: View {
                         Text(streakTitle(streak))
                             .font(Theme.FontToken.cardTitle)
                             .foregroundStyle(NellPalette.textPrimary)
-                        Text(todayRollup?.summaryText ?? fallbackInsight)
-                            .font(Theme.FontToken.secondaryBody)
-                            .foregroundStyle(NellPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let summary = todayRollup?.summaryText {
+                            Text(summary)
+                                .font(Theme.FontToken.secondaryBody)
+                                .foregroundStyle(NellPalette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("Generated from today's logs by the assistant; values come from your records.")
+                                .font(Theme.FontToken.caption)
+                                .foregroundStyle(NellPalette.textTertiary)
+                        } else {
+                            Text(fallbackInsight)
+                                .font(Theme.FontToken.secondaryBody)
+                                .foregroundStyle(NellPalette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     Spacer(minLength: 0)
                 }
