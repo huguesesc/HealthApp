@@ -127,3 +127,78 @@ jobs:
             /tmp/nell-ci.xcresult
           if-no-files-found: ignore
           retention-days: 7
+
+  ios-screenshots:
+    name: Simulator screenshots (macOS)
+    runs-on: macos-15
+    needs: ios-simulator
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          CANDIDATE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selecting ${CANDIDATE}"
+          sudo xcode-select -s "${CANDIDATE}"
+          xcodebuild -version
+
+      - name: Discover an available iPhone simulator
+        id: simulator
+        run: |
+          set -euo pipefail
+          LINE=$(xcrun simctl list devices available | grep "iPhone" | head -1 || true)
+          if [ -z "${LINE}" ]; then
+            echo "::error::No available iPhone simulator found"
+            exit 1
+          fi
+          UDID=$(echo "${LINE}" | grep -Eo "[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}")
+          echo "udid=${UDID}" >> "$GITHUB_OUTPUT"
+
+      - name: Capture light-mode screenshots
+        run: |
+          set -o pipefail
+          xcrun simctl ui "${{ steps.simulator.outputs.udid }}" appearance light
+          xcodebuild test \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -only-testing:"Health Assistantv2UITests/ScreenshotCaptureUITests" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath /tmp/nell-shots-light \
+            -resultBundlePath /tmp/nell-shots-light.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture dark-mode screenshots
+        run: |
+          set -o pipefail
+          xcrun simctl ui "${{ steps.simulator.outputs.udid }}" appearance dark
+          xcodebuild test \
+            -project "Health Assistantv2.xcodeproj" \
+            -scheme "Health Assistantv2" \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -only-testing:"Health Assistantv2UITests/ScreenshotCaptureUITests" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath /tmp/nell-shots-dark \
+            -resultBundlePath /tmp/nell-shots-dark.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export attachments from result bundles
+        if: always()
+        run: |
+          mkdir -p screenshots/light screenshots/dark
+          xcrun xcresulttool export attachments \
+            --path /tmp/nell-shots-light.xcresult \
+            --output-path screenshots/light || true
+          xcrun xcresulttool export attachments \
+            --path /tmp/nell-shots-dark.xcresult \
+            --output-path screenshots/dark || true
+
+      - name: Upload screenshot artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nell-screenshots
+          path: screenshots
+          if-no-files-found: warn
+          retention-days: 14

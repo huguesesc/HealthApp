@@ -134,6 +134,7 @@ private struct NellTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(section.rawValue)
+        .accessibilityIdentifier("shell.tab.\(section.rawValue.lowercased())")
     }
 
     private var coachTab: some View {
@@ -176,6 +177,7 @@ private struct NellTabBar: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Nell")
         .accessibilityHint("Open your Nell conversation")
+        .accessibilityIdentifier("shell.tab.nell")
     }
 
     private func select(_ section: NellAppSection) {

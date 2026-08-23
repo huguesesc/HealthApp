@@ -191,6 +191,11 @@ final class ChatEngine {
     ) {
         self.modelContext = modelContext
         self.exerciseCatalogRepository = exerciseCatalogRepository
+        #if DEBUG
+        if NellScreenshotDemo.isActive {
+            items = NellScreenshotDemo.demoChatItems()
+        }
+        #endif
     }
 
     private var repo: HealthDataRepository {
