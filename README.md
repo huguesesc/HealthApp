@@ -19,8 +19,11 @@ offline on the stub. The user's Claude key is entered once in Settings
 
 ## Building
 
-> ⚠️ Requires **macOS + Xcode**. The Swift toolchain, SwiftLint, and SwiftFormat do
-> not run on Windows. Files can be edited anywhere; they only build on a Mac.
+> ⚠️ Requires **macOS + Xcode** for interactive development. GitHub Actions also
+> builds the app and runs the unit suite on every push to
+> `feature/nell-exercise-catalog-location-context` — see
+> `.github/workflows/nell-ios-verification.yml` and `docs/nell-redesign/IOS_CI_STATUS.md`.
+> Files can be edited on any OS; CI proves compilation.
 
 The Xcode project is committed directly — open `Health Assistantv2.xcodeproj`
 and build the **Health Assistantv2** scheme. Note: `Sources/` is referenced as

@@ -1,5 +1,12 @@
 # Nell Full Brand and UI System
 
+> **Historical document.** This described the `feature/nell-full-brand-and-ui-system`
+> branch. That work is merged into the current line
+> (`feature/nell-exercise-catalog-location-context`); its bottom-destination
+> label is now **Nell** (not Coach), and current-state documentation lives in
+> `exercise-catalog/IMPLEMENTATION_STATUS.md`, `IOS_CI_STATUS.md`, and the
+> audit documents beside this file.
+
 This feature converts the existing Health Assistant interface into the Nell product system while preserving the current SwiftData models and health/workout functionality.
 
 ## Branch
